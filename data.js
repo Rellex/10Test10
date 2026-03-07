@@ -1,10 +1,10 @@
 const CITIES = [
-  { id: 'novosibirsk', name: 'Новосибирск' },
-  { id: 'spb',         name: 'Санкт-Петербург' },
-  { id: 'iskitim',     name: 'Искитим' },
-  { id: 'omsk',        name: 'Омск' },
-  { id: 'barnaul',     name: 'Барнаул' },
-  { id: 'vyborg',      name: 'Выборг' },
+  { id: 'novosibirsk', name: 'Новосибирск',     phone: '+7 (xxx) xxx xx xx' },
+  { id: 'spb',         name: 'Санкт-Петербург', phone: '+7 (xxx) xxx xx xx' },
+  { id: 'iskitim',     name: 'Искитим',          phone: '+7 (xxx) xxx xx xx' },
+  { id: 'omsk',        name: 'Омск',             phone: '+7 (xxx) xxx xx xx' },
+  { id: 'barnaul',     name: 'Барнаул',          phone: '+7 (xxx) xxx xx xx' },
+  { id: 'vyborg',      name: 'Выборг',           phone: '+7 (813) 990-03-33' },
 ];
 
 const ADDRESSES = {

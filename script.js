@@ -545,9 +545,24 @@ function openModal(id) { document.getElementById(id).style.display = 'flex'; doc
 function closeModal(id) { document.getElementById(id).style.display = 'none'; document.body.style.overflow = ''; }
 
 /* ===== MODAL BINDINGS ===== */
-document.getElementById('cityBtn').addEventListener('click', () => { renderCityList(); openModal('cityModal'); });
+document.getElementById('cityBtn').addEventListener('click', () => {
+  if (state.city) {
+    const city = CITIES.find(c => c.id === state.city);
+    if (city) {
+      document.getElementById('supportCityName').textContent = city.name;
+      const phone = city.phone || '+7 (xxx) xxx xx xx';
+      const phoneEl = document.getElementById('supportPhone');
+      phoneEl.textContent = phone;
+      phoneEl.href = 'tel:' + phone.replace(/[^+\d]/g, '');
+      openModal('supportOverlay');
+      return;
+    }
+  }
+  renderCityList(); openModal('cityModal');
+});
 document.getElementById('selectCityPromptBtn').addEventListener('click', () => { renderCityList(); openModal('cityModal'); });
 document.getElementById('cityModalClose').addEventListener('click', () => closeModal('cityModal'));
+document.getElementById('supportModalClose').addEventListener('click', () => closeModal('supportOverlay'));
 
 function renderAddressesList() {
   const list  = document.getElementById('addressesList');
@@ -809,7 +824,7 @@ document.getElementById('successBackBtn').addEventListener('click', () => {
 });
 
 /* ===== OVERLAY CLICK TO CLOSE ===== */
-['cityModal','bonusModal','addressesModal','itemModal'].forEach(id => {
+['cityModal','bonusModal','addressesModal','itemModal','supportOverlay'].forEach(id => {
   document.getElementById(id).addEventListener('click', e => { if (e.target === document.getElementById(id)) closeModal(id); });
 });
 document.getElementById('cartOverlay').addEventListener('click', e => { if (e.target === document.getElementById('cartOverlay')) closeModal('cartOverlay'); });
