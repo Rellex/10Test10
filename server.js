@@ -341,7 +341,6 @@ function writeOrders(orders) {
 }
 
 const ORDER_STATUSES = [
-  { id: 'pending',    label: 'Ожидание',    color: '#9b59b6' },
   { id: 'new',        label: 'Принят',      color: '#f5a623' },
   { id: 'cooking',    label: 'Готовится',   color: '#e67e22' },
   { id: 'ready',      label: 'Готов',       color: '#27ae60' },
@@ -358,7 +357,7 @@ app.post('/api/orders', (req, res) => {
   const order = {
     id: Date.now().toString(),
     createdAt: new Date().toISOString(),
-    status: 'pending',
+    status: 'new',
     ...data,
   };
   orders.unshift(order);
@@ -441,29 +440,19 @@ function buildOrderMessage(order) {
     `💰 Итого: *${order.total} ₽*
 ` +
     `📊 Статус: ${st.label}` +
+    (order.assembler ? `\n👷 Сборщик: ${order.assembler}` : '') +
     (order.comment ? `\n💬 ${order.comment}` : '');
 }
 
 function buildStatusKeyboard(orderId, currentStatus, mode) {
-  const chainPickup   = ['pending', 'new', 'cooking', 'ready', 'cancelled'];
-  const chainDelivery = ['pending', 'new', 'cooking', 'ready', 'delivering', 'done', 'cancelled'];
+  const chainPickup   = ['pending', 'new', 'cooking', 'ready', 'delivering_skip', 'done'];
+  const chainDelivery = ['pending', 'new', 'cooking', 'ready', 'delivering', 'done'];
   const chain = mode === 'delivery' ? chainDelivery : chainPickup;
 
-  const labels = {
-    pending:    '✅ Принять',
-    new:        '👨‍🍳 Готовится',
-    cooking:    '🎉 Готов',
-    ready:      '🚗 Едет',
-    delivering: '🏠 Доставлен',
-    done:       '🏠 Доставлен',
-    cancelled:  '❌ Отменён',
-  };
-
-  // Правильные метки следующего шага
   const nextLabels = {
-    pending:    '✅ Принять',
+    pending:    '✅ Принять заказ',
     new:        '👨‍🍳 Начать готовить',
-    cooking:    '🎉 Готово',
+    cooking:    '📦 Заказ собран',
     ready:      '🚗 Передать курьеру',
     delivering: '🏠 Доставлен',
   };
@@ -471,15 +460,15 @@ function buildStatusKeyboard(orderId, currentStatus, mode) {
   const currentIdx = chain.indexOf(currentStatus);
   const buttons = [];
 
-  // Следующий шаг
   const nextStatus = chain[currentIdx + 1];
-  if (nextStatus && nextStatus !== 'cancelled') {
+  // cooking -> ready triggers assembler input, use special callback
+  if (currentStatus === 'cooking') {
+    buttons.push([{ text: '📦 Заказ собран', callback_data: `assemble:${orderId}` }]);
+  } else if (nextStatus && nextStatus !== 'delivering_skip') {
     buttons.push([{ text: nextLabels[currentStatus] || nextStatus, callback_data: `status:${orderId}:${nextStatus}` }]);
-  }
-
-  // Кнопка отмены (кроме финальных)
-  if (currentStatus !== 'done' && currentStatus !== 'cancelled') {
-    buttons.push([{ text: '❌ Отменить заказ', callback_data: `status:${orderId}:cancelled` }]);
+  } else if (nextStatus === 'delivering_skip') {
+    // pickup: skip delivering, go straight to done
+    buttons.push([{ text: '🏠 Выдан клиенту', callback_data: `status:${orderId}:done` }]);
   }
 
   return { inline_keyboard: buttons };
@@ -530,13 +519,50 @@ app.get('/api/bot/me', auth, async (req, res) => {
   res.json(updates);
 });
 
+// Map to track orders waiting for assembler name
+const pendingAssemblers = {};
+
 // Webhook от Telegram
 app.post('/api/bot/webhook', async (req, res) => {
   res.sendStatus(200);
   const body = req.body;
+  // Handle text reply for assembler name
+  if (body?.message?.text && body.message.reply_to_message) {
+    const chatId = body.message.chat.id;
+    const orderId = pendingAssemblers[chatId];
+    if (orderId) {
+      const orders = readOrders();
+      const order = orders.find(o => o.id === orderId);
+      if (order) {
+        order.assembler = body.message.text.trim();
+        writeOrders(orders);
+        delete pendingAssemblers[chatId];
+        await updateOrderMessage(order);
+        await tgApi('sendMessage', { chat_id: chatId, text: `✅ Сборщик записан: ${order.assembler}` });
+      }
+    }
+    return;
+  }
+
   if (!body?.callback_query) return;
   const { id, data, message, from } = body.callback_query;
   if (!data?.startsWith('status:')) return;
+
+  // Handle assembler input request
+  if (data.startsWith('assemble:')) {
+    const orderId = data.split(':')[1];
+    const orders = readOrders();
+    const order = orders.find(o => o.id === orderId);
+    if (!order) { await tgApi('answerCallbackQuery', { callback_query_id: id, text: 'Заказ не найден' }); return; }
+    await tgApi('answerCallbackQuery', { callback_query_id: id, text: 'Введите ФИО сборщика' });
+    await tgApi('sendMessage', {
+      chat_id: message.chat.id,
+      text: `✍️ Заказ #${order.id.slice(-6)}. Введите ФИО ответственного за сборку:`,
+      reply_markup: { force_reply: true, selective: false },
+    });
+    pendingAssemblers[message.chat.id] = orderId;
+    return;
+  }
 
   const [, orderId, newStatus] = data.split(':');
   const orders = readOrders();
@@ -549,6 +575,12 @@ app.post('/api/bot/webhook', async (req, res) => {
   const st = ORDER_STATUSES.find(s => s.id === newStatus) || { label: newStatus };
   await tgApi('answerCallbackQuery', { callback_query_id: id, text: `Статус: ${st.label}` });
   await updateOrderMessage(order);
+});
+
+// Handle assembler name reply
+app.post('/api/bot/assembler', async (req, res) => {
+  // This is handled inside webhook
+  res.json({ ok: true });
 });
 
 app.get('/api/orders/statuses', (req, res) => res.json(ORDER_STATUSES));
