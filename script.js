@@ -678,6 +678,12 @@ function renderPickupSelect() {
   });
   renderPickupAddresses(state.city);
   sel.addEventListener('change', function() {
+    if (sel.value) {
+      const city = CITIES.find(c => c.id === sel.value);
+      state.city = sel.value;
+      localStorage.setItem('selectedCity', sel.value);
+      document.getElementById('headerCityName').textContent = city ? city.name : sel.value;
+    }
     renderPickupAddresses(sel.value);
   });
 }
@@ -695,8 +701,10 @@ function renderDeliveryCitySelect() {
   });
   sel.addEventListener('change', function() {
     if (sel.value) {
-      selectCity(sel.value);
-      // сбрасываем проверку зоны при смене города
+      const city = CITIES.find(c => c.id === sel.value);
+      state.city = sel.value;
+      localStorage.setItem('selectedCity', sel.value);
+      document.getElementById('headerCityName').textContent = city ? city.name : sel.value;
       deliveryZoneResult = null;
       const statusEl = document.getElementById('deliveryZoneStatus');
       if (statusEl) { statusEl.textContent = ''; statusEl.className = 'delivery-zone-status'; }
