@@ -620,6 +620,22 @@ document.getElementById('myOrdersBtn').addEventListener('click', () => {
 });
 document.getElementById('ordersModalClose').addEventListener('click', () => closeModal('ordersOverlay'));
 
+document.getElementById('clearOrdersBtn').addEventListener('click', () => {
+  document.getElementById('clearConfirm').style.display = 'block';
+});
+
+document.getElementById('clearConfirmCancel').addEventListener('click', () => {
+  document.getElementById('clearConfirm').style.display = 'none';
+});
+
+document.getElementById('clearConfirmOk').addEventListener('click', () => {
+  localStorage.removeItem('myOrders');
+  localStorage.removeItem('lastOrderPhone');
+  document.getElementById('clearConfirm').style.display = 'none';
+  const list = document.getElementById('ordersList');
+  list.innerHTML = '<div class="orders-empty"><div class="orders-empty-icon">📋</div><div>Заказов пока нет</div></div>';
+});
+
 function renderAddressesList() {
   const list  = document.getElementById('addressesList');
   list.innerHTML = '';
