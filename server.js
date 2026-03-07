@@ -351,8 +351,12 @@ const ORDER_STATUSES = [
 
 // Создать заказ (публичный)
 app.post('/api/orders', (req, res) => {
+  console.log('=== ORDER RECEIVED:', JSON.stringify(req.body));
   const data = req.body;
-  if (!data || !data.name || !data.phone) return res.status(400).json({ error: 'Неверные данные' });
+  if (!data || !data.name || !data.phone) {
+    console.log('=== ORDER REJECTED: bad data ===');
+    return res.status(400).json({ error: 'Неверные данные' });
+  }
   const orders = readOrders();
   const order = {
     id: Date.now().toString(),
@@ -363,7 +367,8 @@ app.post('/api/orders', (req, res) => {
   orders.unshift(order);
   writeOrders(orders);
   res.json({ ok: true, orderId: order.id });
-  notifyNewOrder(order).catch(() => {});
+  console.log('=== NOTIFYING TG, BOT_TOKEN:', BOT_TOKEN ? 'SET' : 'NOT SET', 'TG_CHAT_ID:', process.env.TG_CHAT_ID || 'NOT SET');
+  notifyNewOrder(order).catch((e) => console.error('=== NOTIFY ERROR:', e.message));
 });
 
 // Получить заказы по телефону (публичный)
