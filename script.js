@@ -164,7 +164,10 @@ function getDeliveryPrice(subtotal) {
   // Бесплатная доставка от порога — всегда проверяем независимо от зон
   if (subtotal >= DELIVERY_INFO.freeDeliveryFrom) return 0;
   // Если есть результат проверки зоны — используем его стоимость
-  if (deliveryZoneResult && deliveryZoneResult.allowed) return deliveryZoneResult.cost;
+  // Но игнорируем если сумма упала ниже порога (cost мог быть 0 при старой сумме)
+  if (deliveryZoneResult && deliveryZoneResult.allowed) {
+    return deliveryZoneResult.cost > 0 ? deliveryZoneResult.cost : DELIVERY_INFO.deliveryCost;
+  }
   // Fallback: стандартная логика для городов без зон
   return DELIVERY_INFO.deliveryCost;
 }
