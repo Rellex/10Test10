@@ -8,6 +8,10 @@ const app  = express();
 const PORT = process.env.PORT || 3000;
 const IS_VERCEL = Boolean(process.env.VERCEL);
 
+app.use(cors());
+app.use(express.json());
+app.use(express.static(__dirname));
+
 /* ── paths ─────────────────────────────────── */
 const DATA_DIR = IS_VERCEL ? '/tmp' : __dirname;
 const MENU_FILE      = path.join(DATA_DIR, 'menu.json');
@@ -131,11 +135,6 @@ try {
   console.error('Cannot initialize uploads dir:', err.message);
 }
 
-
-/* ── middleware ────────────────────────────── */
-app.use(cors());
-app.use(express.json());
-app.use(express.static(__dirname));
 
 /* ── token auth ────────────────────────────── */
 const tokens = new Set();
