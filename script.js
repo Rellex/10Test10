@@ -351,6 +351,12 @@ function recalcDeliveryZoneCost() {
     deliveryZoneResult.cost = DELIVERY_INFO.deliveryCost;
     deliveryZoneResult.label = 'Доставка ' + DELIVERY_INFO.deliveryCost + ' ₽';
   }
+  // Обновляем статус под полем адреса
+  const statusEl = document.getElementById('deliveryZoneStatus');
+  if (statusEl) {
+    statusEl.textContent = '✓ ' + deliveryZoneResult.label;
+    statusEl.className = 'delivery-zone-status ok';
+  }
 }
 
 function addToCart(id) {
