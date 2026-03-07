@@ -341,22 +341,34 @@ function updateCardActions(itemId) {
 }
 
 /* ===== CART LOGIC ===== */
+function recalcDeliveryZoneCost() {
+  if (!deliveryZoneResult || !deliveryZoneResult.allowed) return;
+  const sub = getSubtotal();
+  if (sub >= DELIVERY_INFO.freeDeliveryFrom) {
+    deliveryZoneResult.cost = 0;
+    deliveryZoneResult.label = 'Бесплатная доставка';
+  } else {
+    deliveryZoneResult.cost = DELIVERY_INFO.deliveryCost;
+    deliveryZoneResult.label = 'Доставка ' + DELIVERY_INFO.deliveryCost + ' ₽';
+  }
+}
+
 function addToCart(id) {
   state.cart[id] = (state.cart[id] || 0) + 1;
-  saveCart(); updateCardActions(id); updateCartFab(); updateCartSheet();
+  saveCart(); recalcDeliveryZoneCost(); updateCardActions(id); updateCartFab(); updateCartSheet();
   tg?.HapticFeedback?.impactOccurred('light');
 }
 
 function decFromCart(id) {
   if (!state.cart[id]) return;
   if (--state.cart[id] === 0) delete state.cart[id];
-  saveCart(); updateCardActions(id); updateCartFab(); updateCartSheet();
+  saveCart(); recalcDeliveryZoneCost(); updateCardActions(id); updateCartFab(); updateCartSheet();
   tg?.HapticFeedback?.impactOccurred('light');
 }
 
 function setCartQty(id, qty) {
   if (qty <= 0) { delete state.cart[id]; } else { state.cart[id] = qty; }
-  saveCart(); updateCardActions(id); updateCartFab(); updateCartSheet();
+  saveCart(); recalcDeliveryZoneCost(); updateCardActions(id); updateCartFab(); updateCartSheet();
 }
 
 /* ===== CART FAB ===== */
