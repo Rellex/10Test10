@@ -609,6 +609,7 @@ document.getElementById('clearCartBtn').addEventListener('click', () => {
 document.getElementById('goToCheckoutBtn').addEventListener('click', () => {
   if (!getCartCount()) return;
   closeModal('cartOverlay');
+  recalcDeliveryZoneCost();
   renderPickupSelect(); updateCheckoutSummary();
   openModal('checkoutOverlay');
   tg?.HapticFeedback?.impactOccurred('medium');
