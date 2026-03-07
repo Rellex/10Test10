@@ -351,12 +351,8 @@ const ORDER_STATUSES = [
 
 // Создать заказ (публичный)
 app.post('/api/orders', (req, res) => {
-  console.log('=== ORDER RECEIVED:', JSON.stringify(req.body));
   const data = req.body;
-  if (!data || !data.name || !data.phone) {
-    console.log('=== ORDER REJECTED: bad data ===');
-    return res.status(400).json({ error: 'Неверные данные' });
-  }
+  if (!data || !data.name || !data.phone) return res.status(400).json({ error: 'Неверные данные' });
   const orders = readOrders();
   const order = {
     id: Date.now().toString(),
@@ -367,8 +363,7 @@ app.post('/api/orders', (req, res) => {
   orders.unshift(order);
   writeOrders(orders);
   res.json({ ok: true, orderId: order.id });
-  console.log('=== NOTIFYING TG, BOT_TOKEN:', BOT_TOKEN ? 'SET' : 'NOT SET', 'TG_CHAT_ID:', process.env.TG_CHAT_ID || 'NOT SET');
-  notifyNewOrder(order).catch((e) => console.error('=== NOTIFY ERROR:', e.message));
+  notifyNewOrder(order).catch(() => {});
 });
 
 // Получить заказы по телефону (публичный)
@@ -448,18 +443,34 @@ function buildOrderMessage(order) {
     (order.comment ? `\n💬 ${order.comment}` : '');
 }
 
-function buildStatusKeyboard(orderId, currentStatus) {
-  const statuses = [
-    { id: 'new',        label: '✅ Принят' },
-    { id: 'cooking',    label: '👨‍🍳 Готовится' },
-    { id: 'ready',      label: '🎉 Готов' },
-    { id: 'delivering', label: '🚗 Едет' },
-    { id: 'done',       label: '🏠 Доставлен' },
-    { id: 'cancelled',  label: '❌ Отменён' },
-  ];
-  const buttons = statuses
-    .filter(s => s.id !== currentStatus)
-    .map(s => [{ text: s.label, callback_data: `status:${orderId}:${s.id}` }]);
+function buildStatusKeyboard(orderId, currentStatus, mode) {
+  const chainPickup   = ['new', 'cooking', 'ready', 'cancelled'];
+  const chainDelivery = ['new', 'cooking', 'ready', 'delivering', 'done', 'cancelled'];
+  const chain = mode === 'delivery' ? chainDelivery : chainPickup;
+
+  const labels = {
+    new:        '✅ Принят',
+    cooking:    '👨‍🍳 Готовится',
+    ready:      '🎉 Готов',
+    delivering: '🚗 Едет',
+    done:       '🏠 Доставлен',
+    cancelled:  '❌ Отменён',
+  };
+
+  const currentIdx = chain.indexOf(currentStatus);
+  const buttons = [];
+
+  // Следующий шаг в цепочке
+  const nextStatus = chain[currentIdx + 1];
+  if (nextStatus && nextStatus !== 'cancelled') {
+    buttons.push([{ text: labels[nextStatus], callback_data: `status:${orderId}:${nextStatus}` }]);
+  }
+
+  // Кнопка отмены всегда (кроме финальных статусов)
+  if (currentStatus !== 'done' && currentStatus !== 'cancelled') {
+    buttons.push([{ text: labels['cancelled'], callback_data: `status:${orderId}:cancelled` }]);
+  }
+
   return { inline_keyboard: buttons };
 }
 
@@ -469,7 +480,7 @@ async function notifyNewOrder(order) {
   const chatId = process.env.TG_CHAT_ID;
   if (!chatId) return;
   const text = buildOrderMessage(order);
-  const keyboard = buildStatusKeyboard(order.id, order.status);
+  const keyboard = buildStatusKeyboard(order.id, order.status, order.mode);
   const res = await tgApi('sendMessage', {
     chat_id: chatId,
     text,
@@ -492,7 +503,7 @@ async function notifyNewOrder(order) {
 async function updateOrderMessage(order) {
   if (!BOT_TOKEN || !order.tgMessageId || !order.tgChatId) return;
   const text = buildOrderMessage(order);
-  const keyboard = buildStatusKeyboard(order.id, order.status);
+  const keyboard = buildStatusKeyboard(order.id, order.status, order.mode);
   await tgApi('editMessageText', {
     chat_id: order.tgChatId,
     message_id: order.tgMessageId,
