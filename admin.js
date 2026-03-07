@@ -868,8 +868,10 @@ function getDragAfter(container, y, selector) {
 document.getElementById('tabMenu').addEventListener('click', function() {
   document.getElementById('tabMenu').classList.add('active');
   document.getElementById('tabAddresses').classList.remove('active');
+  document.getElementById('tabOrders').classList.remove('active');
   document.getElementById('menuSection').style.display = 'block';
   document.getElementById('addressesSection').style.display = 'none';
+  document.getElementById('ordersSection').style.display = 'none';
   document.getElementById('addItemBtn').style.display = 'flex';
   if (S.activeCatId) document.getElementById('statsRow').style.display = 'flex';
   document.getElementById('topbarTitle').textContent = S.activeCatId
@@ -880,8 +882,10 @@ document.getElementById('tabMenu').addEventListener('click', function() {
 document.getElementById('tabAddresses').addEventListener('click', function() {
   document.getElementById('tabAddresses').classList.add('active');
   document.getElementById('tabMenu').classList.remove('active');
+  document.getElementById('tabOrders').classList.remove('active');
   document.getElementById('menuSection').style.display = 'none';
   document.getElementById('addressesSection').style.display = 'block';
+  document.getElementById('ordersSection').style.display = 'none';
   document.getElementById('addItemBtn').style.display = 'none';
   document.getElementById('statsRow').style.display = 'none';
   document.getElementById('topbarTitle').textContent = 'Города и адреса';
@@ -1070,4 +1074,92 @@ function deleteAddress(cityId, idx) {
   saveAddresses(addrData);
   renderAddressesPanel(openBefore);
   toast('Адрес удалён', 'success');
+}
+
+
+/* ===== ORDERS TAB ===== */
+var ALL_STATUSES = [
+  { id: 'new',        label: 'Принят',    color: '#f5a623' },
+  { id: 'cooking',    label: 'Готовится', color: '#e67e22' },
+  { id: 'ready',      label: 'Готов',     color: '#27ae60' },
+  { id: 'delivering', label: 'Едет',      color: '#2980b9' },
+  { id: 'done',       label: 'Доставлен', color: '#7f8c8d' },
+  { id: 'cancelled',  label: 'Отменён',   color: '#e74c3c' },
+];
+
+document.getElementById('tabOrders').addEventListener('click', function() {
+  document.getElementById('tabOrders').classList.add('active');
+  document.getElementById('tabMenu').classList.remove('active');
+  document.getElementById('tabAddresses').classList.remove('active');
+  document.getElementById('menuSection').style.display = 'none';
+  document.getElementById('addressesSection').style.display = 'none';
+  document.getElementById('ordersSection').style.display = 'block';
+  document.getElementById('addItemBtn').style.display = 'none';
+  document.getElementById('statsRow').style.display = 'none';
+  document.getElementById('topbarTitle').textContent = 'Заказы';
+  document.getElementById('itemsGrid').innerHTML = '';
+  document.getElementById('emptyState').classList.add('hidden');
+  document.getElementById('welcomeState').classList.add('hidden');
+  loadOrders();
+});
+
+document.getElementById('orderStatusFilter').addEventListener('change', function() {
+  renderOrders(window._allOrders || []);
+});
+
+async function loadOrders() {
+  document.getElementById('ordersList').innerHTML = '<div style="padding:16px;text-align:center;color:#999">Загружаем...</div>';
+  try {
+    var res = await fetch('/api/admin/orders', { headers: { 'Authorization': 'Bearer ' + S.token } });
+    var orders = await res.json();
+    window._allOrders = orders;
+    renderOrders(orders);
+  } catch(e) {
+    document.getElementById('ordersList').innerHTML = '<div style="padding:16px;color:red">Ошибка загрузки</div>';
+  }
+}
+
+function renderOrders(orders) {
+  var filter = document.getElementById('orderStatusFilter').value;
+  var filtered = filter ? orders.filter(function(o){ return o.status === filter; }) : orders;
+  var list = document.getElementById('ordersList');
+  if (!filtered.length) {
+    list.innerHTML = '<div style="padding:16px;text-align:center;color:#999">Заказов нет</div>';
+    return;
+  }
+  list.innerHTML = filtered.map(function(o) {
+    var st = ALL_STATUSES.find(function(s){ return s.id === o.status; }) || { label: o.status, color: '#999' };
+    var date = new Date(o.createdAt).toLocaleString('ru', { day:'2-digit', month:'2-digit', hour:'2-digit', minute:'2-digit' });
+    var items = (o.items || []).map(function(i){ return i.name + ' ×' + i.qty; }).join(', ');
+    var statusOptions = ALL_STATUSES.map(function(s) {
+      return '<option value="' + s.id + '"' + (s.id === o.status ? ' selected' : '') + '>' + s.label + '</option>';
+    }).join('');
+    return '<div style="background:#f8f8f8;border-radius:10px;padding:12px;margin:8px 12px;font-size:13px">' +
+      '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px">' +
+        '<strong>#' + o.id.slice(-6) + '</strong>' +
+        '<span style="background:' + st.color + ';color:#fff;padding:2px 8px;border-radius:12px;font-size:11px">' + st.label + '</span>' +
+      '</div>' +
+      '<div style="color:#666;margin-bottom:2px">' + date + ' · ' + (o.cityName || '') + '</div>' +
+      '<div style="color:#333;margin-bottom:2px">' + o.name + ' · ' + o.phone + '</div>' +
+      '<div style="color:#666;font-size:11px;margin-bottom:6px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">' + items + '</div>' +
+      '<div style="display:flex;align-items:center;gap:8px;margin-top:6px">' +
+        '<strong style="color:#f5a623">' + (o.total || 0) + ' ₽</strong>' +
+        '<select onchange="changeOrderStatus('' + o.id + '', this.value)" style="flex:1;padding:4px 6px;border-radius:6px;border:1px solid #ddd;font-size:12px">' + statusOptions + '</select>' +
+      '</div>' +
+    '</div>';
+  }).join('');
+}
+
+async function changeOrderStatus(orderId, status) {
+  try {
+    await fetch('/api/admin/orders/' + orderId + '/status', {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + S.token },
+      body: JSON.stringify({ status: status })
+    });
+    showToast('Статус обновлён');
+    loadOrders();
+  } catch(e) {
+    showToast('Ошибка обновления');
+  }
 }

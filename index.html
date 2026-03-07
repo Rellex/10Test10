@@ -270,6 +270,7 @@
         <button class="btn-link small" id="cityBtn" style="margin-left:auto">
           <span class="city-name" id="headerCityName">Поддержка</span>
         </button>
+        <button class="btn-link small" id="myOrdersBtn">Мои заказы</button>
       </div>
     </header>
 
@@ -296,6 +297,18 @@
       <span class="cart-fab-total" id="cartFabTotal">0 ₽</span>
     </button>
 
+  </div>
+
+  <!-- ===== MY ORDERS SHEET ===== -->
+  <div class="modal-overlay" id="ordersOverlay" style="display:none">
+    <div class="bottom-sheet orders-sheet" id="ordersSheet">
+      <div class="sheet-handle"></div>
+      <div class="support-header">
+        <span class="support-title">Мои заказы</span>
+        <button class="modal-close" id="ordersModalClose">✕</button>
+      </div>
+      <div class="orders-body" id="ordersList"></div>
+    </div>
   </div>
 
   <!-- ===== SUPPORT SHEET ===== -->

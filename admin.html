@@ -47,6 +47,7 @@
       <div class="sidebar-tabs">
         <button class="sidebar-tab active" id="tabMenu">&#127859; Меню</button>
         <button class="sidebar-tab" id="tabAddresses">&#128205; Адреса</button>
+        <button class="sidebar-tab" id="tabOrders">&#128203; Заказы</button>
       </div>
 
       <div id="menuSection">
@@ -62,6 +63,22 @@
         <div class="sidebar-bottom">
           <button class="btn-add-cat" id="addCityBtn">+ Добавить город</button>
         </div>
+      </div>
+
+      <div id="ordersSection" style="display:none">
+        <div class="sidebar-section-label">Заказы</div>
+        <div id="ordersFilter" style="padding:0 12px 8px">
+          <select id="orderStatusFilter" style="width:100%;padding:6px 8px;border-radius:8px;border:1px solid #eee;font-size:13px">
+            <option value="">Все статусы</option>
+            <option value="new">Принят</option>
+            <option value="cooking">Готовится</option>
+            <option value="ready">Готов</option>
+            <option value="delivering">Едет</option>
+            <option value="done">Доставлен</option>
+            <option value="cancelled">Отменён</option>
+          </select>
+        </div>
+        <div id="ordersList" style="overflow-y:auto;flex:1"></div>
       </div>
 
       <div class="sidebar-logout">

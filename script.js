@@ -564,6 +564,62 @@ document.getElementById('selectCityPromptBtn').addEventListener('click', () => {
 document.getElementById('cityModalClose').addEventListener('click', () => closeModal('cityModal'));
 document.getElementById('supportModalClose').addEventListener('click', () => closeModal('supportOverlay'));
 
+/* ===== MY ORDERS ===== */
+const ORDER_STATUS_MAP = {
+  new:        { label: 'Принят',    color: '#f5a623', icon: '✅' },
+  cooking:    { label: 'Готовится', color: '#e67e22', icon: '👨‍🍳' },
+  ready:      { label: 'Готов',     color: '#27ae60', icon: '🎉' },
+  delivering: { label: 'Едет',      color: '#2980b9', icon: '🚗' },
+  done:       { label: 'Доставлен', color: '#7f8c8d', icon: '🏠' },
+  cancelled:  { label: 'Отменён',   color: '#e74c3c', icon: '❌' },
+};
+
+async function loadAndRenderOrders() {
+  const list = document.getElementById('ordersList');
+  list.innerHTML = '<div class="orders-loading">Загружаем...</div>';
+
+  const phone = localStorage.getItem('lastOrderPhone');
+  let orders = [];
+
+  if (phone) {
+    try {
+      const res = await fetch('/api/orders/by-phone/' + encodeURIComponent(phone));
+      orders = await res.json();
+    } catch {}
+  }
+
+  // Также берём из localStorage если нет телефона
+  if (!orders.length) {
+    orders = JSON.parse(localStorage.getItem('myOrders') || '[]');
+  }
+
+  if (!orders.length) {
+    list.innerHTML = '<div class="orders-empty"><div class="orders-empty-icon">📋</div><div>Заказов пока нет</div></div>';
+    return;
+  }
+
+  list.innerHTML = orders.map(o => {
+    const st = ORDER_STATUS_MAP[o.status] || { label: o.status, color: '#999', icon: '❓' };
+    const date = new Date(o.createdAt).toLocaleString('ru', { day:'2-digit', month:'2-digit', hour:'2-digit', minute:'2-digit' });
+    const items = (o.items || []).map(i => i.name + ' ×' + i.qty).join(', ');
+    return `<div class="order-card">
+      <div class="order-card-top">
+        <span class="order-id">Заказ #${o.id.slice(-6)}</span>
+        <span class="order-status-badge" style="background:${st.color}">${st.icon} ${st.label}</span>
+      </div>
+      <div class="order-date">${date}</div>
+      <div class="order-items">${items}</div>
+      <div class="order-total">${fmt(o.total)} ₽</div>
+    </div>`;
+  }).join('');
+}
+
+document.getElementById('myOrdersBtn').addEventListener('click', () => {
+  loadAndRenderOrders();
+  openModal('ordersOverlay');
+});
+document.getElementById('ordersModalClose').addEventListener('click', () => closeModal('ordersOverlay'));
+
 function renderAddressesList() {
   const list  = document.getElementById('addressesList');
   list.innerHTML = '';
@@ -848,6 +904,19 @@ document.getElementById('checkoutForm').addEventListener('submit', e => {
     }),
   };
 
+  // Сохраняем заказ на сервере
+  fetch('/api/orders', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(orderData)
+  }).then(r => r.json()).then(data => {
+    if (data.orderId) {
+      const saved = JSON.parse(localStorage.getItem('myOrders') || '[]');
+      saved.unshift({ ...orderData, id: data.orderId, status: 'new', createdAt: new Date().toISOString() });
+      localStorage.setItem('myOrders', JSON.stringify(saved.slice(0, 50)));
+    }
+  }).catch(() => {});
+  localStorage.setItem('lastOrderPhone', orderData.phone);
   if (tg) tg.sendData(JSON.stringify(orderData));
   closeModal('checkoutOverlay');
   showSuccess();
@@ -871,7 +940,7 @@ document.getElementById('successBackBtn').addEventListener('click', () => {
 });
 
 /* ===== OVERLAY CLICK TO CLOSE ===== */
-['cityModal','bonusModal','addressesModal','itemModal','supportOverlay'].forEach(id => {
+['cityModal','bonusModal','addressesModal','itemModal','supportOverlay','ordersOverlay'].forEach(id => {
   document.getElementById(id).addEventListener('click', e => { if (e.target === document.getElementById(id)) closeModal(id); });
 });
 document.getElementById('cartOverlay').addEventListener('click', e => { if (e.target === document.getElementById('cartOverlay')) closeModal('cartOverlay'); });

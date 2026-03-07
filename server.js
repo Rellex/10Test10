@@ -16,9 +16,12 @@ app.use(express.static(__dirname));
 const DATA_DIR = IS_VERCEL ? '/tmp' : __dirname;
 const MENU_FILE      = path.join(DATA_DIR, 'menu.json');
 const ADDRESSES_FILE = path.join(DATA_DIR, 'addresses.json');
+const ORDERS_FILE    = path.join(DATA_DIR, 'orders.json');
 const UPLOADS_DIR    = path.join(DATA_DIR, 'uploads');
 const ADMIN_PASSWORD  = process.env.ADMIN_PASSWORD  || 'admin123';
 const YANDEX_GEO_KEY  = process.env.YANDEX_GEO_KEY  || '';
+const BOT_TOKEN       = process.env.BOT_TOKEN        || '';
+const WEBHOOK_DOMAIN  = process.env.WEBHOOK_DOMAIN   || '10test10-production.up.railway.app';
 
 /* ── delivery zones ────────────────────────── */
 const DELIVERY_ZONES = {
@@ -318,6 +321,211 @@ function writeAddresses(data) {
   fs.writeFileSync(ADDRESSES_FILE, JSON.stringify(data, null, 2));
 }
 
+/* ── orders ─────────────────────────────────── */
+let memoryOrders = null;
+
+function readOrders() {
+  if (memoryOrders) return memoryOrders;
+  if (!fs.existsSync(ORDERS_FILE)) return [];
+  try {
+    memoryOrders = JSON.parse(fs.readFileSync(ORDERS_FILE, 'utf8'));
+    return memoryOrders;
+  } catch { return []; }
+}
+
+function writeOrders(orders) {
+  memoryOrders = orders;
+  try { fs.writeFileSync(ORDERS_FILE, JSON.stringify(orders, null, 2), 'utf8'); } catch (e) {
+    console.error('Cannot persist orders:', e.message);
+  }
+}
+
+const ORDER_STATUSES = [
+  { id: 'new',        label: 'Принят',      color: '#f5a623' },
+  { id: 'cooking',    label: 'Готовится',   color: '#e67e22' },
+  { id: 'ready',      label: 'Готов',       color: '#27ae60' },
+  { id: 'delivering', label: 'Едет',        color: '#2980b9' },
+  { id: 'done',       label: 'Доставлен',   color: '#7f8c8d' },
+  { id: 'cancelled',  label: 'Отменён',     color: '#e74c3c' },
+];
+
+// Создать заказ (публичный)
+app.post('/api/orders', (req, res) => {
+  const data = req.body;
+  if (!data || !data.name || !data.phone) return res.status(400).json({ error: 'Неверные данные' });
+  const orders = readOrders();
+  const order = {
+    id: Date.now().toString(),
+    createdAt: new Date().toISOString(),
+    status: 'new',
+    ...data,
+  };
+  orders.unshift(order);
+  writeOrders(orders);
+  res.json({ ok: true, orderId: order.id });
+  notifyNewOrder(order).catch(() => {});
+});
+
+// Получить заказы по телефону (публичный)
+app.get('/api/orders/by-phone/:phone', (req, res) => {
+  const phone = decodeURIComponent(req.params.phone).replace(/\D/g, '');
+  const orders = readOrders().filter(o => o.phone.replace(/\D/g, '') === phone);
+  res.json(orders);
+});
+
+// Получить все заказы (админ)
+app.get('/api/admin/orders', auth, (req, res) => {
+  res.json(readOrders());
+});
+
+// Сменить статус заказа (админ)
+app.patch('/api/admin/orders/:id/status', auth, (req, res) => {
+  const { status } = req.body;
+  if (!ORDER_STATUSES.find(s => s.id === status)) return res.status(400).json({ error: 'Неверный статус' });
+  const orders = readOrders();
+  const order = orders.find(o => o.id === req.params.id);
+  if (!order) return res.status(404).json({ error: 'Заказ не найден' });
+  order.status = status;
+  writeOrders(orders);
+  res.json({ ok: true });
+  updateOrderMessage(order).catch(() => {});
+});
+
+// Список статусов
+app.get('/api/orders/statuses', (req, res) => res.json(ORDER_STATUSES));
+
+/* ── telegram bot ───────────────────────────── */
+async function tgApi(method, body) {
+  if (!BOT_TOKEN) return null;
+  try {
+    const r = await fetch(`https://api.telegram.org/bot${BOT_TOKEN}/${method}`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(body),
+    });
+    return await r.json();
+  } catch(e) {
+    console.error('TG API error:', e.message);
+    return null;
+  }
+}
+
+async function setWebhook() {
+  if (!BOT_TOKEN) return;
+  const url = `https://${WEBHOOK_DOMAIN}/api/bot/webhook`;
+  const res = await tgApi('setWebhook', { url, drop_pending_updates: true });
+  console.log('Webhook set:', res?.ok ? 'OK' : res?.description);
+}
+
+function buildOrderMessage(order) {
+  const st = ORDER_STATUSES.find(s => s.id === order.status) || { label: order.status };
+  const items = (order.items || []).map(i => `  • ${i.name} ×${i.qty} — ${i.price * i.qty} ₽`).join('\n');
+  const date = new Date(order.createdAt).toLocaleString('ru', { timeZone: 'Asia/Novosibirsk' });
+  return `🆕 *Новый заказ #${order.id.slice(-6)}*
+` +
+    `📅 ${date}
+` +
+    `👤 ${order.name} | 📞 ${order.phone}
+` +
+    `📍 ${order.cityName || ''} — ${order.address || ''}
+` +
+    `🚚 ${order.mode === 'delivery' ? 'Доставка' : 'Самовывоз'}
+` +
+    `💳 ${order.payment === 'cash' ? 'Наличные' : order.payment === 'card_on_delivery' ? 'Карта при получении' : 'Онлайн'}
+
+` +
+    `${items}
+
+` +
+    `💰 Итого: *${order.total} ₽*
+` +
+    `📊 Статус: ${st.label}` +
+    (order.comment ? `\n💬 ${order.comment}` : '');
+}
+
+function buildStatusKeyboard(orderId, currentStatus) {
+  const statuses = [
+    { id: 'new',        label: '✅ Принят' },
+    { id: 'cooking',    label: '👨‍🍳 Готовится' },
+    { id: 'ready',      label: '🎉 Готов' },
+    { id: 'delivering', label: '🚗 Едет' },
+    { id: 'done',       label: '🏠 Доставлен' },
+    { id: 'cancelled',  label: '❌ Отменён' },
+  ];
+  const buttons = statuses
+    .filter(s => s.id !== currentStatus)
+    .map(s => [{ text: s.label, callback_data: `status:${orderId}:${s.id}` }]);
+  return { inline_keyboard: buttons };
+}
+
+// Уведомление о новом заказе
+async function notifyNewOrder(order) {
+  if (!BOT_TOKEN) return;
+  const chatId = process.env.TG_CHAT_ID;
+  if (!chatId) return;
+  const text = buildOrderMessage(order);
+  const keyboard = buildStatusKeyboard(order.id, order.status);
+  const res = await tgApi('sendMessage', {
+    chat_id: chatId,
+    text,
+    parse_mode: 'Markdown',
+    reply_markup: keyboard,
+  });
+  // Сохраняем message_id чтобы потом редактировать
+  if (res?.ok && res.result?.message_id) {
+    const orders = readOrders();
+    const o = orders.find(x => x.id === order.id);
+    if (o) {
+      o.tgMessageId = res.result.message_id;
+      o.tgChatId = chatId;
+      writeOrders(orders);
+    }
+  }
+}
+
+// Обновление сообщения при смене статуса
+async function updateOrderMessage(order) {
+  if (!BOT_TOKEN || !order.tgMessageId || !order.tgChatId) return;
+  const text = buildOrderMessage(order);
+  const keyboard = buildStatusKeyboard(order.id, order.status);
+  await tgApi('editMessageText', {
+    chat_id: order.tgChatId,
+    message_id: order.tgMessageId,
+    text,
+    parse_mode: 'Markdown',
+    reply_markup: keyboard,
+  });
+}
+
+// Получить chat_id (для настройки)
+app.get('/api/bot/me', auth, async (req, res) => {
+  const updates = await tgApi('getUpdates', { limit: 5 });
+  res.json(updates);
+});
+
+// Webhook от Telegram
+app.post('/api/bot/webhook', async (req, res) => {
+  res.sendStatus(200);
+  const body = req.body;
+  if (!body?.callback_query) return;
+  const { id, data, message, from } = body.callback_query;
+  if (!data?.startsWith('status:')) return;
+
+  const [, orderId, newStatus] = data.split(':');
+  const orders = readOrders();
+  const order = orders.find(o => o.id === orderId);
+  if (!order) { await tgApi('answerCallbackQuery', { callback_query_id: id, text: 'Заказ не найден' }); return; }
+
+  order.status = newStatus;
+  writeOrders(orders);
+
+  const st = ORDER_STATUSES.find(s => s.id === newStatus) || { label: newStatus };
+  await tgApi('answerCallbackQuery', { callback_query_id: id, text: `Статус: ${st.label}` });
+  await updateOrderMessage(order);
+});
+
+app.get('/api/orders/statuses', (req, res) => res.json(ORDER_STATUSES));
+
 app.get('/api/addresses', (_req, res) => res.json(readAddresses()));
 
 app.put('/api/addresses', auth, (req, res) => {
@@ -338,6 +546,7 @@ app.use((err, _req, res, _next) => {
 
 /* ── start/export ──────────────────────────── */
 if (require.main === module) {
+  setWebhook();
   app.listen(PORT, () => {
     console.log(`\n☀️  Солнечный день — сервер запущен`);
     console.log(`   Мини-апп:    http://localhost:${PORT}/`);
