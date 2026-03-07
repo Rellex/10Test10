@@ -210,7 +210,7 @@ a { text-decoration: none; color: inherit; }
   background: var(--white);
   border-bottom: 1px solid var(--grey-2);
   position: sticky;
-  top: 97px;
+  top: var(--header-h, 0px);
   z-index: 90;
 }
 

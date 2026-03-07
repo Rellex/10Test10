@@ -65,6 +65,8 @@ function rerenderMenuAfterUpdate() {
   renderMenuContent();
   updateCartFab();
   updateCartSheet();
+  updateHeaderHeight();
+  window.addEventListener('resize', updateHeaderHeight);
 }
 
 function saveMenuCache(menu) {
@@ -827,6 +829,11 @@ function setupScrollSpy() {
 }
 
 /* ===== INIT ===== */
+function updateHeaderHeight() {
+  const h = document.getElementById('appHeader');
+  if (h) document.documentElement.style.setProperty('--header-h', h.offsetHeight + 'px');
+}
+
 async function init() {
   if (tg?.themeParams) {
     const tp = tg.themeParams;
