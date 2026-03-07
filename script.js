@@ -431,10 +431,27 @@ function updateCartSummary() {
 
   document.getElementById('totalVal').textContent = fmt(getTotal());
 
-  const hint = document.getElementById('freeDeliveryHint');
-  if (state.deliveryMode === 'delivery' && sub < DELIVERY_INFO.freeDeliveryFrom && sub > 0) {
-    hint.textContent = `Добавьте ещё ${fmt(DELIVERY_INFO.freeDeliveryFrom - sub)} и доставка будет бесплатной! 🎉`;
-  } else { hint.textContent = ''; }
+  const progressWrap = document.getElementById('deliveryProgressWrap');
+  const progressText = document.getElementById('deliveryProgressText');
+  const progressFill = document.getElementById('deliveryProgressFill');
+  if (progressWrap && state.deliveryMode === 'delivery') {
+    progressWrap.style.display = 'block';
+    const target = DELIVERY_INFO.freeDeliveryFrom;
+    const pct = Math.min(100, Math.round((sub / target) * 100));
+    progressFill.style.width = pct + '%';
+    if (sub === 0) {
+      progressText.textContent = '';
+      progressFill.style.width = '0%';
+    } else if (sub < target) {
+      const left = target - sub;
+      progressText.textContent = `Добавьте ещё ${fmt(left)} до бесплатной доставки 🚚`;
+    } else {
+      progressText.textContent = '🎉 Доставка бесплатная!';
+      progressFill.style.width = '100%';
+    }
+  } else if (progressWrap) {
+    progressWrap.style.display = 'none';
+  }
 }
 
 function updateCheckoutSummary() {
@@ -662,8 +679,7 @@ async function checkDeliveryZone(address) {
   if (statusEl) { statusEl.textContent = 'Проверяем адрес...'; statusEl.className = 'delivery-zone-status checking'; }
 
   try {
-    const cityName = (CITIES.find(c => c.id === cityId) || {}).name || cityId;
-    const fullAddress = cityName + ', ' + address;
+    const fullAddress = 'Выборг, ' + address;
     const res  = await fetch('/api/delivery/check', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
