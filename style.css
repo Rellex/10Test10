@@ -65,8 +65,9 @@ a { text-decoration: none; color: inherit; }
   top: 0;
   z-index: 100;
   background: linear-gradient(135deg, var(--sun) 0%, var(--orange) 100%);
-  padding: 12px 16px 0;
+  padding: 0 0 0;
   box-shadow: 0 2px 12px rgba(245,166,35,.35);
+  overflow: hidden;
 }
 
 .header-top {
@@ -77,8 +78,8 @@ a { text-decoration: none; color: inherit; }
   display: block;
   width: 100%;
   overflow: hidden;
-  border-radius: 8px;
-  margin-bottom: 4px;
+  border-radius: 0;
+  margin-bottom: 0;
 }
 
 .logo-img {
@@ -135,9 +136,9 @@ a { text-decoration: none; color: inherit; }
   display: flex;
   align-items: center;
   gap: 8px;
-  padding: 6px 0 8px;
+  padding: 6px 16px 8px;
   border-top: 1px solid rgba(255,255,255,.2);
-  margin-top: 4px;
+  margin-top: 0;
 }
 
 .work-hours-text {
