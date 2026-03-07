@@ -70,22 +70,24 @@ a { text-decoration: none; color: inherit; }
 }
 
 .header-top {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 8px;
+  display: block;
 }
 
 .header-logo {
-  display: flex;
-  align-items: center;
-  justify-content: center;
+  display: block;
+  width: 100%;
+  overflow: hidden;
+  border-radius: 8px;
+  margin-bottom: 4px;
 }
 
 .logo-img {
-  height: 48px;
-  width: auto;
-  object-fit: contain;
+  width: 100%;
+  height: auto;
+  max-height: 80px;
+  object-fit: cover;
+  object-position: center;
+  display: block;
 }
 
 .logo-sun { font-size: 22px; animation: spin 8s linear infinite; }
