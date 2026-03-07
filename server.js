@@ -341,6 +341,7 @@ function writeOrders(orders) {
 }
 
 const ORDER_STATUSES = [
+  { id: 'pending',    label: 'Ожидание',    color: '#9b59b6' },
   { id: 'new',        label: 'Принят',      color: '#f5a623' },
   { id: 'cooking',    label: 'Готовится',   color: '#e67e22' },
   { id: 'ready',      label: 'Готов',       color: '#27ae60' },
@@ -357,7 +358,7 @@ app.post('/api/orders', (req, res) => {
   const order = {
     id: Date.now().toString(),
     createdAt: new Date().toISOString(),
-    status: 'new',
+    status: 'pending',
     ...data,
   };
   orders.unshift(order);
@@ -444,31 +445,41 @@ function buildOrderMessage(order) {
 }
 
 function buildStatusKeyboard(orderId, currentStatus, mode) {
-  const chainPickup   = ['new', 'cooking', 'ready', 'cancelled'];
-  const chainDelivery = ['new', 'cooking', 'ready', 'delivering', 'done', 'cancelled'];
+  const chainPickup   = ['pending', 'new', 'cooking', 'ready', 'cancelled'];
+  const chainDelivery = ['pending', 'new', 'cooking', 'ready', 'delivering', 'done', 'cancelled'];
   const chain = mode === 'delivery' ? chainDelivery : chainPickup;
 
   const labels = {
-    new:        '✅ Принят',
-    cooking:    '👨‍🍳 Готовится',
-    ready:      '🎉 Готов',
-    delivering: '🚗 Едет',
+    pending:    '✅ Принять',
+    new:        '👨‍🍳 Готовится',
+    cooking:    '🎉 Готов',
+    ready:      '🚗 Едет',
+    delivering: '🏠 Доставлен',
     done:       '🏠 Доставлен',
     cancelled:  '❌ Отменён',
+  };
+
+  // Правильные метки следующего шага
+  const nextLabels = {
+    pending:    '✅ Принять',
+    new:        '👨‍🍳 Начать готовить',
+    cooking:    '🎉 Готово',
+    ready:      '🚗 Передать курьеру',
+    delivering: '🏠 Доставлен',
   };
 
   const currentIdx = chain.indexOf(currentStatus);
   const buttons = [];
 
-  // Следующий шаг в цепочке
+  // Следующий шаг
   const nextStatus = chain[currentIdx + 1];
   if (nextStatus && nextStatus !== 'cancelled') {
-    buttons.push([{ text: labels[nextStatus], callback_data: `status:${orderId}:${nextStatus}` }]);
+    buttons.push([{ text: nextLabels[currentStatus] || nextStatus, callback_data: `status:${orderId}:${nextStatus}` }]);
   }
 
-  // Кнопка отмены всегда (кроме финальных статусов)
+  // Кнопка отмены (кроме финальных)
   if (currentStatus !== 'done' && currentStatus !== 'cancelled') {
-    buttons.push([{ text: labels['cancelled'], callback_data: `status:${orderId}:cancelled` }]);
+    buttons.push([{ text: '❌ Отменить заказ', callback_data: `status:${orderId}:cancelled` }]);
   }
 
   return { inline_keyboard: buttons };
