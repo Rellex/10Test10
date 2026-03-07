@@ -161,10 +161,12 @@ function getSubtotal() {
 
 function getDeliveryPrice(subtotal) {
   if (state.deliveryMode === 'pickup') return 0;
-  // Если есть результат проверки зоны — используем его
+  // Бесплатная доставка от порога — всегда проверяем независимо от зон
+  if (subtotal >= DELIVERY_INFO.freeDeliveryFrom) return 0;
+  // Если есть результат проверки зоны — используем его стоимость
   if (deliveryZoneResult && deliveryZoneResult.allowed) return deliveryZoneResult.cost;
   // Fallback: стандартная логика для городов без зон
-  return subtotal >= DELIVERY_INFO.freeDeliveryFrom ? 0 : DELIVERY_INFO.deliveryCost;
+  return DELIVERY_INFO.deliveryCost;
 }
 
 function getTotal() {
