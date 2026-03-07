@@ -1144,7 +1144,7 @@ function renderOrders(orders) {
       '<div style="color:#666;font-size:11px;margin-bottom:6px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">' + items + '</div>' +
       '<div style="display:flex;align-items:center;gap:8px;margin-top:6px">' +
         '<strong style="color:#f5a623">' + (o.total || 0) + ' ₽</strong>' +
-        '<select onchange="changeOrderStatus('' + o.id + '', this.value)" style="flex:1;padding:4px 6px;border-radius:6px;border:1px solid #ddd;font-size:12px">' + statusOptions + '</select>' +
+        '<select onchange="changeOrderStatus(\'' + o.id + '\', this.value)" style="flex:1;padding:4px 6px;border-radius:6px;border:1px solid #ddd;font-size:12px">' + statusOptions + '</select>' +
       '</div>' +
     '</div>';
   }).join('');
