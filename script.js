@@ -662,7 +662,8 @@ async function checkDeliveryZone(address) {
   if (statusEl) { statusEl.textContent = 'Проверяем адрес...'; statusEl.className = 'delivery-zone-status checking'; }
 
   try {
-    const fullAddress = 'Выборг, ' + address;
+    const cityName = (CITIES.find(c => c.id === cityId) || {}).name || cityId;
+    const fullAddress = cityName + ', ' + address;
     const res  = await fetch('/api/delivery/check', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
