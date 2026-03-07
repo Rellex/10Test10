@@ -72,14 +72,20 @@ a { text-decoration: none; color: inherit; }
 .header-top {
   display: flex;
   align-items: center;
-  justify-content: space-between;
+  justify-content: center;
   gap: 8px;
 }
 
 .header-logo {
   display: flex;
   align-items: center;
-  gap: 6px;
+  justify-content: center;
+}
+
+.logo-img {
+  height: 48px;
+  width: auto;
+  object-fit: contain;
 }
 
 .logo-sun { font-size: 22px; animation: spin 8s linear infinite; }
