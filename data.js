@@ -158,7 +158,7 @@ const MENU = {
 const DELIVERY_INFO = {
   minOrder: 500,
   deliveryCost: 299,
-  freeDeliveryFrom: 700,
+  freeDeliveryFrom: 2000,
   workHours: 'с 8:00 до 20:00',
   workDays: 'Пн–Вс',
   avgDeliveryTime: '90 минут',
