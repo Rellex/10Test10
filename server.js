@@ -8,10 +8,6 @@ const app  = express();
 const PORT = process.env.PORT || 3000;
 const IS_VERCEL = Boolean(process.env.VERCEL);
 
-app.use(cors());
-app.use(express.json());
-app.use(express.static(__dirname));
-
 /* ── paths ─────────────────────────────────── */
 const DATA_DIR = IS_VERCEL ? '/tmp' : __dirname;
 const MENU_FILE      = path.join(DATA_DIR, 'menu.json');
@@ -102,8 +98,14 @@ app.post('/api/delivery/check', async (req, res) => {
     const url = `https://geocode-maps.yandex.ru/1.x/?apikey=${YANDEX_GEO_KEY}&geocode=${encodeURIComponent(address)}&format=json&results=1`;
     const r   = await fetch(url);
     const d   = await r.json();
-    const pos = d?.response?.GeoObjectCollection?.featureMember?.[0]?.GeoObject?.Point?.pos;
-    if (!pos) return res.status(404).json({ error: 'Адрес не найден. Проверьте правильность написания.' });
+    const member = d?.response?.GeoObjectCollection?.featureMember?.[0];
+    const pos = member?.GeoObject?.Point?.pos;
+    if (!pos) return res.json({ allowed: false, reason: 'Адрес не найден. Проверьте правильность написания.' });
+    const precision = member?.GeoObject?.metaDataProperty?.GeocoderMetaData?.precision;
+    const kind = member?.GeoObject?.metaDataProperty?.GeocoderMetaData?.kind;
+    if (!['exact','number','near','range'].includes(precision) || !['house','entrance','street'].includes(kind)) {
+      return res.json({ allowed: false, reason: 'Уточните адрес: укажите улицу и номер дома.' });
+    }
     [lng, lat] = pos.split(' ').map(parseFloat);
   } catch(e) {
     return res.status(500).json({ error: 'Не удалось определить координаты адреса' });
@@ -134,6 +136,7 @@ try {
 } catch (err) {
   console.error('Cannot initialize uploads dir:', err.message);
 }
+
 
 
 /* ── token auth ────────────────────────────── */
