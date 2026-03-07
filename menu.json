@@ -1,0 +1,696 @@
+{
+  "categories": [
+    {
+      "id": "lunches",
+      "name": "Комплексные обеды",
+      "active": true
+    },
+    {
+      "id": "breakfast",
+      "name": "Завтраки",
+      "active": true
+    },
+    {
+      "id": "soups",
+      "name": "Супы",
+      "active": true
+    },
+    {
+      "id": "salads",
+      "name": "Салаты",
+      "active": true
+    },
+    {
+      "id": "hot",
+      "name": "Горячее",
+      "active": true
+    },
+    {
+      "id": "garnish",
+      "name": "Гарниры",
+      "active": true
+    },
+    {
+      "id": "pancakes",
+      "name": "Блинчики",
+      "active": true
+    },
+    {
+      "id": "sweet",
+      "name": "Сладкие добавки",
+      "active": true
+    },
+    {
+      "id": "additions",
+      "name": "Добавки",
+      "active": true
+    },
+    {
+      "id": "frozen",
+      "name": "Замороженные полуфабрикаты",
+      "active": true
+    },
+    {
+      "id": "drinks",
+      "name": "Напитки",
+      "active": true
+    },
+    {
+      "id": "sugar",
+      "name": "Сахар и приборы",
+      "active": true
+    }
+  ],
+  "items": [
+    {
+      "id": "l1",
+      "categoryId": "lunches",
+      "name": "Комплексный обед №1 (суп + горячее + салат + компот)",
+      "price": 320,
+      "weight": "600г",
+      "emoji": "🍱",
+      "image": null,
+      "active": true
+    },
+    {
+      "id": "l2",
+      "categoryId": "lunches",
+      "name": "Комплексный обед №2 (суп + горячее + хлеб)",
+      "price": 270,
+      "weight": "500г",
+      "emoji": "🥘",
+      "image": null,
+      "active": true
+    },
+    {
+      "id": "l3",
+      "categoryId": "lunches",
+      "name": "Комплексный обед №3 (горячее + гарнир + салат)",
+      "price": 290,
+      "weight": "550г",
+      "emoji": "🍽️",
+      "image": null,
+      "active": true
+    },
+    {
+      "id": "l4",
+      "categoryId": "lunches",
+      "name": "Бизнес-ланч (суп + горячее + гарнир + напиток)",
+      "price": 350,
+      "weight": "650г",
+      "emoji": "🍱",
+      "image": null,
+      "active": true
+    },
+    {
+      "id": "b1",
+      "categoryId": "breakfast",
+      "name": "Каша овсяная с маслом",
+      "price": 90,
+      "weight": "250г",
+      "emoji": "🥣",
+      "image": null,
+      "active": true
+    },
+    {
+      "id": "b2",
+      "categoryId": "breakfast",
+      "name": "Омлет с сыром",
+      "price": 130,
+      "weight": "200г",
+      "emoji": "🍳",
+      "image": null,
+      "active": true
+    },
+    {
+      "id": "b3",
+      "categoryId": "breakfast",
+      "name": "Сырники со сметаной",
+      "price": 150,
+      "weight": "250г",
+      "emoji": "🥞",
+      "image": null,
+      "active": true
+    },
+    {
+      "id": "b4",
+      "categoryId": "breakfast",
+      "name": "Каша гречневая с маслом",
+      "price": 90,
+      "weight": "250г",
+      "emoji": "🥣",
+      "image": null,
+      "active": false
+    },
+    {
+      "id": "b5",
+      "categoryId": "breakfast",
+      "name": "Творог со сметаной",
+      "price": 120,
+      "weight": "200г",
+      "emoji": "🥛",
+      "image": null,
+      "active": false
+    },
+    {
+      "id": "b6",
+      "categoryId": "breakfast",
+      "name": "Яйца вареные (2 шт)",
+      "price": 60,
+      "weight": "120г",
+      "emoji": "🥚",
+      "image": null,
+      "active": false
+    },
+    {
+      "id": "s1",
+      "categoryId": "soups",
+      "name": "Борщ со сметаной",
+      "price": 140,
+      "weight": "300г",
+      "emoji": "🍲",
+      "image": null,
+      "active": false
+    },
+    {
+      "id": "s2",
+      "categoryId": "soups",
+      "name": "Щи из свежей капусты",
+      "price": 120,
+      "weight": "300г",
+      "emoji": "🥣",
+      "image": null,
+      "active": false
+    },
+    {
+      "id": "s3",
+      "categoryId": "soups",
+      "name": "Куриный суп с лапшой",
+      "price": 130,
+      "weight": "300г",
+      "emoji": "🍜",
+      "image": null,
+      "active": false
+    },
+    {
+      "id": "s4",
+      "categoryId": "soups",
+      "name": "Солянка мясная",
+      "price": 160,
+      "weight": "300г",
+      "emoji": "🍲",
+      "image": null,
+      "active": false
+    },
+    {
+      "id": "s5",
+      "categoryId": "soups",
+      "name": "Уха рыбная",
+      "price": 150,
+      "weight": "300г",
+      "emoji": "🐟",
+      "image": null,
+      "active": false
+    },
+    {
+      "id": "s6",
+      "categoryId": "soups",
+      "name": "Гороховый суп с копчёностями",
+      "price": 135,
+      "weight": "300г",
+      "emoji": "🫛",
+      "image": null,
+      "active": false
+    },
+    {
+      "id": "sa1",
+      "categoryId": "salads",
+      "name": "Салат «Оливье»",
+      "price": 120,
+      "weight": "200г",
+      "emoji": "🥗",
+      "image": null,
+      "active": false
+    },
+    {
+      "id": "sa2",
+      "categoryId": "salads",
+      "name": "Салат «Цезарь» с курицей",
+      "price": 180,
+      "weight": "220г",
+      "emoji": "🥗",
+      "image": null,
+      "active": false
+    },
+    {
+      "id": "sa3",
+      "categoryId": "salads",
+      "name": "Салат «Греческий»",
+      "price": 160,
+      "weight": "200г",
+      "emoji": "🫒",
+      "image": null,
+      "active": false
+    },
+    {
+      "id": "sa4",
+      "categoryId": "salads",
+      "name": "Салат из свежих овощей",
+      "price": 100,
+      "weight": "200г",
+      "emoji": "🥦",
+      "image": null,
+      "active": false
+    },
+    {
+      "id": "sa5",
+      "categoryId": "salads",
+      "name": "Свекольный салат с чесноком",
+      "price": 90,
+      "weight": "180г",
+      "emoji": "🥗",
+      "image": null,
+      "active": false
+    },
+    {
+      "id": "sa6",
+      "categoryId": "salads",
+      "name": "Салат «Мимоза»",
+      "price": 130,
+      "weight": "200г",
+      "emoji": "🥗",
+      "image": null,
+      "active": false
+    },
+    {
+      "id": "h1",
+      "categoryId": "hot",
+      "name": "Котлета мясная (2 шт)",
+      "price": 160,
+      "weight": "180г",
+      "emoji": "🍖",
+      "image": null,
+      "active": false
+    },
+    {
+      "id": "h2",
+      "categoryId": "hot",
+      "name": "Куриная грудка запечённая",
+      "price": 190,
+      "weight": "200г",
+      "emoji": "🍗",
+      "image": null,
+      "active": false
+    },
+    {
+      "id": "h3",
+      "categoryId": "hot",
+      "name": "Рыба минтай жареная",
+      "price": 170,
+      "weight": "200г",
+      "emoji": "🐟",
+      "image": null,
+      "active": false
+    },
+    {
+      "id": "h4",
+      "categoryId": "hot",
+      "name": "Голубцы с мясом (2 шт)",
+      "price": 200,
+      "weight": "300г",
+      "emoji": "🫑",
+      "image": null,
+      "active": false
+    },
+    {
+      "id": "h5",
+      "categoryId": "hot",
+      "name": "Пельмени домашние",
+      "price": 180,
+      "weight": "300г",
+      "emoji": "🥟",
+      "image": null,
+      "active": false
+    },
+    {
+      "id": "h6",
+      "categoryId": "hot",
+      "name": "Картофельные зразы с мясом",
+      "price": 150,
+      "weight": "250г",
+      "emoji": "🥔",
+      "image": null,
+      "active": false
+    },
+    {
+      "id": "h7",
+      "categoryId": "hot",
+      "name": "Тефтели в томатном соусе",
+      "price": 175,
+      "weight": "280г",
+      "emoji": "🍝",
+      "image": null,
+      "active": false
+    },
+    {
+      "id": "g1",
+      "categoryId": "garnish",
+      "name": "Картофельное пюре",
+      "price": 80,
+      "weight": "200г",
+      "emoji": "🥔",
+      "image": null,
+      "active": true
+    },
+    {
+      "id": "g2",
+      "categoryId": "garnish",
+      "name": "Гречка отварная",
+      "price": 70,
+      "weight": "200г",
+      "emoji": "🌾",
+      "image": null,
+      "active": true
+    },
+    {
+      "id": "g3",
+      "categoryId": "garnish",
+      "name": "Рис отварной",
+      "price": 70,
+      "weight": "200г",
+      "emoji": "🍚",
+      "image": null,
+      "active": false
+    },
+    {
+      "id": "g4",
+      "categoryId": "garnish",
+      "name": "Макароны отварные",
+      "price": 70,
+      "weight": "200г",
+      "emoji": "🍝",
+      "image": null,
+      "active": false
+    },
+    {
+      "id": "g5",
+      "categoryId": "garnish",
+      "name": "Капуста тушёная",
+      "price": 80,
+      "weight": "200г",
+      "emoji": "🥬",
+      "image": null,
+      "active": false
+    },
+    {
+      "id": "g6",
+      "categoryId": "garnish",
+      "name": "Перловка с маслом",
+      "price": 65,
+      "weight": "200г",
+      "emoji": "🌾",
+      "image": null,
+      "active": false
+    },
+    {
+      "id": "p1",
+      "categoryId": "pancakes",
+      "name": "Блинчики с творогом (3 шт)",
+      "price": 130,
+      "weight": "250г",
+      "emoji": "🥞",
+      "image": null,
+      "active": false
+    },
+    {
+      "id": "p2",
+      "categoryId": "pancakes",
+      "name": "Блинчики с мясом (3 шт)",
+      "price": 150,
+      "weight": "270г",
+      "emoji": "🥞",
+      "image": null,
+      "active": true
+    },
+    {
+      "id": "p3",
+      "categoryId": "pancakes",
+      "name": "Блинчики с вареньем (3 шт)",
+      "price": 110,
+      "weight": "230г",
+      "emoji": "🫐",
+      "image": null,
+      "active": true
+    },
+    {
+      "id": "p4",
+      "categoryId": "pancakes",
+      "name": "Блинчики с капустой (3 шт)",
+      "price": 120,
+      "weight": "250г",
+      "emoji": "🥞",
+      "image": null,
+      "active": false
+    },
+    {
+      "id": "sw1",
+      "categoryId": "sweet",
+      "name": "Компот домашний",
+      "price": 60,
+      "weight": "200мл",
+      "emoji": "🫙",
+      "image": null,
+      "active": false
+    },
+    {
+      "id": "sw2",
+      "categoryId": "sweet",
+      "name": "Кисель ягодный",
+      "price": 55,
+      "weight": "200мл",
+      "emoji": "🫐",
+      "image": null,
+      "active": false
+    },
+    {
+      "id": "sw3",
+      "categoryId": "sweet",
+      "name": "Пирожок с яблоком",
+      "price": 65,
+      "weight": "100г",
+      "emoji": "🥐",
+      "image": null,
+      "active": false
+    },
+    {
+      "id": "sw4",
+      "categoryId": "sweet",
+      "name": "Пирожок с вишней",
+      "price": 65,
+      "weight": "100г",
+      "emoji": "🍒",
+      "image": null,
+      "active": false
+    },
+    {
+      "id": "sw5",
+      "categoryId": "sweet",
+      "name": "Кекс шоколадный",
+      "price": 80,
+      "weight": "120г",
+      "emoji": "🧁",
+      "image": null,
+      "active": false
+    },
+    {
+      "id": "ad1",
+      "categoryId": "additions",
+      "name": "Хлеб белый (2 куска)",
+      "price": 20,
+      "weight": "60г",
+      "emoji": "🍞",
+      "image": null,
+      "active": false
+    },
+    {
+      "id": "ad2",
+      "categoryId": "additions",
+      "name": "Хлеб чёрный (2 куска)",
+      "price": 20,
+      "weight": "60г",
+      "emoji": "🍞",
+      "image": null,
+      "active": false
+    },
+    {
+      "id": "ad3",
+      "categoryId": "additions",
+      "name": "Сметана (порция)",
+      "price": 40,
+      "weight": "50г",
+      "emoji": "🥛",
+      "image": null,
+      "active": false
+    },
+    {
+      "id": "ad4",
+      "categoryId": "additions",
+      "name": "Масло сливочное (порция)",
+      "price": 30,
+      "weight": "20г",
+      "emoji": "🧈",
+      "image": null,
+      "active": false
+    },
+    {
+      "id": "fr1",
+      "categoryId": "frozen",
+      "name": "Пельмени замороженные (0.5 кг)",
+      "price": 250,
+      "weight": "500г",
+      "emoji": "🥟",
+      "image": null,
+      "active": false
+    },
+    {
+      "id": "fr2",
+      "categoryId": "frozen",
+      "name": "Голубцы замороженные (1 кг)",
+      "price": 380,
+      "weight": "1кг",
+      "emoji": "🫑",
+      "image": null,
+      "active": false
+    },
+    {
+      "id": "fr3",
+      "categoryId": "frozen",
+      "name": "Котлеты замороженные (0.5 кг)",
+      "price": 290,
+      "weight": "500г",
+      "emoji": "🍖",
+      "image": null,
+      "active": false
+    },
+    {
+      "id": "fr4",
+      "categoryId": "frozen",
+      "name": "Блинчики с мясом замороженные (0.5 кг)",
+      "price": 280,
+      "weight": "500г",
+      "emoji": "🥞",
+      "image": null,
+      "active": false
+    },
+    {
+      "id": "d1",
+      "categoryId": "drinks",
+      "name": "Чай чёрный",
+      "price": 50,
+      "weight": "200мл",
+      "emoji": "🍵",
+      "image": null,
+      "active": false
+    },
+    {
+      "id": "d2",
+      "categoryId": "drinks",
+      "name": "Кофе чёрный",
+      "price": 70,
+      "weight": "150мл",
+      "emoji": "☕",
+      "image": null,
+      "active": false
+    },
+    {
+      "id": "d3",
+      "categoryId": "drinks",
+      "name": "Морс ягодный",
+      "price": 60,
+      "weight": "200мл",
+      "emoji": "🫐",
+      "image": null,
+      "active": false
+    },
+    {
+      "id": "d4",
+      "categoryId": "drinks",
+      "name": "Вода питьевая 0.5л",
+      "price": 45,
+      "weight": "500мл",
+      "emoji": "💧",
+      "image": null,
+      "active": false
+    },
+    {
+      "id": "d5",
+      "categoryId": "drinks",
+      "name": "Сок в ассортименте 0.2л",
+      "price": 55,
+      "weight": "200мл",
+      "emoji": "🧃",
+      "image": null,
+      "active": false
+    },
+    {
+      "id": "su1",
+      "categoryId": "sugar",
+      "name": "Сахар порционный (2 пакетика)",
+      "price": 9,
+      "weight": "10г",
+      "emoji": "🍬",
+      "image": null,
+      "active": false
+    },
+    {
+      "id": "su2",
+      "categoryId": "sugar",
+      "name": "Вилка одноразовая",
+      "price": 5,
+      "weight": "",
+      "emoji": "🍴",
+      "image": null,
+      "active": false
+    },
+    {
+      "id": "su3",
+      "categoryId": "sugar",
+      "name": "Ложка одноразовая",
+      "price": 5,
+      "weight": "",
+      "emoji": "🥄",
+      "image": null,
+      "active": false
+    },
+    {
+      "id": "su4",
+      "categoryId": "sugar",
+      "name": "Нож одноразовый",
+      "price": 5,
+      "weight": "",
+      "emoji": "🔪",
+      "image": null,
+      "active": false
+    },
+    {
+      "id": "su5",
+      "categoryId": "sugar",
+      "name": "Салфетки (5 шт)",
+      "price": 10,
+      "weight": "",
+      "emoji": "🧻",
+      "image": null,
+      "active": false
+    },
+    {
+      "id": "su6",
+      "categoryId": "sugar",
+      "name": "Контейнер",
+      "price": 9,
+      "weight": "",
+      "emoji": "📦",
+      "image": null,
+      "active": false
+    }
+  ]
+}

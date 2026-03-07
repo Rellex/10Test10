@@ -1,0 +1,259 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Админ — Солнечный день</title>
+  <link rel="stylesheet" href="admin.css" />
+</head>
+<body>
+
+  <!-- ===== LOGIN ===== -->
+  <div class="login-screen" id="loginScreen">
+    <div class="login-card">
+      <div class="login-logo">☀️</div>
+      <h1 class="login-title">Солнечный день</h1>
+      <p class="login-sub">Панель управления меню</p>
+      <form id="loginForm" novalidate>
+        <div class="field-group">
+          <label class="field-label">Пароль</label>
+          <input type="password" class="field-input" id="loginPassword"
+                 placeholder="••••••••" autocomplete="current-password" required />
+        </div>
+        <div class="login-error" id="loginError"></div>
+        <button type="submit" class="btn-primary" id="loginBtn">Войти</button>
+      </form>
+    </div>
+  </div>
+
+  <!-- ===== MAIN APP ===== -->
+  <div class="admin-app hidden" id="adminApp">
+
+    <!-- First-run banner -->
+    <div class="init-banner hidden" id="initBanner">
+      <span>🆕 Firestore пуст. Загрузить стартовое меню?</span>
+      <button class="btn-init" id="initMenuBtn">Загрузить</button>
+      <button class="btn-init-skip" id="initSkipBtn">Позже</button>
+    </div>
+
+    <aside class="sidebar" id="sidebar">
+      <div class="sidebar-header">
+        <div class="sidebar-logo">
+          <span class="sidebar-sun">☀️</span>
+          <span class="sidebar-brand">Солнечный день</span>
+        </div>
+        <div class="sidebar-subtitle">Управление меню</div>
+      </div>
+      <div class="sidebar-tabs">
+        <button class="sidebar-tab active" id="tabMenu">&#127859; Меню</button>
+        <button class="sidebar-tab" id="tabAddresses">&#128205; Адреса</button>
+      </div>
+
+      <div id="menuSection">
+        <div class="sidebar-section-label">Категории</div>
+        <nav class="sidebar-nav" id="sidebarNav"></nav>
+        <div class="sidebar-bottom">
+          <button class="btn-add-cat" id="addCategoryBtn">+ Добавить категорию</button>
+        </div>
+      </div>
+
+      <div id="addressesSection" style="display:none;">
+        <div class="sidebar-addresses-wrap" id="sidebarAddresses"></div>
+        <div class="sidebar-bottom">
+          <button class="btn-add-cat" id="addCityBtn">+ Добавить город</button>
+        </div>
+      </div>
+
+      <div class="sidebar-logout">
+        <button class="btn-logout" id="logoutBtn">Выйти</button>
+      </div>
+    </aside>
+
+    <main class="main-content" id="mainContent">
+      <header class="topbar">
+        <button class="topbar-menu-btn" id="sidebarToggle">☰</button>
+        <div class="topbar-title" id="topbarTitle">Выберите категорию</div>
+        <button class="btn-add-item" id="addItemBtn">
+          <span class="btn-add-item-icon">+</span>
+          <span>Добавить позицию</span>
+        </button>
+      </header>
+
+      <div class="stats-row" id="statsRow">
+        <div class="stat-card"><div class="stat-num" id="statTotal">0</div><div class="stat-label">Всего</div></div>
+        <div class="stat-card"><div class="stat-num green" id="statActive">0</div><div class="stat-label">Активных</div></div>
+        <div class="stat-card"><div class="stat-num grey" id="statHidden">0</div><div class="stat-label">Скрытых</div></div>
+      </div>
+
+      <div class="items-grid" id="itemsGrid"></div>
+      <div class="empty-state hidden" id="emptyState">
+        <div class="empty-icon">🍽️</div>
+        <div class="empty-title">Нет позиций</div>
+        <div class="empty-sub">Нажмите «Добавить позицию»</div>
+      </div>
+      <div class="welcome-state" id="welcomeState">
+        <div class="welcome-icon">☀️</div>
+        <div class="welcome-title">Добро пожаловать!</div>
+        <div class="welcome-sub">Выберите категорию слева</div>
+      </div>
+    </main>
+  </div>
+
+  <!-- ===== ITEM MODAL ===== -->
+  <div class="modal-overlay hidden" id="itemModal">
+    <div class="modal" id="itemModalBox">
+      <div class="modal-header">
+        <h2 class="modal-title" id="itemModalTitle">Добавить позицию</h2>
+        <button class="modal-close" id="itemModalClose">✕</button>
+      </div>
+      <form class="modal-form" id="itemForm" novalidate>
+        <input type="hidden" id="editItemId" />
+
+        <div class="photo-row">
+          <div class="photo-preview-wrap">
+            <div class="photo-preview" id="photoPreview">
+              <span class="photo-preview-emoji" id="previewEmoji">🍽️</span>
+              <img class="photo-preview-img hidden" id="previewImg" alt="preview" />
+            </div>
+            <div class="photo-preview-actions">
+              <label class="btn-upload" for="imageInput">
+                📷 Загрузить фото
+                <input type="file" id="imageInput" accept="image/*" class="file-input-hidden" />
+              </label>
+              <button type="button" class="btn-remove-photo hidden" id="removePhotoBtn">✕ Удалить</button>
+            </div>
+          </div>
+          <div class="emoji-picker-wrap">
+            <div class="field-label">Или выберите эмодзи</div>
+            <div class="emoji-grid" id="emojiGrid"></div>
+            <input type="text" class="field-input emoji-custom-input" id="emojiCustom" placeholder="Свой эмодзи" maxlength="2" />
+          </div>
+        </div>
+
+        <div class="form-grid">
+          <div class="field-group full">
+            <label class="field-label">Название*</label>
+            <input type="text" class="field-input" id="itemName" placeholder="Борщ со сметаной" required />
+          </div>
+          <div class="field-group">
+            <label class="field-label">Цена (₽)*</label>
+            <input type="number" class="field-input" id="itemPrice" placeholder="140" min="0" required />
+          </div>
+          <div class="field-group">
+            <label class="field-label">Вес/объём</label>
+            <input type="text" class="field-input" id="itemWeight" placeholder="300г" />
+          </div>
+          <div class="field-group full">
+            <label class="field-label">Категория*</label>
+            <select class="field-input field-select" id="itemCategory" required></select>
+          </div>
+          <div class="field-group full">
+            <label class="field-label">Описание</label>
+            <textarea class="field-input field-textarea" id="itemDescription" placeholder="Необязательно..."></textarea>
+          </div>
+        </div>
+
+        <div class="modal-footer">
+          <button type="button" class="btn-secondary" id="itemModalCancel">Отмена</button>
+          <button type="submit" class="btn-primary" id="itemFormSubmit">Сохранить</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- ===== CATEGORY MODAL ===== -->
+  <div class="modal-overlay hidden" id="catModal">
+    <div class="modal modal-sm">
+      <div class="modal-header">
+        <h2 class="modal-title">Новая категория</h2>
+        <button class="modal-close" id="catModalClose">✕</button>
+      </div>
+      <form id="catForm">
+        <div class="modal-body">
+          <div class="field-group">
+            <label class="field-label">Название*</label>
+            <input type="text" class="field-input" id="catName" placeholder="Например: Пасты" required />
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn-secondary" id="catModalCancel">Отмена</button>
+          <button type="submit" class="btn-primary">Создать</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- ===== CONFIRM MODAL ===== -->
+  <div class="modal-overlay hidden" id="confirmModal">
+    <div class="modal modal-sm">
+      <div class="modal-header">
+        <h2 class="modal-title">Подтверждение</h2>
+        <button class="modal-close" id="confirmModalClose">✕</button>
+      </div>
+      <div class="modal-body"><p class="confirm-text" id="confirmText"></p></div>
+      <div class="modal-footer">
+        <button class="btn-secondary" id="confirmCancel">Отмена</button>
+        <button class="btn-danger"    id="confirmOk">Удалить</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===== CITY MODAL ===== -->
+  <div class="modal-overlay hidden" id="cityModal">
+    <div class="modal modal-sm">
+      <div class="modal-header">
+        <h2 class="modal-title" id="cityModalTitle">Новый город</h2>
+        <button class="modal-close" id="cityModalClose">&#10005;</button>
+      </div>
+      <form id="cityForm">
+        <div class="modal-body">
+          <input type="hidden" id="editCityId" />
+          <div class="field-group">
+            <label class="field-label">Название города*</label>
+            <input type="text" class="field-input" id="cityName" placeholder="Например: Москва" required />
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn-secondary" id="cityModalCancel">Отмена</button>
+          <button type="submit" class="btn-primary">Сохранить</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- ===== ADDRESS MODAL ===== -->
+  <div class="modal-overlay hidden" id="addressModal">
+    <div class="modal modal-sm">
+      <div class="modal-header">
+        <h2 class="modal-title" id="addressModalTitle">Новый адрес</h2>
+        <button class="modal-close" id="addressModalClose">&#10005;</button>
+      </div>
+      <form id="addressForm">
+        <div class="modal-body">
+          <input type="hidden" id="editAddressIdx" />
+          <input type="hidden" id="editAddressCityId" />
+          <div class="field-group">
+            <label class="field-label">Адрес*</label>
+            <input type="text" class="field-input" id="addressValue" placeholder="Ленина 10" required />
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn-secondary" id="addressModalCancel">Отмена</button>
+          <button type="submit" class="btn-primary">Сохранить</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- ===== TOAST ===== -->
+  <div class="toast-wrap" id="toastWrap"></div>
+
+  <script src="admin.js"></script>
+
+  <script>
+    document.getElementById('initSkipBtn')?.addEventListener('click', () => {
+      document.getElementById('initBanner').style.display = 'none';
+    });
+  </script>
+</body>
+</html>

@@ -1,0 +1,295 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <title>Солнечный день — Доставка</title>
+  <link rel="stylesheet" href="style.css" />
+  <script src="https://telegram.org/js/telegram-web-app.js"></script>
+</head>
+<body>
+
+  <!-- ===== CITY MODAL ===== -->
+  <div class="modal-overlay" id="cityModal" style="display:none">
+    <div class="modal city-modal">
+      <div class="modal-header">
+        <div class="modal-title">Выберите ваш город</div>
+        <button class="modal-close" id="cityModalClose" aria-label="Закрыть">✕</button>
+      </div>
+      <ul class="city-list" id="cityList"></ul>
+    </div>
+  </div>
+
+  <!-- ===== BONUS INFO MODAL ===== -->
+  <div class="modal-overlay" id="bonusModal" style="display:none">
+    <div class="modal bonus-modal">
+      <div class="modal-header">
+        <div class="modal-title">Бонусная программа</div>
+        <button class="modal-close" id="bonusModalClose" aria-label="Закрыть">✕</button>
+      </div>
+      <div class="bonus-levels" id="bonusLevels"></div>
+      <div class="bonus-rules">
+        <h3>Правила программы</h3>
+        <ol>
+          <li>Все участники получают стартовые 10% бонус-баллов от суммы счёта.</li>
+          <li>Бонусную карту можно приобрести в любом ресторане сети. Стоимость — 59 рублей.</li>
+          <li>Один бонус-балл эквивалентен 1 рублю.</li>
+          <li>Для зачисления бонус-баллов предъявите карту на кассе <strong>до</strong> оплаты.</li>
+          <li>Зачисление происходит сразу после оплаты.</li>
+          <li>Расчёт бонус-баллами — не более 50% от суммы счёта.</li>
+          <li>На часть суммы, оплаченную бонус-баллами, новые баллы не начисляются.</li>
+          <li>Лимит транзакций: 5 в день в одном ресторане.</li>
+        </ol>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===== ADDRESSES MODAL ===== -->
+  <div class="modal-overlay" id="addressesModal" style="display:none">
+    <div class="modal addresses-modal">
+      <div class="modal-header">
+        <div class="modal-title">Пункты самовывоза</div>
+        <button class="modal-close" id="addressesModalClose" aria-label="Закрыть">✕</button>
+      </div>
+      <ul class="addresses-list" id="addressesList"></ul>
+    </div>
+  </div>
+
+  <!-- ===== ITEM DETAIL MODAL ===== -->
+  <div class="modal-overlay" id="itemModal" style="display:none">
+    <div class="modal item-modal">
+      <div class="modal-header">
+        <div class="modal-title" id="itemModalTitle"></div>
+        <button class="modal-close" id="itemModalClose" aria-label="Закрыть">✕</button>
+      </div>
+      <div class="item-detail">
+        <div class="item-detail-emoji" id="itemModalEmoji"></div>
+        <div class="item-detail-name" id="itemModalName"></div>
+        <div class="item-detail-weight" id="itemModalWeight"></div>
+        <div class="item-detail-price" id="itemModalPrice"></div>
+        <div class="item-detail-controls">
+          <button class="qty-btn minus" id="itemModalMinus">−</button>
+          <span class="qty-value" id="itemModalQty">1</span>
+          <button class="qty-btn plus" id="itemModalPlus">+</button>
+        </div>
+        <button class="btn-primary btn-add-to-cart" id="itemModalAdd">В корзину</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===== CART SHEET ===== -->
+  <div class="modal-overlay" id="cartOverlay" style="display:none">
+    <div class="bottom-sheet" id="cartSheet">
+      <div class="sheet-handle"></div>
+      <div class="cart-header">
+        <span class="cart-title">Корзина</span>
+        <button class="btn-link" id="clearCartBtn">Очистить</button>
+      </div>
+      <div class="cart-items-wrap" id="cartItemsList"></div>
+      <div class="cart-empty" id="cartEmpty">
+        <div class="cart-empty-icon">🛒</div>
+        <div>Корзина пуста</div>
+        <div class="cart-empty-sub">Добавьте блюда из меню</div>
+      </div>
+      <div class="cart-summary" id="cartSummary">
+        <div class="cart-row"><span>Сумма заказа:</span><span id="subtotalVal">0 ₽</span></div>
+        <div class="cart-row" id="deliveryRow"><span>Доставка:</span><span id="deliveryVal">99 ₽</span></div>
+        <div class="cart-row promo-row" id="promoRow" style="display:none">
+          <span>Промокод:</span><span id="promoDiscount" class="discount-text">-0 ₽</span>
+        </div>
+        <div class="cart-row total-row"><span>Итого:</span><span id="totalVal">0 ₽</span></div>
+        <div class="free-delivery-hint" id="freeDeliveryHint"></div>
+        <button class="btn-primary" id="goToCheckoutBtn">Оформить заказ</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===== CHECKOUT SHEET ===== -->
+  <div class="modal-overlay" id="checkoutOverlay" style="display:none">
+    <div class="bottom-sheet checkout-sheet" id="checkoutSheet">
+      <div class="sheet-handle"></div>
+      <div class="cart-header">
+        <button class="btn-back" id="backToCartBtn">← Назад</button>
+        <span class="cart-title">Оформление заказа</span>
+      </div>
+      <div class="checkout-form-wrap">
+        <form class="checkout-form" id="checkoutForm" novalidate>
+
+          <div class="form-section">
+            <div class="form-section-title">📍 Способ получения</div>
+            <div class="pickup-tabs">
+              <button type="button" class="pickup-tab active" data-mode="delivery" id="tabDelivery">Доставка</button>
+              <button type="button" class="pickup-tab" data-mode="pickup" id="tabPickup">Самовывоз</button>
+            </div>
+          </div>
+
+          <div class="form-section" id="deliverySection">
+            <div class="form-section-title">🏠 Адрес доставки</div>
+            <div class="form-group">
+              <label class="form-label">Улица и дом*</label>
+              <input type="text" class="form-input" id="streetInput" placeholder="Ленина 10, кв. 5" required />
+              <div class="delivery-zone-status" id="deliveryZoneStatus"></div>
+            </div>
+            <div class="form-row">
+              <div class="form-group">
+                <label class="form-label">Подъезд</label>
+                <input type="text" class="form-input" id="entranceInput" placeholder="2" />
+              </div>
+              <div class="form-group">
+                <label class="form-label">Этаж</label>
+                <input type="text" class="form-input" id="floorInput" placeholder="5" />
+              </div>
+              <div class="form-group">
+                <label class="form-label">Квартира</label>
+                <input type="text" class="form-input" id="apartmentInput" placeholder="42" />
+              </div>
+            </div>
+          </div>
+
+          <div class="form-section" id="pickupSection" style="display:none">
+            <div class="form-section-title">🏪 Пункт самовывоза</div>
+            <select class="form-input form-select" id="pickupAddress">
+              <option value="">— Выберите адрес —</option>
+            </select>
+          </div>
+
+          <div class="form-section">
+            <div class="form-section-title">👤 Контактные данные</div>
+            <div class="form-group">
+              <label class="form-label">Имя*</label>
+              <input type="text" class="form-input" id="nameInput" placeholder="Иван" required />
+            </div>
+            <div class="form-group">
+              <label class="form-label">Телефон*</label>
+              <input type="tel" class="form-input" id="phoneInput" placeholder="+7 (999) 000-00-00" required />
+            </div>
+            <div class="form-group">
+              <label class="form-label">Комментарий</label>
+              <textarea class="form-input form-textarea" id="commentInput" placeholder="Без лука, позвоните заранее..."></textarea>
+            </div>
+          </div>
+
+          <div class="form-section">
+            <div class="form-section-title">🎁 Промокод</div>
+            <div class="promo-input-wrap">
+              <input type="text" class="form-input" id="promoInput" placeholder="Введите промокод" style="text-transform:uppercase" />
+              <button type="button" class="btn-promo" id="applyPromoBtn">Применить</button>
+            </div>
+            <div class="promo-status" id="promoStatus"></div>
+          </div>
+
+          <div class="form-section">
+            <div class="form-section-title">💳 Способ оплаты</div>
+            <div class="payment-options">
+              <label class="payment-option">
+                <input type="radio" name="payment" value="online" checked />
+                <span class="payment-label"><span class="payment-icon">💳</span>Оплата онлайн</span>
+              </label>
+              <label class="payment-option">
+                <input type="radio" name="payment" value="cash" />
+                <span class="payment-label"><span class="payment-icon">💵</span>Наличными при получении</span>
+              </label>
+              <label class="payment-option">
+                <input type="radio" name="payment" value="card_on_delivery" />
+                <span class="payment-label"><span class="payment-icon">📱</span>Картой при получении</span>
+              </label>
+            </div>
+          </div>
+
+          <div class="form-section">
+            <div class="form-section-title">🌟 Сюрприз</div>
+            <div class="surprise-wrap">
+              <p class="surprise-text">Хотите получать сюрпризы? Заполните эти поля 😊</p>
+              <div class="form-group">
+                <label class="form-label">День рождения</label>
+                <input type="date" class="form-input" id="birthdayInput" />
+              </div>
+              <div class="form-group">
+                <label class="form-label">E-mail</label>
+                <input type="email" class="form-input" id="emailInput" placeholder="example@mail.ru" />
+              </div>
+            </div>
+          </div>
+
+          <div class="order-total-block">
+            <div class="order-total-row"><span>Сумма заказа</span><span id="checkoutSubtotal">0 ₽</span></div>
+            <div class="order-total-row" id="checkoutDeliveryRow"><span>Доставка</span><span id="checkoutDelivery">99 ₽</span></div>
+            <div class="order-total-row promo-discount-row" id="checkoutPromoRow" style="display:none">
+              <span>Промокод</span><span id="checkoutPromoDiscount" class="discount-text">-0 ₽</span>
+            </div>
+            <div class="order-total-row total-final"><span>ИТОГО</span><span id="checkoutTotal">0 ₽</span></div>
+          </div>
+
+          <button type="submit" class="btn-primary btn-order" id="submitOrderBtn">
+            <span>Заказать</span><span id="submitOrderTotal"></span>
+          </button>
+          <p class="order-consent">Нажимая кнопку, вы даёте согласие на обработку персональных данных</p>
+        </form>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===== SUCCESS SCREEN ===== -->
+  <div id="successOverlay" style="display:none">
+    <div class="success-card">
+      <div class="success-icon">☀️</div>
+      <h2 class="success-title">Заказ принят!</h2>
+      <p class="success-text">Спасибо! Среднее время доставки — 90 минут. Ожидайте звонка оператора.</p>
+      <p class="success-phone">📞 399 00 33</p>
+      <button class="btn-primary" id="successBackBtn">На главную</button>
+    </div>
+  </div>
+
+  <!-- ===== MAIN APP ===== -->
+  <div class="app" id="app">
+
+    <header class="header" id="appHeader">
+      <div class="header-top">
+        <div class="header-logo">
+          <span class="logo-sun">☀️</span>
+          <span class="logo-text">Солнечный день</span>
+        </div>
+        <div class="header-actions">
+          <button class="header-btn" id="cityBtn">
+            <span class="city-icon">📍</span>
+            <span class="city-name" id="headerCityName">Выберите город</span>
+          </button>
+        </div>
+      </div>
+      <div class="header-subtitle">Доставка душевной еды</div>
+      <div class="work-hours-bar">
+        <span class="work-hours-text">🕗 с 8:00 до 20:00 · Пн–Вс</span>
+        <button class="btn-link small" id="showAddressesBtn">Адреса</button>
+        <button class="btn-link small" id="showBonusBtn">Бонусы</button>
+      </div>
+    </header>
+
+    <div class="city-prompt" id="cityPrompt">
+      <div class="city-prompt-text">Для просмотра меню выберите город</div>
+      <button class="btn-primary" id="selectCityPromptBtn">Выбрать город</button>
+    </div>
+
+    <div class="menu-wrapper" id="menuWrapper" style="display:none">
+      <nav class="categories-nav" id="categoriesNav">
+        <div class="categories-scroll" id="categoriesScroll"></div>
+      </nav>
+      <div class="delivery-banner" id="deliveryBanner">
+        <span>🚚</span>
+        <span id="deliveryBannerText">Доставка 99 ₽ · бесплатно от 700 ₽</span>
+      </div>
+      <main class="menu-content" id="menuContent"></main>
+    </div>
+
+    <button class="cart-fab" id="cartFab" style="display:none" aria-label="Корзина">
+      <span class="cart-fab-icon">🛒</span>
+      <span class="cart-fab-label">В корзине</span>
+      <span class="cart-fab-count" id="cartFabCount">0</span>
+      <span class="cart-fab-total" id="cartFabTotal">0 ₽</span>
+    </button>
+
+  </div>
+
+  <script src="data.js"></script>
+  <script src="script.js"></script>
+</body>
+</html>
