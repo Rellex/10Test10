@@ -131,6 +131,10 @@
           <div class="form-section" id="deliverySection">
             <div class="form-section-title">🏠 Адрес доставки</div>
             <div class="form-group">
+              <label class="form-label">Город*</label>
+              <select class="form-input form-select" id="deliveryCitySelect" required></select>
+            </div>
+            <div class="form-group">
               <label class="form-label">Улица и дом*</label>
               <input type="text" class="form-input" id="streetInput" placeholder="Ленина 10, кв. 5" required />
               <div class="delivery-zone-status" id="deliveryZoneStatus"></div>
@@ -153,9 +157,16 @@
 
           <div class="form-section" id="pickupSection" style="display:none">
             <div class="form-section-title">🏪 Пункт самовывоза</div>
-            <select class="form-input form-select" id="pickupAddress">
-              <option value="">— Выберите адрес —</option>
-            </select>
+            <div class="form-group">
+              <label class="form-label">Город*</label>
+              <select class="form-input form-select" id="pickupCitySelect" required></select>
+            </div>
+            <div class="form-group">
+              <label class="form-label">Адрес*</label>
+              <select class="form-input form-select" id="pickupAddress">
+                <option value="">— Выберите адрес —</option>
+              </select>
+            </div>
           </div>
 
           <div class="form-section">

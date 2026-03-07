@@ -627,7 +627,7 @@ document.getElementById('goToCheckoutBtn').addEventListener('click', () => {
   if (!getCartCount()) return;
   closeModal('cartOverlay');
   recalcDeliveryZoneCost();
-  renderPickupSelect(); updateCheckoutSummary();
+  renderPickupSelect(); renderDeliveryCitySelect(); updateCheckoutSummary();
   openModal('checkoutOverlay');
   tg?.HapticFeedback?.impactOccurred('medium');
 });
@@ -655,13 +655,52 @@ document.getElementById('tabPickup').addEventListener('click', () => {
   updateCheckoutSummary(); updateCartSummary();
 });
 
-function renderPickupSelect() {
+function renderPickupAddresses(cityId) {
   const sel = document.getElementById('pickupAddress');
   sel.innerHTML = '<option value="">— Выберите адрес —</option>';
-  getCityAddresses(state.city).forEach(function(addr) {
+  getCityAddresses(cityId).forEach(function(addr) {
     const opt = document.createElement('option');
     opt.value = addr; opt.textContent = addr;
     sel.appendChild(opt);
+  });
+}
+
+function renderPickupSelect() {
+  const sel = document.getElementById('pickupCitySelect');
+  if (!sel) return;
+  sel.innerHTML = '<option value="">— Выберите город —</option>';
+  CITIES.forEach(function(city) {
+    const opt = document.createElement('option');
+    opt.value = city.id;
+    opt.textContent = city.name;
+    if (city.id === state.city) opt.selected = true;
+    sel.appendChild(opt);
+  });
+  renderPickupAddresses(state.city);
+  sel.addEventListener('change', function() {
+    renderPickupAddresses(sel.value);
+  });
+}
+
+function renderDeliveryCitySelect() {
+  const sel = document.getElementById('deliveryCitySelect');
+  if (!sel) return;
+  sel.innerHTML = '<option value="">— Выберите город —</option>';
+  CITIES.forEach(function(city) {
+    const opt = document.createElement('option');
+    opt.value = city.id;
+    opt.textContent = city.name;
+    if (city.id === state.city) opt.selected = true;
+    sel.appendChild(opt);
+  });
+  sel.addEventListener('change', function() {
+    if (sel.value) {
+      selectCity(sel.value);
+      // сбрасываем проверку зоны при смене города
+      deliveryZoneResult = null;
+      const statusEl = document.getElementById('deliveryZoneStatus');
+      if (statusEl) { statusEl.textContent = ''; statusEl.className = 'delivery-zone-status'; }
+    }
   });
 }
 
