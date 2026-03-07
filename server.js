@@ -357,7 +357,7 @@ app.post('/api/orders', (req, res) => {
   const order = {
     id: Date.now().toString(),
     createdAt: new Date().toISOString(),
-    status: 'new',
+    status: 'pending',
     ...data,
   };
   orders.unshift(order);
@@ -527,9 +527,11 @@ app.post('/api/bot/webhook', async (req, res) => {
   res.sendStatus(200);
   const body = req.body;
   // Handle text reply for assembler name
-  if (body?.message?.text && body.message.reply_to_message) {
+  if (body?.message?.text) {
     const chatId = body.message.chat.id;
-    const orderId = pendingAssemblers[chatId];
+    // Check by reply message_id first, then by chat
+    const replyMsgId = body.message.reply_to_message?.message_id;
+    const orderId = (replyMsgId && pendingAssemblers[`msg:${replyMsgId}`]) || pendingAssemblers[chatId];
     if (orderId) {
       const orders = readOrders();
       const order = orders.find(o => o.id === orderId);
@@ -537,6 +539,7 @@ app.post('/api/bot/webhook', async (req, res) => {
         order.assembler = body.message.text.trim();
         writeOrders(orders);
         delete pendingAssemblers[chatId];
+        if (replyMsgId) delete pendingAssemblers[`msg:${replyMsgId}`];
         await updateOrderMessage(order);
         await tgApi('sendMessage', { chat_id: chatId, text: `✅ Сборщик записан: ${order.assembler}` });
       }
@@ -554,13 +557,22 @@ app.post('/api/bot/webhook', async (req, res) => {
     const orders = readOrders();
     const order = orders.find(o => o.id === orderId);
     if (!order) { await tgApi('answerCallbackQuery', { callback_query_id: id, text: 'Заказ не найден' }); return; }
-    await tgApi('answerCallbackQuery', { callback_query_id: id, text: 'Введите ФИО сборщика' });
-    await tgApi('sendMessage', {
+    // Сразу ставим статус ready
+    order.status = 'ready';
+    writeOrders(orders);
+    await tgApi('answerCallbackQuery', { callback_query_id: id, text: 'Заказ собран! Введите ФИО сборщика' });
+    await updateOrderMessage(order);
+    // Запрашиваем ФИО
+    const askMsg = await tgApi('sendMessage', {
       chat_id: message.chat.id,
-      text: `✍️ Заказ #${order.id.slice(-6)}. Введите ФИО ответственного за сборку:`,
+      text: `✍️ Заказ #${order.id.slice(-6)} собран. Введите ФИО ответственного за сборку:`,
       reply_markup: { force_reply: true, selective: false },
     });
+    // Сохраняем и по chat_id и по message_id ответа
     pendingAssemblers[message.chat.id] = orderId;
+    if (askMsg?.result?.message_id) {
+      pendingAssemblers[`msg:${askMsg.result.message_id}`] = orderId;
+    }
     return;
   }
 
