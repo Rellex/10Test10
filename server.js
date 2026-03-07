@@ -12,6 +12,7 @@ const IS_VERCEL = Boolean(process.env.VERCEL);
 const DATA_DIR = IS_VERCEL ? '/tmp' : __dirname;
 const MENU_FILE      = path.join(DATA_DIR, 'menu.json');
 const ADDRESSES_FILE = path.join(DATA_DIR, 'addresses.json');
+const UPLOADS_DIR    = path.join(DATA_DIR, 'uploads');
 const ADMIN_PASSWORD  = process.env.ADMIN_PASSWORD  || 'admin123';
 const YANDEX_GEO_KEY  = process.env.YANDEX_GEO_KEY  || '';
 
