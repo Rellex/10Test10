@@ -566,6 +566,7 @@ document.getElementById('supportModalClose').addEventListener('click', () => clo
 
 /* ===== MY ORDERS ===== */
 const ORDER_STATUS_MAP = {
+  pending:    { label: 'Ожидание',  color: '#9b59b6', icon: '⏳' },
   new:        { label: 'Принят',    color: '#f5a623', icon: '✅' },
   cooking:    { label: 'Готовится', color: '#e67e22', icon: '👨‍🍳' },
   ready:      { label: 'Готов',     color: '#27ae60', icon: '🎉' },
@@ -619,22 +620,6 @@ document.getElementById('myOrdersBtn').addEventListener('click', () => {
   openModal('ordersOverlay');
 });
 document.getElementById('ordersModalClose').addEventListener('click', () => closeModal('ordersOverlay'));
-
-document.getElementById('clearOrdersBtn').addEventListener('click', () => {
-  document.getElementById('clearConfirm').style.display = 'block';
-});
-
-document.getElementById('clearConfirmCancel').addEventListener('click', () => {
-  document.getElementById('clearConfirm').style.display = 'none';
-});
-
-document.getElementById('clearConfirmOk').addEventListener('click', () => {
-  localStorage.removeItem('myOrders');
-  localStorage.removeItem('lastOrderPhone');
-  document.getElementById('clearConfirm').style.display = 'none';
-  const list = document.getElementById('ordersList');
-  list.innerHTML = '<div class="orders-empty"><div class="orders-empty-icon">📋</div><div>Заказов пока нет</div></div>';
-});
 
 function renderAddressesList() {
   const list  = document.getElementById('addressesList');
