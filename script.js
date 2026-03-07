@@ -201,7 +201,7 @@ function renderCityList() {
 function selectCity(id, name) {
   state.city = id;
   localStorage.setItem('selectedCity', id);
-  document.getElementById('headerCityName').textContent = name;
+  document.getElementById('headerCityName').textContent = 'Поддержка';
   closeModal('cityModal');
   showMenu();
   renderAddressesList();
@@ -682,7 +682,7 @@ function renderPickupSelect() {
       const city = CITIES.find(c => c.id === sel.value);
       state.city = sel.value;
       localStorage.setItem('selectedCity', sel.value);
-      document.getElementById('headerCityName').textContent = city ? city.name : sel.value;
+      document.getElementById('headerCityName').textContent = 'Поддержка';
     }
     renderPickupAddresses(sel.value);
   });
@@ -704,7 +704,7 @@ function renderDeliveryCitySelect() {
       const city = CITIES.find(c => c.id === sel.value);
       state.city = sel.value;
       localStorage.setItem('selectedCity', sel.value);
-      document.getElementById('headerCityName').textContent = city ? city.name : sel.value;
+      document.getElementById('headerCityName').textContent = 'Поддержка';
       deliveryZoneResult = null;
       const statusEl = document.getElementById('deliveryZoneStatus');
       if (statusEl) { statusEl.textContent = ''; statusEl.className = 'delivery-zone-status'; }
@@ -908,7 +908,7 @@ async function init() {
   if (state.city) {
     const cityObj = getCitiesFromCache().find(c => c.id === state.city);
     if (cityObj) {
-      document.getElementById('headerCityName').textContent = cityObj.name;
+      document.getElementById('headerCityName').textContent = 'Поддержка';
       showMenu();
       renderAddressesList();
     }
