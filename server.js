@@ -341,6 +341,7 @@ function writeOrders(orders) {
 }
 
 const ORDER_STATUSES = [
+  { id: 'pending',    label: 'Ожидание',    color: '#9b59b6' },
   { id: 'new',        label: 'Принят',      color: '#f5a623' },
   { id: 'cooking',    label: 'Готовится',   color: '#e67e22' },
   { id: 'ready',      label: 'Готов',       color: '#27ae60' },
