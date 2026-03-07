@@ -567,7 +567,7 @@ function renderAddressesList() {
     list.appendChild(li);
   });
 }
-document.getElementById('showAddressesBtn').addEventListener('click', async () => { await loadAddressesCache(); renderAddressesList(); openModal('addressesModal'); });
+document.getElementById('showAddressesBtn')?.addEventListener('click', async () => { await loadAddressesCache(); renderAddressesList(); openModal('addressesModal'); });
 document.getElementById('addressesModalClose').addEventListener('click', () => closeModal('addressesModal'));
 
 document.getElementById('streetInput')?.addEventListener('input', function() {
@@ -593,7 +593,7 @@ function renderBonusLevels() {
     wrap.appendChild(card);
   });
 }
-document.getElementById('showBonusBtn').addEventListener('click', () => { renderBonusLevels(); openModal('bonusModal'); });
+document.getElementById('showBonusBtn')?.addEventListener('click', () => { renderBonusLevels(); openModal('bonusModal'); });
 document.getElementById('bonusModalClose').addEventListener('click', () => closeModal('bonusModal'));
 document.getElementById('itemModalClose').addEventListener('click', () => closeModal('itemModal'));
 
