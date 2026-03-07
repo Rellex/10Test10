@@ -549,7 +549,7 @@ app.post('/api/bot/webhook', async (req, res) => {
 
   if (!body?.callback_query) return;
   const { id, data, message, from } = body.callback_query;
-  if (!data?.startsWith('status:')) return;
+  if (!data?.startsWith('status:') && !data?.startsWith('assemble:')) return;
 
   // Handle assembler input request
   if (data.startsWith('assemble:')) {
