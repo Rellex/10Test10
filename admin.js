@@ -439,7 +439,7 @@ function openCityToggleModal(itemId) {
   const cities = addrData.length ? addrData : [];
 
   const html = `
-    <div class="modal-overlay" id="cityToggleModal" style="display:flex">
+    <div class="modal-overlay" id="cityToggleModal" style="display:flex;background:rgba(0,0,0,0.55);position:fixed;inset:0;z-index:9999;align-items:center;justify-content:center">
       <div class="modal-box" style="max-width:360px;width:100%">
         <div class="modal-header">
           <h2 class="modal-title">Города — ${item.name}</h2>
