@@ -285,7 +285,6 @@ a { text-decoration: none; color: inherit; }
   background: var(--white);
   border-radius: var(--radius);
   box-shadow: var(--shadow-sm);
-  overflow: hidden;
   display: flex;
   flex-direction: column;
   transition: transform .15s, box-shadow .15s;
@@ -307,6 +306,7 @@ a { text-decoration: none; color: inherit; }
   width: 100%;
   aspect-ratio: 1 / 1;
   overflow: hidden;
+  border-radius: var(--radius) var(--radius) 0 0;
 }
 .menu-card-photo {
   width: 100%;
