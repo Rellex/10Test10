@@ -312,7 +312,9 @@ function renderSidebar() {
     const li     = document.createElement('div');
     li.className  = 'sidebar-cat-item' + (S.activeCatId === cat.id ? ' active' : '');
     li.dataset.catId = cat.id;
+    li.draggable = true;
     li.innerHTML = `
+      <span class="drag-handle" style="cursor:grab;padding:0 4px;color:#aaa;font-size:14px;">⠿</span>
       <span class="sidebar-cat-dot ${cat.active ? 'on' : 'off'}"></span>
       <span class="sidebar-cat-name">${cat.name}</span>
       <span class="sidebar-cat-count">${active}/${items.length}</span>
@@ -320,16 +322,42 @@ function renderSidebar() {
         <button class="sidebar-icon-btn red" data-action="del-cat" data-id="${cat.id}" title="Удалить">🗑</button>
       </div>`;
     li.addEventListener('click', e => {
-      if (e.target.closest('[data-action]')) return;
+      if (e.target.closest('[data-action]') || e.target.closest('.drag-handle')) return;
       selectCategory(cat.id);
     });
     li.querySelector('[data-action="del-cat"]').addEventListener('click', e => {
       e.stopPropagation();
       showConfirm(`Удалить категорию «${cat.name}» и все её позиции?`, () => deleteCategory(cat.id));
     });
+    // Drag events
+    li.addEventListener('dragstart', e => {
+      catDrag.fromId = cat.id;
+      li.classList.add('dragging');
+      e.dataTransfer.effectAllowed = 'move';
+    });
+    li.addEventListener('dragend', () => li.classList.remove('dragging'));
+    li.addEventListener('dragover', e => {
+      e.preventDefault();
+      const over = e.currentTarget.dataset.catId;
+      if (over === catDrag.fromId) return;
+      const cats = S.menu.categories;
+      const fromIdx = cats.findIndex(c => c.id === catDrag.fromId);
+      const toIdx   = cats.findIndex(c => c.id === over);
+      if (fromIdx < 0 || toIdx < 0) return;
+      const moved = cats.splice(fromIdx, 1)[0];
+      cats.splice(toIdx, 0, moved);
+      renderSidebar();
+    });
+    li.addEventListener('drop', async e => {
+      e.preventDefault();
+      // Save new order to server
+      const order = S.menu.categories.map(c => c.id);
+      await api('POST', '/api/menu/categories/reorder', { order });
+    });
     nav.appendChild(li);
   });
 }
+const catDrag = { fromId: null };
 
 function selectCategory(catId) {
   S.activeCatId = catId;

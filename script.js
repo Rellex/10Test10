@@ -305,7 +305,7 @@ function createMenuCard(item) {
     ${mediaPart}
     <div class="menu-card-body">
       <div class="menu-card-name">${item.name}</div>
-      ${item.weight ? `<div class="menu-card-weight">${item.weight}</div>` : ''}
+      ${item.weight ? `<div class="menu-card-weight">${item.weight.toString().replace('г','')}г</div>` : ''}
       <div class="menu-card-footer">
         <div class="menu-card-price">${fmt(item.price)}</div>
         <div class="card-actions" id="card-actions-${item.id}"></div>

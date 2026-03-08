@@ -646,6 +646,16 @@ app.put('/api/addresses', auth, (req, res) => {
   res.json({ ok: true });
 });
 
+/* ── category reorder ──────────────────────── */
+app.post('/api/menu/categories/reorder', auth, (req, res) => {
+  const { order } = req.body; // array of category ids
+  if (!Array.isArray(order)) return res.status(400).json({ error: 'bad request' });
+  const menu = readMenu();
+  menu.categories = order.map(id => menu.categories.find(c => c.id === id)).filter(Boolean);
+  writeMenu(menu);
+  res.json({ ok: true });
+});
+
 /* ── menu export/import ────────────────────── */
 app.get('/api/admin/export/menu', auth, (req, res) => {
   const menu = readMenu();
