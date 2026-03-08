@@ -566,7 +566,8 @@ document.getElementById('supportModalClose').addEventListener('click', () => clo
 
 /* ===== MY ORDERS ===== */
 const ORDER_STATUS_MAP = {
-  pending:    { label: 'Ожидание',  color: '#9b59b6', icon: '⏳' },
+  pending:    { label: 'Ожидание',   color: '#9b59b6', icon: '⏳' },
+  assembling: { label: 'Собирается', color: '#e67e22', icon: '📦' },
   new:        { label: 'Принят',    color: '#f5a623', icon: '✅' },
   cooking:    { label: 'Готовится', color: '#e67e22', icon: '👨‍🍳' },
   ready:      { label: 'Готов',     color: '#27ae60', icon: '🎉' },

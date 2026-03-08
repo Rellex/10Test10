@@ -342,6 +342,7 @@ function writeOrders(orders) {
 
 const ORDER_STATUSES = [
   { id: 'pending',    label: 'Ожидание',    color: '#9b59b6' },
+  { id: 'assembling', label: 'Собирается',  color: '#e67e22' },
   { id: 'new',        label: 'Принят',      color: '#f5a623' },
   { id: 'cooking',    label: 'Готовится',   color: '#e67e22' },
   { id: 'ready',      label: 'Готов',       color: '#27ae60' },
@@ -446,9 +447,14 @@ function buildOrderMessage(order) {
 }
 
 function buildStatusKeyboard(orderId, currentStatus, mode) {
-  const chainPickup   = ['pending', 'new', 'cooking', 'ready', 'delivering_skip', 'done'];
-  const chainDelivery = ['pending', 'new', 'cooking', 'ready', 'delivering', 'done'];
+  const chainPickup   = ['pending', 'new', 'cooking', 'assembling', 'ready', 'delivering_skip', 'done'];
+  const chainDelivery = ['pending', 'new', 'cooking', 'assembling', 'ready', 'delivering', 'done'];
   const chain = mode === 'delivery' ? chainDelivery : chainPickup;
+
+  // If assembling — show no action buttons, waiting for assembler name
+  if (currentStatus === 'assembling') {
+    return { inline_keyboard: [[{ text: '⏳ Ожидание подписи сборщика...', callback_data: 'noop' }]] };
+  }
 
   const nextLabels = {
     pending:    '✅ Принять заказ',
@@ -538,11 +544,12 @@ app.post('/api/bot/webhook', async (req, res) => {
       const order = orders.find(o => o.id === orderId);
       if (order) {
         order.assembler = body.message.text.trim();
+        order.status = 'ready';
         writeOrders(orders);
         delete pendingAssemblers[chatId];
         if (replyMsgId) delete pendingAssemblers[`msg:${replyMsgId}`];
         await updateOrderMessage(order);
-        await tgApi('sendMessage', { chat_id: chatId, text: `✅ Сборщик записан: ${order.assembler}` });
+        await tgApi('sendMessage', { chat_id: chatId, text: `✅ Сборщик записан: ${order.assembler}. Статус изменён на «Готов».` });
       }
     }
     return;
@@ -550,6 +557,7 @@ app.post('/api/bot/webhook', async (req, res) => {
 
   if (!body?.callback_query) return;
   const { id, data, message, from } = body.callback_query;
+  if (data === 'noop') { await tgApi('answerCallbackQuery', { callback_query_id: id, text: 'Ожидание подписи сборщика...' }); return; }
   if (!data?.startsWith('status:') && !data?.startsWith('assemble:')) return;
 
   // Handle assembler input request
@@ -558,15 +566,18 @@ app.post('/api/bot/webhook', async (req, res) => {
     const orders = readOrders();
     const order = orders.find(o => o.id === orderId);
     if (!order) { await tgApi('answerCallbackQuery', { callback_query_id: id, text: 'Заказ не найден' }); return; }
-    // Сразу ставим статус ready
-    order.status = 'ready';
-    writeOrders(orders);
-    await tgApi('answerCallbackQuery', { callback_query_id: id, text: 'Заказ собран! Введите ФИО сборщика' });
-    await updateOrderMessage(order);
+    // Статус остаётся cooking до ввода ФИО
+    await tgApi('answerCallbackQuery', { callback_query_id: id, text: 'Введите ФИО сборщика для подтверждения' });
+    // Убираем кнопки пока не введено ФИО
+    await tgApi('editMessageReplyMarkup', {
+      chat_id: order.tgChatId,
+      message_id: order.tgMessageId,
+      reply_markup: { inline_keyboard: [] },
+    });
     // Запрашиваем ФИО
     const askMsg = await tgApi('sendMessage', {
       chat_id: message.chat.id,
-      text: `✍️ Заказ #${order.id.slice(-6)} собран. Введите ФИО ответственного за сборку:`,
+      text: `✍️ Заказ #${order.id.slice(-6)}. Введите ФИО ответственного за сборку:`,
       reply_markup: { force_reply: true, selective: false },
     });
     // Сохраняем и по chat_id и по message_id ответа
