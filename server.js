@@ -455,9 +455,9 @@ function buildStatusKeyboard(orderId, currentStatus, mode) {
   const chainDelivery = ['pending', 'new', 'assembling', 'ready', 'delivering'];
   const chain = mode === 'delivery' ? chainDelivery : chainPickup;
 
-  // If assembling — show no action buttons, waiting for assembler name
+  // If assembling — no buttons, waiting for assembler reply
   if (currentStatus === 'assembling') {
-    return { inline_keyboard: [[{ text: '⏳ Ожидание подписи сборщика...', callback_data: 'noop' }]] };
+    return { inline_keyboard: [] };
   }
 
   const nextLabels = {
@@ -565,7 +565,6 @@ app.post('/api/bot/webhook', async (req, res) => {
 
   if (!body?.callback_query) return;
   const { id, data, message, from } = body.callback_query;
-  if (data === 'noop') { await tgApi('answerCallbackQuery', { callback_query_id: id, text: 'Ожидание подписи сборщика...' }); return; }
   if (!data?.startsWith('status:') && !data?.startsWith('assemble:')) return;
 
   // Handle assembler input request
