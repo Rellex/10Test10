@@ -501,6 +501,10 @@ async function notifyNewOrder(order) {
   if (!BOT_TOKEN) return;
   const chatId = process.env.TG_CHAT_ID;
   if (!chatId) return;
+  // Только заказы из Выборга
+  const cityId = (order.cityId || order.city || '').toLowerCase();
+  const cityName = (order.cityName || '').toLowerCase();
+  if (!cityId.includes('vyborg') && !cityName.includes('выборг')) return;
   const text = buildOrderMessage(order);
   const keyboard = buildStatusKeyboard(order.id, order.status, order.mode);
   const res = await tgApi('sendMessage', {
