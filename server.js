@@ -342,7 +342,7 @@ function writeOrders(orders) {
 
 const ORDER_STATUSES = [
   { id: 'pending',    label: 'Ожидание',    color: '#9b59b6' },
-  { id: 'assembling', label: 'Собирается',  color: '#e67e22' },
+  { id: 'assembling', label: 'Сборка',       color: '#e67e22' },
   { id: 'new',        label: 'Принят',      color: '#f5a623' },
   { id: 'cooking',    label: 'Готовится',   color: '#e67e22' },
   { id: 'ready',      label: 'Готов',       color: '#27ae60' },
@@ -445,9 +445,9 @@ function buildOrderMessage(order) {
 ` +
     `💰 Итого: *${order.total} ₽*
 ` +
-    `📊 Статус: ${st.label}` +
-    (order.status === 'assembling' ? `\n✍️ Ожидание подписи сборщика...` : '') +
-    (order.assembler ? `\n👷 Сборщик: ${order.assembler}` : '') +
+    `🍽️ Статус: ${st.label}` +
+    (order.status === 'assembling' ? `\n⏳ Ожидание подтверждения сборки` : '') +
+    (order.assembler ? `\n👨‍🍳 Собрал: ${order.assembler}` : '') +
     (order.comment ? `\n💬 ${order.comment}` : '');
 }
 
