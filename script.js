@@ -569,7 +569,7 @@ function closeModal(id) { document.getElementById(id).style.display = 'none'; do
 /* ===== MODAL BINDINGS ===== */
 document.getElementById('cityBtn').addEventListener('click', () => {
   if (state.city) {
-    const city = CITIES.find(c => c.id === state.city);
+    const city = (_addressesCache || []).find(c => c.id === state.city) || CITIES.find(c => c.id === state.city);
     if (city) {
       document.getElementById('supportCityName').textContent = city.name;
       const phone = city.phone || '+7 (xxx) xxx xx xx';
