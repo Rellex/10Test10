@@ -429,7 +429,11 @@ function buildOrderMessage(order) {
 ` +
     `👤 ${order.name} | 📞 ${order.phone}
 ` +
-    `📍 ${order.cityName || ''} — ${order.address || ''}
+    `📍 ${order.cityName || ''} — ${order.address || ''}` +
+    (order.entrance  ? `, подъезд ${order.entrance}` : '') +
+    (order.floor     ? `, этаж ${order.floor}` : '') +
+    (order.apartment ? `, кв. ${order.apartment}` : '') +
+    `
 ` +
     `🚚 ${order.mode === 'delivery' ? 'Доставка' : 'Самовывоз'}
 ` +
@@ -447,8 +451,8 @@ function buildOrderMessage(order) {
 }
 
 function buildStatusKeyboard(orderId, currentStatus, mode) {
-  const chainPickup   = ['pending', 'new', 'cooking', 'assembling', 'ready', 'done'];
-  const chainDelivery = ['pending', 'new', 'cooking', 'assembling', 'ready', 'delivering', 'done'];
+  const chainPickup   = ['pending', 'new', 'assembling', 'ready'];
+  const chainDelivery = ['pending', 'new', 'assembling', 'ready', 'delivering'];
   const chain = mode === 'delivery' ? chainDelivery : chainPickup;
 
   // If assembling — show no action buttons, waiting for assembler name
@@ -458,7 +462,7 @@ function buildStatusKeyboard(orderId, currentStatus, mode) {
 
   const nextLabels = {
     pending:    '✅ Принять заказ',
-    new:        '👨‍🍳 Начать готовить',
+    new:        '📦 Заказ собран',
     cooking:    '📦 Заказ собран',
     ready:      '🚚 Отправить в доставку',
     delivering: '🏠 Доставлен',
