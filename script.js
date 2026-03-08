@@ -514,6 +514,11 @@ function openItemModal(item) {
   document.getElementById('itemModalTitle').textContent  = item.name;
   document.getElementById('itemModalName').textContent   = item.name;
   document.getElementById('itemModalWeight').textContent = item.weight || '';
+  const compEl = document.getElementById('itemModalComposition');
+  if (compEl) {
+    compEl.textContent = item.composition || '';
+    compEl.style.display = item.composition ? 'block' : 'none';
+  }
   document.getElementById('itemModalPrice').textContent  = fmt(item.price);
   document.getElementById('itemModalQty').textContent    = state.itemModal.qty;
   openModal('itemModal');

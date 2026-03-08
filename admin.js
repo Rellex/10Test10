@@ -418,6 +418,7 @@ function openItemModal(item) {
   document.getElementById('itemPrice').value            = item?.price       || '';
   document.getElementById('itemWeight').value           = item?.weight      || '';
   document.getElementById('itemDescription').value      = item?.description || '';
+  document.getElementById('itemComposition').value      = item?.composition  || '';
   document.getElementById('emojiCustom').value          = item?.emoji       || '🍽️';
   document.getElementById('itemName').classList.remove('error');
   document.getElementById('itemPrice').classList.remove('error');
@@ -565,6 +566,7 @@ document.getElementById('itemForm').addEventListener('submit', async e => {
       emoji,
       categoryId,
       description: document.getElementById('itemDescription').value.trim(),
+      composition: document.getElementById('itemComposition').value.trim(),
       imageBase64,
     };
 
