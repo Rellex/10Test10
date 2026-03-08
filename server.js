@@ -465,7 +465,7 @@ function buildStatusKeyboard(orderId, currentStatus, mode) {
     pending:    '✅ Принять заказ',
     new:        '📦 Заказ собран',
     cooking:    '📦 Заказ собран',
-    ready:      '🚚 Отправить в доставку',
+    ready:      '🚚 Заказ передан',
     delivering: '🏠 Доставлен',
   };
 
