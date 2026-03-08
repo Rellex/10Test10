@@ -356,7 +356,7 @@ const ORDER_STATUSES = [
   { id: 'new',        label: 'Принят',      color: '#f5a623' },
   { id: 'cooking',    label: 'Готовится',   color: '#e67e22' },
   { id: 'ready',      label: 'Готов',       color: '#27ae60' },
-  { id: 'delivering', label: 'Едет к вам',  color: '#2980b9' },
+  { id: 'delivering', label: 'Выдан',        color: '#2980b9' },
   { id: 'done',       label: 'Доставлен',   color: '#7f8c8d' },
   { id: 'cancelled',  label: 'Отменён',     color: '#e74c3c' },
 ];

@@ -595,7 +595,7 @@ const ORDER_STATUS_MAP = {
   new:        { label: 'Принят',     color: '#f5a623', icon: '✅' },
   assembling: { label: 'Сборка',      color: '#e67e22', icon: '👨‍🍳' },
   ready:      { label: 'Готов',      color: '#27ae60', icon: '🎉' },
-  delivering: { label: 'Едет к вам', color: '#2980b9', icon: '🚗' },
+  delivering: { label: 'Выдан',      color: '#2980b9', icon: '📦' },
   done:       { label: 'Доставлен',  color: '#7f8c8d', icon: '🏠' },
   cancelled:  { label: 'Отменён',    color: '#e74c3c', icon: '❌' },
 };
@@ -636,7 +636,7 @@ async function loadAndRenderOrders() {
       <div class="order-date">${date}</div>
       <div class="order-items">${items}</div>
       <div class="order-total">${fmt(o.total)} ₽</div>
-      ${o.status === 'done' || o.status === 'delivered' ? `<a class="order-review-btn" href="https://2gis.ru/spb/geo/70000001064593602" target="_blank">Не забудьте оставить отзыв! ☺️</a>` : ''}
+      ${o.status === 'done' || o.status === 'delivered' || o.status === 'delivering' ? `<a class="order-review-btn" href="https://2gis.ru/spb/geo/70000001064593602" target="_blank">Не забудьте оставить отзыв! ☺️</a>` : ''}
     </div>`;
   }).join('');
 }
