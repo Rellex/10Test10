@@ -319,9 +319,11 @@ a { text-decoration: none; color: inherit; }
 /* item detail modal photo */
 .item-modal-photo {
   width: 100%;
-  height: 200px;
-  object-fit: cover;
+  height: auto;
+  max-height: 280px;
+  object-fit: contain;
   border-radius: var(--radius);
+  background: var(--sun-light);
 }
 .item-detail-emoji { font-size: 72px; margin-bottom: 4px; }
 #itemModalEmoji { width: 100%; text-align: center; }
