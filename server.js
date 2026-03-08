@@ -545,11 +545,13 @@ app.post('/api/bot/webhook', async (req, res) => {
     // Only accept reply messages
     if (!replyMsgId) return;
     const orders = readOrders();
-    // Find assembling order by the ask message that was replied to
+    // Find assembling order — match by replied message (either ask msg or order msg)
     const order = orders.find(o =>
       o.status === 'assembling' &&
-      String(o.tgChatId) === String(chatId) &&
-      String(o.assemblerAskMsgId) === String(replyMsgId)
+      String(o.tgChatId) === String(chatId) && (
+        String(o.assemblerAskMsgId) === String(replyMsgId) ||
+        String(o.tgMessageId) === String(replyMsgId)
+      )
     );
     if (order) {
       order.assembler = body.message.text.trim();
