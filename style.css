@@ -1087,3 +1087,16 @@ a { text-decoration: none; color: inherit; }
   color: var(--sun-dark);
   margin-top: 4px;
 }
+
+.order-review-btn {
+  display: block;
+  margin-top: 8px;
+  padding: 8px 12px;
+  background: linear-gradient(135deg, var(--sun), var(--orange));
+  color: #fff;
+  border-radius: 10px;
+  font-size: 13px;
+  font-weight: 600;
+  text-align: center;
+  text-decoration: none;
+}
