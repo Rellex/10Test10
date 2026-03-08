@@ -244,7 +244,7 @@ app.delete('/api/categories/:id', auth, (req, res) => {
 
 /* ── routes: items (admin) ─────────────────── */
 app.post('/api/menu/item', auth, (req, res) => {
-  const { name, categoryId, price, weight, emoji, imageBase64, description } = req.body;
+  const { name, categoryId, price, weight, emoji, imageBase64, description, composition } = req.body;
   if (!name || !categoryId || !price) return res.status(400).json({ error: 'name, categoryId, price — обязательны' });
   const menu = readMenu();
   const item = {
@@ -255,6 +255,7 @@ app.post('/api/menu/item', auth, (req, res) => {
     weight:      weight      || '',
     emoji:       emoji       || '🍽️',
     description: description || '',
+    composition: composition  || '',
     imageBase64: imageBase64 || null,
     active:      true,
   };
@@ -268,7 +269,7 @@ app.put('/api/menu/item/:id', auth, (req, res) => {
   const item = menu.items.find(i => i.id === req.params.id);
   if (!item) return res.status(404).json({ error: 'Позиция не найдена' });
 
-  const { name, categoryId, price, weight, emoji, active, imageBase64, description } = req.body;
+  const { name, categoryId, price, weight, emoji, active, imageBase64, description, composition } = req.body;
   if (name        !== undefined) item.name        = name;
   if (categoryId  !== undefined) item.categoryId  = categoryId;
   if (price       !== undefined) item.price       = parseInt(price, 10);
@@ -276,6 +277,7 @@ app.put('/api/menu/item/:id', auth, (req, res) => {
   if (emoji       !== undefined) item.emoji       = emoji;
   if (active      !== undefined) item.active      = active === 'true' || active === true;
   if (description !== undefined) item.description = description;
+  if (composition !== undefined) item.composition  = composition;
   if (imageBase64 !== undefined) item.imageBase64 = imageBase64;
 
   writeMenu(menu);
