@@ -513,7 +513,7 @@ function openItemModal(item) {
 
   document.getElementById('itemModalTitle').textContent  = item.name;
   document.getElementById('itemModalName').textContent   = item.name;
-  document.getElementById('itemModalWeight').textContent = item.weight || '';
+  document.getElementById('itemModalWeight').textContent = item.weight ? (item.weight.toString().replace('г','') + 'г') : '';
   const compEl = document.getElementById('itemModalComposition');
   if (compEl) {
     compEl.textContent = item.composition || '';
