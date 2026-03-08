@@ -1110,6 +1110,7 @@ function openCityModal(cityId) {
   document.getElementById('cityModalTitle').textContent = city ? 'Переименовать город' : 'Новый город';
   document.getElementById('editCityId').value = city ? city.id : '';
   document.getElementById('cityName').value   = city ? city.name : '';
+  document.getElementById('cityPhone').value  = city ? (city.phone || '') : '';
   openModal('cityModal');
 }
 
@@ -1121,10 +1122,13 @@ document.getElementById('cityForm').addEventListener('submit', function(e) {
   var openBefore = getOpenCities();
   if (editId) {
     var city = addrData.find(function(c){ return c.id === editId; });
-    if (city) city.name = name;
+    if (city) {
+      city.name  = name;
+      city.phone = document.getElementById('cityPhone').value.trim() || city.phone || '';
+    }
     toast('Город обновлён', 'success');
   } else {
-    addrData.push({ id: 'city-' + Date.now(), name: name, list: [] });
+    addrData.push({ id: 'city-' + Date.now(), name: name, phone: document.getElementById('cityPhone').value.trim(), list: [] });
     toast('Город добавлен', 'success');
   }
   saveAddresses(addrData);
