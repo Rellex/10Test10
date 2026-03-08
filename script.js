@@ -566,12 +566,13 @@ document.getElementById('supportModalClose').addEventListener('click', () => clo
 
 /* ===== MY ORDERS ===== */
 const ORDER_STATUS_MAP = {
-  new:        { label: 'Принят',    color: '#f5a623', icon: '✅' },
-  cooking:    { label: 'Готовится', color: '#e67e22', icon: '👨‍🍳' },
-  ready:      { label: 'Готов',     color: '#27ae60', icon: '🎉' },
-  delivering: { label: 'Едет',      color: '#2980b9', icon: '🚗' },
-  done:       { label: 'Доставлен', color: '#7f8c8d', icon: '🏠' },
-  cancelled:  { label: 'Отменён',   color: '#e74c3c', icon: '❌' },
+  pending:    { label: 'Ожидание',   color: '#9b59b6', icon: '⏳' },
+  new:        { label: 'Принят',     color: '#f5a623', icon: '✅' },
+  assembling: { label: 'Собирается', color: '#e67e22', icon: '📦' },
+  ready:      { label: 'Готов',      color: '#27ae60', icon: '🎉' },
+  delivering: { label: 'Едет к вам', color: '#2980b9', icon: '🚗' },
+  done:       { label: 'Доставлен',  color: '#7f8c8d', icon: '🏠' },
+  cancelled:  { label: 'Отменён',    color: '#e74c3c', icon: '❌' },
 };
 
 async function loadAndRenderOrders() {

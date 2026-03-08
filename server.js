@@ -542,14 +542,12 @@ app.post('/api/bot/webhook', async (req, res) => {
   if (body?.message?.text) {
     const chatId = body.message.chat.id;
     const replyMsgId = body.message.reply_to_message?.message_id;
-    // Only accept reply to the force_reply question message
+    // Only accept reply messages
     if (!replyMsgId) return;
     const orders = readOrders();
+    // Find assembling order for this chat — persistent, works after restarts
     const order = orders.find(o =>
-      o.status === 'assembling' && (
-        (pendingAssemblers[`msg:${replyMsgId}`] === o.id) ||
-        pendingAssemblers[chatId] === o.id
-      )
+      o.status === 'assembling' && String(o.tgChatId) === String(chatId)
     );
     if (order) {
       order.assembler = body.message.text.trim();
