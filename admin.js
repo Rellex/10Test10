@@ -415,16 +415,65 @@ function createItemCard(item) {
       <div class="item-card-actions">
         <button class="card-btn card-btn-edit"   data-action="edit"   data-id="${item.id}">✏️ Изменить</button>
         <button class="card-btn card-btn-toggle" data-action="toggle" data-id="${item.id}">${toggleText}</button>
+        <button class="card-btn card-btn-cities" data-action="cities" data-id="${item.id}">🏙 Города</button>
         <button class="card-btn card-btn-delete" data-action="delete" data-id="${item.id}">🗑</button>
       </div>
     </div>`;
 
   card.querySelector('[data-action="edit"]').addEventListener('click',   () => openItemEdit(item.id));
   card.querySelector('[data-action="toggle"]').addEventListener('click', () => toggleItem(item.id));
+  card.querySelector('[data-action="cities"]').addEventListener('click', () => openCityToggleModal(item.id));
   card.querySelector('[data-action="delete"]').addEventListener('click', () => {
     showConfirm(`Удалить «${item.name}»?`, () => deleteItem(item.id));
   });
   return card;
+}
+
+/* ══════════════════════════════════════════════
+   CITY TOGGLE MODAL
+══════════════════════════════════════════════ */
+function openCityToggleModal(itemId) {
+  const item = S.menu.items.find(i => i.id === itemId);
+  if (!item) return;
+  const disabled = item.disabledCities || [];
+  const cities = addrData.length ? addrData : [];
+
+  const html = `
+    <div class="modal-overlay" id="cityToggleModal" style="display:flex">
+      <div class="modal-box" style="max-width:360px;width:100%">
+        <div class="modal-header">
+          <h2 class="modal-title">Города — ${item.name}</h2>
+          <button class="modal-close" id="cityToggleClose">✕</button>
+        </div>
+        <div style="padding:16px">
+          <p style="font-size:13px;color:#888;margin-bottom:12px">Снимите галочку, чтобы скрыть позицию в этом городе</p>
+          ${cities.map(city => `
+            <label style="display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:1px solid #f0f0f0;cursor:pointer">
+              <input type="checkbox" data-city="${city.id}" ${disabled.includes(city.id) ? '' : 'checked'}
+                style="width:16px;height:16px;accent-color:var(--primary)" />
+              <span style="font-size:14px">${city.name}</span>
+            </label>`).join('')}
+        </div>
+        <div class="modal-footer">
+          <button class="btn-primary" id="cityToggleSave">Сохранить</button>
+        </div>
+      </div>
+    </div>`;
+
+  const el = document.createElement('div');
+  el.innerHTML = html;
+  document.body.appendChild(el);
+
+  el.querySelector('#cityToggleClose').addEventListener('click', () => el.remove());
+  el.querySelector('#cityToggleSave').addEventListener('click', async () => {
+    const checked = [...el.querySelectorAll('input[data-city]')];
+    const newDisabled = checked.filter(c => !c.checked).map(c => c.dataset.city);
+    await api('PATCH', '/api/menu/items/' + itemId, { disabledCities: newDisabled });
+    const i = S.menu.items.find(x => x.id === itemId);
+    if (i) i.disabledCities = newDisabled;
+    el.remove();
+    toast('Сохранено', 'success');
+  });
 }
 
 /* ══════════════════════════════════════════════

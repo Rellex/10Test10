@@ -188,7 +188,19 @@ function buildInitialMenu() {
 }
 
 /* ── routes: public ────────────────────────── */
-app.get('/api/menu', (_, res) => res.json(readMenu()));
+app.get('/api/menu', (req, res) => {
+  const menu = readMenu();
+  const city = req.query.city;
+  if (!city) return res.json(menu);
+  const filtered = {
+    ...menu,
+    items: menu.items.filter(item => {
+      const disabled = item.disabledCities || [];
+      return !disabled.includes(city);
+    })
+  };
+  res.json(filtered);
+});
 
 /* ── routes: admin login ───────────────────── */
 app.post('/api/admin/login', (req, res) => {
@@ -664,6 +676,16 @@ app.post('/api/menu/categories/reorder', auth, (req, res) => {
   if (!Array.isArray(order)) return res.status(400).json({ error: 'bad request' });
   const menu = readMenu();
   menu.categories = order.map(id => menu.categories.find(c => c.id === id)).filter(Boolean);
+  writeMenu(menu);
+  res.json({ ok: true });
+});
+
+/* ── patch item (partial update) ───────────── */
+app.patch('/api/menu/items/:id', auth, (req, res) => {
+  const menu = readMenu();
+  const item = menu.items.find(i => i.id === req.params.id);
+  if (!item) return res.status(404).json({ error: 'Not found' });
+  Object.assign(item, req.body);
   writeMenu(menu);
   res.json({ ok: true });
 });

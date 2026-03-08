@@ -119,7 +119,8 @@ async function loadMenuFromAPI() {
   }
 
   try {
-    const res = await fetch('/api/menu');
+    const cityParam = state.city ? '?city=' + encodeURIComponent(state.city) : '';
+    const res = await fetch('/api/menu' + cityParam);
     if (!res.ok) throw new Error('HTTP ' + res.status);
     const data = await res.json();
     if (!Array.isArray(data.categories) || !Array.isArray(data.items)) throw new Error('Неверный формат данных');
@@ -203,7 +204,7 @@ function selectCity(id, name) {
   localStorage.setItem('selectedCity', id);
   document.getElementById('headerCityName').textContent = 'Поддержка';
   closeModal('cityModal');
-  showMenu();
+  loadMenuFromAPI().then(() => showMenu());
   renderAddressesList();
   tg?.HapticFeedback?.impactOccurred('light');
 }
