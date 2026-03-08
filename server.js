@@ -545,9 +545,11 @@ app.post('/api/bot/webhook', async (req, res) => {
     // Only accept reply messages
     if (!replyMsgId) return;
     const orders = readOrders();
-    // Find assembling order for this chat — persistent, works after restarts
+    // Find assembling order by the ask message that was replied to
     const order = orders.find(o =>
-      o.status === 'assembling' && String(o.tgChatId) === String(chatId)
+      o.status === 'assembling' &&
+      String(o.tgChatId) === String(chatId) &&
+      String(o.assemblerAskMsgId) === String(replyMsgId)
     );
     if (order) {
       order.assembler = body.message.text.trim();
@@ -590,11 +592,17 @@ app.post('/api/bot/webhook', async (req, res) => {
       text: `✍️ Заказ #${order.id.slice(-6)}. Введите ФИО ответственного за сборку:`,
       reply_markup: { force_reply: true, selective: false },
     });
-    // Сохраняем и по chat_id и по message_id ответа
-    pendingAssemblers[message.chat.id] = orderId;
+    // Save ask message_id in order so we can match the reply later
     if (askMsg?.result?.message_id) {
+      const orders2 = readOrders();
+      const o2 = orders2.find(x => x.id === orderId);
+      if (o2) {
+        o2.assemblerAskMsgId = askMsg.result.message_id;
+        writeOrders(orders2);
+      }
       pendingAssemblers[`msg:${askMsg.result.message_id}`] = orderId;
     }
+    pendingAssemblers[message.chat.id] = orderId;
     return;
   }
 
