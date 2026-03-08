@@ -547,9 +547,13 @@ app.post('/api/bot/webhook', async (req, res) => {
         order.status = 'ready';
         writeOrders(orders);
         delete pendingAssemblers[chatId];
-        if (replyMsgId) delete pendingAssemblers[`msg:${replyMsgId}`];
+        // Delete force_reply question and assembler's answer
+        if (replyMsgId) {
+          await tgApi('deleteMessage', { chat_id: chatId, message_id: replyMsgId });
+          delete pendingAssemblers[`msg:${replyMsgId}`];
+        }
+        await tgApi('deleteMessage', { chat_id: chatId, message_id: body.message.message_id });
         await updateOrderMessage(order);
-        await tgApi('sendMessage', { chat_id: chatId, text: `✅ Сборщик записан: ${order.assembler}. Статус изменён на «Готов».` });
       }
     }
     return;
