@@ -456,9 +456,9 @@ function buildStatusKeyboard(orderId, currentStatus, mode) {
   const chainDelivery = ['pending', 'new', 'assembling', 'ready', 'delivering'];
   const chain = mode === 'delivery' ? chainDelivery : chainPickup;
 
-  // If assembling — no buttons, waiting for assembler reply
+  // If assembling — show non-clickable hint button
   if (currentStatus === 'assembling') {
-    return { inline_keyboard: [] };
+    return { inline_keyboard: [[{ text: '✍️ Ответьте на сообщение с вопросом — введите ФИО сборщика', callback_data: 'noop_assembling' }]] };
   }
 
   const nextLabels = {
@@ -542,12 +542,12 @@ app.post('/api/bot/webhook', async (req, res) => {
   if (body?.message?.text) {
     const chatId = body.message.chat.id;
     const replyMsgId = body.message.reply_to_message?.message_id;
-    // Find any order in 'assembling' status for this chat
+    // Only accept reply to the force_reply question message
+    if (!replyMsgId) return;
     const orders = readOrders();
     const order = orders.find(o =>
       o.status === 'assembling' && (
-        String(o.tgChatId) === String(chatId) ||
-        (replyMsgId && pendingAssemblers[`msg:${replyMsgId}`] === o.id) ||
+        (pendingAssemblers[`msg:${replyMsgId}`] === o.id) ||
         pendingAssemblers[chatId] === o.id
       )
     );
@@ -569,6 +569,7 @@ app.post('/api/bot/webhook', async (req, res) => {
 
   if (!body?.callback_query) return;
   const { id, data, message, from } = body.callback_query;
+  if (data === 'noop_assembling') { await tgApi('answerCallbackQuery', { callback_query_id: id, text: 'Ответьте на сообщение с вопросом выше', show_alert: true }); return; }
   if (!data?.startsWith('status:') && !data?.startsWith('assemble:')) return;
 
   // Handle assembler input request
