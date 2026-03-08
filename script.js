@@ -305,11 +305,8 @@ function createMenuCard(item) {
     ${mediaPart}
     <div class="menu-card-body">
       <div class="menu-card-name">${item.name}</div>
-      ${item.weight ? `<div class="menu-card-weight">${item.weight.toString().replace('г','')}г${
-        (item.kcal || item.protein || item.fat || item.carbs)
-          ? ` <span class="menu-card-kbju">${item.kcal ? item.kcal+'ккал' : ''} ${item.protein ? 'Б'+item.protein : ''} ${item.fat ? 'Ж'+item.fat : ''} ${item.carbs ? 'У'+item.carbs : ''}</span>`
-          : ''
-      }</div>` : ''}
+      ${item.weight ? `<div class="menu-card-weight">${item.weight.toString().replace('г','')}г</div>` : ''}
+      ${(item.kcal || item.protein || item.fat || item.carbs) ? `<div class="menu-card-kbju">${item.kcal ? item.kcal+'ккал ' : ''}${item.protein ? 'Б'+item.protein+' ' : ''}${item.fat ? 'Ж'+item.fat+' ' : ''}${item.carbs ? 'У'+item.carbs : ''}</div>` : ''}
       <div class="menu-card-footer">
         <div class="menu-card-price">${fmt(item.price)}</div>
         <div class="card-actions" id="card-actions-${item.id}"></div>
