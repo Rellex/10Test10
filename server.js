@@ -446,6 +446,7 @@ function buildOrderMessage(order) {
     `💰 Итого: *${order.total} ₽*
 ` +
     `📊 Статус: ${st.label}` +
+    (order.status === 'assembling' ? `\n✍️ Ожидание подписи сборщика...` : '') +
     (order.assembler ? `\n👷 Сборщик: ${order.assembler}` : '') +
     (order.comment ? `\n💬 ${order.comment}` : '');
 }
