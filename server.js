@@ -346,7 +346,7 @@ const ORDER_STATUSES = [
   { id: 'new',        label: 'Принят',      color: '#f5a623' },
   { id: 'cooking',    label: 'Готовится',   color: '#e67e22' },
   { id: 'ready',      label: 'Готов',       color: '#27ae60' },
-  { id: 'delivering', label: 'Едет',        color: '#2980b9' },
+  { id: 'delivering', label: 'Едет к вам',  color: '#2980b9' },
   { id: 'done',       label: 'Доставлен',   color: '#7f8c8d' },
   { id: 'cancelled',  label: 'Отменён',     color: '#e74c3c' },
 ];
@@ -447,7 +447,7 @@ function buildOrderMessage(order) {
 }
 
 function buildStatusKeyboard(orderId, currentStatus, mode) {
-  const chainPickup   = ['pending', 'new', 'cooking', 'assembling', 'ready', 'delivering_skip', 'done'];
+  const chainPickup   = ['pending', 'new', 'cooking', 'assembling', 'ready', 'done'];
   const chainDelivery = ['pending', 'new', 'cooking', 'assembling', 'ready', 'delivering', 'done'];
   const chain = mode === 'delivery' ? chainDelivery : chainPickup;
 
@@ -460,7 +460,7 @@ function buildStatusKeyboard(orderId, currentStatus, mode) {
     pending:    '✅ Принять заказ',
     new:        '👨‍🍳 Начать готовить',
     cooking:    '📦 Заказ собран',
-    ready:      '🚗 Передать курьеру',
+    ready:      '🚚 Отправить в доставку',
     delivering: '🏠 Доставлен',
   };
 
@@ -603,6 +603,12 @@ app.post('/api/bot/webhook', async (req, res) => {
   const st = ORDER_STATUSES.find(s => s.id === newStatus) || { label: newStatus };
   await tgApi('answerCallbackQuery', { callback_query_id: id, text: `Статус: ${st.label}` });
   await updateOrderMessage(order);
+
+  // Save delivery start time for auto-complete check
+  if (newStatus === 'delivering') {
+    order.deliveryStartedAt = new Date().toISOString();
+    writeOrders(orders);
+  }
 });
 
 // Handle assembler name reply
@@ -631,9 +637,34 @@ app.use((err, _req, res, _next) => {
   res.status(500).json({ error: 'Внутренняя ошибка сервера' });
 });
 
+/* ── delivery auto-complete cron ───────────── */
+function startDeliveryCron() {
+  setInterval(async () => {
+    try {
+      const orders = readOrders();
+      const now = Date.now();
+      let changed = false;
+      for (const order of orders) {
+        if (order.status === 'delivering' && order.deliveryStartedAt) {
+          const elapsed = now - new Date(order.deliveryStartedAt).getTime();
+          if (elapsed >= 3 * 60 * 60 * 1000) {
+            order.status = 'done';
+            changed = true;
+            updateOrderMessage(order).catch(() => {});
+          }
+        }
+      }
+      if (changed) writeOrders(orders);
+    } catch(e) {
+      console.error('Delivery cron error:', e.message);
+    }
+  }, 60 * 1000); // check every minute
+}
+
 /* ── start/export ──────────────────────────── */
 if (require.main === module) {
   setWebhook();
+  startDeliveryCron();
   app.listen(PORT, () => {
     console.log(`\n☀️  Солнечный день — сервер запущен`);
     console.log(`   Мини-апп:    http://localhost:${PORT}/`);

@@ -571,7 +571,7 @@ const ORDER_STATUS_MAP = {
   new:        { label: 'Принят',    color: '#f5a623', icon: '✅' },
   cooking:    { label: 'Готовится', color: '#e67e22', icon: '👨‍🍳' },
   ready:      { label: 'Готов',     color: '#27ae60', icon: '🎉' },
-  delivering: { label: 'Едет',      color: '#2980b9', icon: '🚗' },
+  delivering: { label: 'Едет к вам', color: '#2980b9', icon: '🚗' },
   done:       { label: 'Доставлен', color: '#7f8c8d', icon: '🏠' },
   cancelled:  { label: 'Отменён',   color: '#e74c3c', icon: '❌' },
 };
