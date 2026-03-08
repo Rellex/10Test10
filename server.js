@@ -558,10 +558,10 @@ app.post('/api/bot/webhook', async (req, res) => {
       order.status = 'ready';
       writeOrders(orders);
       delete pendingAssemblers[chatId];
-      // Delete force_reply question and assembler's answer
-      if (replyMsgId) {
-        await tgApi('deleteMessage', { chat_id: chatId, message_id: replyMsgId });
-        delete pendingAssemblers[`msg:${replyMsgId}`];
+      // Delete only the ask message (not the order message!) and assembler's reply
+      if (order.assemblerAskMsgId) {
+        await tgApi('deleteMessage', { chat_id: chatId, message_id: order.assemblerAskMsgId });
+        delete pendingAssemblers[`msg:${order.assemblerAskMsgId}`];
       }
       await tgApi('deleteMessage', { chat_id: chatId, message_id: body.message.message_id });
       await updateOrderMessage(order);
