@@ -13,7 +13,7 @@ app.use(express.json());
 app.use(express.static(__dirname));
 
 /* ── paths ─────────────────────────────────── */
-const DATA_DIR = IS_VERCEL ? '/tmp' : __dirname;
+const DATA_DIR = process.env.DATA_DIR || (IS_VERCEL ? '/tmp' : __dirname);
 const MENU_FILE      = path.join(DATA_DIR, 'menu.json');
 const ADDRESSES_FILE = path.join(DATA_DIR, 'addresses.json');
 const ORDERS_FILE    = path.join(DATA_DIR, 'orders.json');
