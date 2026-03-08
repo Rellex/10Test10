@@ -447,6 +447,10 @@ function openItemModal(item) {
   document.getElementById('itemWeight').value           = item?.weight      || '';
   document.getElementById('itemDescription').value      = item?.description || '';
   document.getElementById('itemComposition').value      = item?.composition  || '';
+  document.getElementById('itemKcal').value             = item?.kcal    ?? '';
+  document.getElementById('itemProtein').value          = item?.protein ?? '';
+  document.getElementById('itemFat').value              = item?.fat     ?? '';
+  document.getElementById('itemCarbs').value            = item?.carbs   ?? '';
   document.getElementById('emojiCustom').value          = item?.emoji       || '🍽️';
   document.getElementById('itemName').classList.remove('error');
   document.getElementById('itemPrice').classList.remove('error');
@@ -595,6 +599,10 @@ document.getElementById('itemForm').addEventListener('submit', async e => {
       categoryId,
       description: document.getElementById('itemDescription').value.trim(),
       composition: document.getElementById('itemComposition').value.trim(),
+      kcal:    document.getElementById('itemKcal').value    ? Number(document.getElementById('itemKcal').value)    : null,
+      protein: document.getElementById('itemProtein').value ? Number(document.getElementById('itemProtein').value) : null,
+      fat:     document.getElementById('itemFat').value     ? Number(document.getElementById('itemFat').value)     : null,
+      carbs:   document.getElementById('itemCarbs').value   ? Number(document.getElementById('itemCarbs').value)   : null,
       imageBase64,
     };
 

@@ -305,7 +305,11 @@ function createMenuCard(item) {
     ${mediaPart}
     <div class="menu-card-body">
       <div class="menu-card-name">${item.name}</div>
-      ${item.weight ? `<div class="menu-card-weight">${item.weight.toString().replace('г','')}г</div>` : ''}
+      ${item.weight ? `<div class="menu-card-weight">${item.weight.toString().replace('г','')}г${
+        (item.kcal || item.protein || item.fat || item.carbs)
+          ? ` <span class="menu-card-kbju">${item.kcal ? item.kcal+'ккал' : ''} ${item.protein ? 'Б'+item.protein : ''} ${item.fat ? 'Ж'+item.fat : ''} ${item.carbs ? 'У'+item.carbs : ''}</span>`
+          : ''
+      }</div>` : ''}
       <div class="menu-card-footer">
         <div class="menu-card-price">${fmt(item.price)}</div>
         <div class="card-actions" id="card-actions-${item.id}"></div>
@@ -518,6 +522,19 @@ function openItemModal(item) {
   if (compEl) {
     compEl.textContent = item.composition || '';
     compEl.style.display = item.composition ? 'block' : 'none';
+  }
+  const kbjuEl = document.getElementById('itemModalKbju');
+  if (kbjuEl) {
+    const hasKbju = item.kcal || item.protein || item.fat || item.carbs;
+    kbjuEl.style.display = hasKbju ? 'flex' : 'none';
+    if (hasKbju) {
+      kbjuEl.innerHTML = [
+        item.kcal    ? `<span><b>${item.kcal}</b> ккал</span>` : '',
+        item.protein ? `<span><b>${item.protein}</b>г белки</span>` : '',
+        item.fat     ? `<span><b>${item.fat}</b>г жиры</span>` : '',
+        item.carbs   ? `<span><b>${item.carbs}</b>г углев.</span>` : '',
+      ].filter(Boolean).join('');
+    }
   }
   document.getElementById('itemModalPrice').textContent  = fmt(item.price);
   document.getElementById('itemModalQty').textContent    = state.itemModal.qty;
