@@ -316,6 +316,12 @@ function createMenuCard(item) {
   card.addEventListener('click', e => {
     if (!e.target.closest('.card-actions')) openItemModal(item);
   });
+  // Directly find the actions wrap inside this card (avoids id lookup issues)
+  const actionsWrap = card.querySelector('.card-actions');
+  if (actionsWrap) {
+    actionsWrap.innerHTML = `<button class="btn-add" aria-label="Добавить">+</button>`;
+    actionsWrap.querySelector('.btn-add').addEventListener('click', e => { e.stopPropagation(); addToCart(item.id); });
+  }
   updateCardActions(item.id);
   return card;
 }
