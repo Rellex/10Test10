@@ -864,6 +864,8 @@ function validateCheckoutForm() {
   if (state.deliveryMode === 'pickup') {
     const pickupTime = document.getElementById('pickupTimeInput');
     if (pickupTime && !pickupTime.value) { pickupTime.classList.add('error'); valid = false; }
+    const pickupAddr = document.getElementById('pickupAddress');
+    if (pickupAddr && !pickupAddr.value) { pickupAddr.classList.add('error'); valid = false; }
   }
   // Проверка зоны доставки для городов с зонами
   if (state.deliveryMode === 'delivery' && cityHasZones(state.city)) {
