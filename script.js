@@ -861,6 +861,10 @@ function validateCheckoutForm() {
   if (!name.value.trim())                                         { name.classList.add('error');   valid = false; }
   if (!phone.value.trim() || phone.value.trim().length < 6)      { phone.classList.add('error');  valid = false; }
   if (state.deliveryMode === 'delivery' && !street.value.trim()) { street.classList.add('error'); valid = false; }
+  if (state.deliveryMode === 'pickup') {
+    const pickupTime = document.getElementById('pickupTimeInput');
+    if (pickupTime && !pickupTime.value) { pickupTime.classList.add('error'); valid = false; }
+  }
   // Проверка зоны доставки для городов с зонами
   if (state.deliveryMode === 'delivery' && cityHasZones(state.city)) {
     if (!deliveryZoneResult) {
@@ -890,6 +894,7 @@ document.getElementById('checkoutForm').addEventListener('submit', e => {
       ? document.getElementById('streetInput').value
       : document.getElementById('pickupAddress').value,
     entrance:  document.getElementById('entranceInput')?.value.trim() || '',
+    pickupTime: state.deliveryMode === 'pickup' ? (document.getElementById('pickupTimeInput')?.value || '') : '',
     floor:     document.getElementById('floorInput')?.value.trim() || '',
     apartment: document.getElementById('apartmentInput')?.value.trim() || '',
     name:     document.getElementById('nameInput').value.trim(),
