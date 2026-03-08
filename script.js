@@ -636,7 +636,7 @@ async function loadAndRenderOrders() {
       <div class="order-date">${date}</div>
       <div class="order-items">${items}</div>
       <div class="order-total">${fmt(o.total)} ₽</div>
-      ${o.status === 'done' || o.status === 'delivered' || o.status === 'delivering' ? `<a class="order-review-btn" href="https://2gis.ru/spb/geo/70000001064593602" target="_blank">Не забудьте оставить отзыв! ☺️</a>` : ''}
+      ${o.status === 'done' || o.status === 'delivered' || o.status === 'delivering' ? `<a class="order-review-btn" href="https://2gis.ru/spb/geo/70000001064593602" target="_blank">Будем благодарны за ⭐⭐⭐⭐⭐🙏😊</a>` : ''}
     </div>`;
   }).join('');
 }
