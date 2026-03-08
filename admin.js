@@ -163,6 +163,41 @@ document.getElementById('loginForm').addEventListener('submit', async e => {
 
 document.getElementById('logoutBtn').addEventListener('click', logout);
 
+document.getElementById('exportAddressesBtn')?.addEventListener('click', async () => {
+  try {
+    const res = await fetch('/api/addresses');
+    const data = await res.json();
+    const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'addresses.json';
+    a.click();
+    URL.revokeObjectURL(url);
+  } catch(e) {
+    alert('Ошибка экспорта: ' + e.message);
+  }
+});
+
+document.getElementById('importAddressesInput')?.addEventListener('change', async (e) => {
+  const file = e.target.files[0];
+  if (!file) return;
+  try {
+    const text = await file.text();
+    const data = JSON.parse(text);
+    const res = await api('PUT', '/api/addresses', data);
+    if (res.ok) {
+      showToast('✅ Адреса импортированы!');
+      if (typeof fetchAddresses === 'function') fetchAddresses();
+    } else {
+      showToast('❌ Ошибка импорта', 'error');
+    }
+  } catch(e) {
+    showToast('❌ Неверный файл: ' + e.message, 'error');
+  }
+  e.target.value = '';
+});
+
 document.getElementById('importMenuInput')?.addEventListener('change', async (e) => {
   const file = e.target.files[0];
   if (!file) return;
