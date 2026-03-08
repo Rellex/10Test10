@@ -453,6 +453,7 @@ function buildOrderMessage(order) {
 ` +
     `📍 ${order.cityName || ''} — ${order.address || ''}` +
     (order.entrance  ? `, подъезд ${order.entrance}` : '') +
+    (order.intercom   ? `, домофон ${order.intercom}` : '') +
     (order.floor     ? `, этаж ${order.floor}` : '') +
     (order.apartment ? `, кв. ${order.apartment}` : '') +
     `

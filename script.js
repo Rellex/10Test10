@@ -923,6 +923,7 @@ document.getElementById('checkoutForm').addEventListener('submit', e => {
       ? document.getElementById('streetInput').value
       : document.getElementById('pickupAddress').value,
     entrance:  document.getElementById('entranceInput')?.value.trim() || '',
+    intercom:  document.getElementById('intercomInput')?.value.trim() || '',
     pickupTime: state.deliveryMode === 'pickup' ? (document.getElementById('pickupTimeInput')?.value || '') : '',
     floor:     document.getElementById('floorInput')?.value.trim() || '',
     apartment: document.getElementById('apartmentInput')?.value.trim() || '',
