@@ -167,10 +167,6 @@
                 <option value="">— Выберите адрес —</option>
               </select>
             </div>
-            <div class="form-group">
-              <label class="form-label">Ко времени*</label>
-              <input type="time" class="form-input" id="pickupTimeInput" required />
-            </div>
           </div>
 
           <div class="form-section">
@@ -254,8 +250,8 @@
     <div class="success-card">
       <div class="success-icon">☀️</div>
       <h2 class="success-title">Заказ принят!</h2>
-      <p class="success-text">Спасибо! Среднее время доставки — 90 минут. Ожидайте звонка оператора.</p>
-      <p class="success-phone">📞 399 00 33</p>
+      <p class="success-order-num" id="successOrderNum" style="font-size:15px;font-weight:600;color:#f5a623;margin:4px 0 8px"></p>
+      <p class="success-text">Отслеживать статус заказа можно в разделе <strong>«Мои заказы»</strong></p>
       <button class="btn-primary" id="successBackBtn">На главную</button>
     </div>
   </div>

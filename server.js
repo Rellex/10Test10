@@ -538,28 +538,31 @@ const pendingAssemblers = {};
 app.post('/api/bot/webhook', async (req, res) => {
   res.sendStatus(200);
   const body = req.body;
-  // Handle text reply for assembler name
+  // Handle text message for assembler name (persistent check via order status)
   if (body?.message?.text) {
     const chatId = body.message.chat.id;
-    // Check by reply message_id first, then by chat
     const replyMsgId = body.message.reply_to_message?.message_id;
-    const orderId = (replyMsgId && pendingAssemblers[`msg:${replyMsgId}`]) || pendingAssemblers[chatId];
-    if (orderId) {
-      const orders = readOrders();
-      const order = orders.find(o => o.id === orderId);
-      if (order) {
-        order.assembler = body.message.text.trim();
-        order.status = 'ready';
-        writeOrders(orders);
-        delete pendingAssemblers[chatId];
-        // Delete force_reply question and assembler's answer
-        if (replyMsgId) {
-          await tgApi('deleteMessage', { chat_id: chatId, message_id: replyMsgId });
-          delete pendingAssemblers[`msg:${replyMsgId}`];
-        }
-        await tgApi('deleteMessage', { chat_id: chatId, message_id: body.message.message_id });
-        await updateOrderMessage(order);
+    // Find any order in 'assembling' status for this chat
+    const orders = readOrders();
+    const order = orders.find(o =>
+      o.status === 'assembling' && (
+        String(o.tgChatId) === String(chatId) ||
+        (replyMsgId && pendingAssemblers[`msg:${replyMsgId}`] === o.id) ||
+        pendingAssemblers[chatId] === o.id
+      )
+    );
+    if (order) {
+      order.assembler = body.message.text.trim();
+      order.status = 'ready';
+      writeOrders(orders);
+      delete pendingAssemblers[chatId];
+      // Delete force_reply question and assembler's answer
+      if (replyMsgId) {
+        await tgApi('deleteMessage', { chat_id: chatId, message_id: replyMsgId });
+        delete pendingAssemblers[`msg:${replyMsgId}`];
       }
+      await tgApi('deleteMessage', { chat_id: chatId, message_id: body.message.message_id });
+      await updateOrderMessage(order);
     }
     return;
   }

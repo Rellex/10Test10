@@ -566,11 +566,10 @@ document.getElementById('supportModalClose').addEventListener('click', () => clo
 
 /* ===== MY ORDERS ===== */
 const ORDER_STATUS_MAP = {
-  pending:    { label: 'Ожидание',   color: '#9b59b6', icon: '⏳' },
-  new:        { label: 'Принят',     color: '#f5a623', icon: '✅' },
-  assembling: { label: 'Собирается', color: '#e67e22', icon: '📦' },
+  new:        { label: 'Принят',    color: '#f5a623', icon: '✅' },
+  cooking:    { label: 'Готовится', color: '#e67e22', icon: '👨‍🍳' },
   ready:      { label: 'Готов',     color: '#27ae60', icon: '🎉' },
-  delivering: { label: 'Едет к вам', color: '#2980b9', icon: '🚗' },
+  delivering: { label: 'Едет',      color: '#2980b9', icon: '🚗' },
   done:       { label: 'Доставлен', color: '#7f8c8d', icon: '🏠' },
   cancelled:  { label: 'Отменён',   color: '#e74c3c', icon: '❌' },
 };
@@ -887,11 +886,9 @@ document.getElementById('checkoutForm').addEventListener('submit', e => {
     cityName: getCitiesFromCache().find(c => c.id === state.city)?.name || '',
     mode:     state.deliveryMode,
     address:  state.deliveryMode === 'delivery'
-      ? document.getElementById('streetInput').value
+      ? [document.getElementById('streetInput').value, document.getElementById('entranceInput').value,
+         document.getElementById('floorInput').value,  document.getElementById('apartmentInput').value].filter(Boolean).join(', ')
       : document.getElementById('pickupAddress').value,
-    entrance: document.getElementById('entranceInput')?.value.trim() || '',
-    floor:    document.getElementById('floorInput')?.value.trim() || '',
-    apartment: document.getElementById('apartmentInput')?.value.trim() || '',
     name:     document.getElementById('nameInput').value.trim(),
     phone:    document.getElementById('phoneInput').value.trim(),
     comment:  document.getElementById('commentInput').value.trim(),
@@ -915,8 +912,10 @@ document.getElementById('checkoutForm').addEventListener('submit', e => {
   }).then(r => r.json()).then(data => {
     if (data.orderId) {
       const saved = JSON.parse(localStorage.getItem('myOrders') || '[]');
-      saved.unshift({ ...orderData, id: data.orderId, status: 'new', createdAt: new Date().toISOString() });
+      saved.unshift({ ...orderData, id: data.orderId, status: 'pending', createdAt: new Date().toISOString() });
       localStorage.setItem('myOrders', JSON.stringify(saved.slice(0, 50)));
+      const numEl = document.getElementById('successOrderNum');
+      if (numEl) numEl.textContent = 'Заказ #' + data.orderId.slice(-6);
     }
   }).catch(() => {});
   localStorage.setItem('lastOrderPhone', orderData.phone);
