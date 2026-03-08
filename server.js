@@ -644,6 +644,20 @@ app.put('/api/addresses', auth, (req, res) => {
   res.json({ ok: true });
 });
 
+/* ── menu export/import ────────────────────── */
+app.get('/api/admin/export/menu', auth, (req, res) => {
+  const menu = readMenu();
+  res.setHeader('Content-Disposition', 'attachment; filename="menu.json"');
+  res.json(menu);
+});
+
+app.post('/api/admin/import/menu', auth, (req, res) => {
+  const data = req.body;
+  if (!data?.categories || !data?.items) return res.status(400).json({ error: 'Неверный формат' });
+  writeMenu(data);
+  res.json({ ok: true, categories: data.categories.length, items: data.items.length });
+});
+
 /* ── admin panel route ─────────────────────── */
 app.get('/admin', (_, res) => res.sendFile(path.join(__dirname, 'admin.html')));
 
