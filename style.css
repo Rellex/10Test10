@@ -323,7 +323,7 @@ a { text-decoration: none; color: inherit; }
   max-height: 280px;
   object-fit: contain;
   border-radius: var(--radius);
-  background: var(--sun-light);
+  background: #fff;
 }
 .item-detail-emoji { font-size: 72px; margin-bottom: 4px; }
 #itemModalEmoji { width: 100%; text-align: center; }
