@@ -458,7 +458,7 @@ function buildStatusKeyboard(orderId, currentStatus, mode) {
 
   // If assembling — show non-clickable hint button
   if (currentStatus === 'assembling') {
-    return { inline_keyboard: [[{ text: '✍️ Ответьте на сообщение с вопросом — введите ФИО сборщика', callback_data: 'noop_assembling' }]] };
+    return { inline_keyboard: [[{ text: '⏳ Ожидание подписи сборщика', callback_data: 'noop_assembling' }]] };
   }
 
   const nextLabels = {

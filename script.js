@@ -887,9 +887,11 @@ document.getElementById('checkoutForm').addEventListener('submit', e => {
     cityName: getCitiesFromCache().find(c => c.id === state.city)?.name || '',
     mode:     state.deliveryMode,
     address:  state.deliveryMode === 'delivery'
-      ? [document.getElementById('streetInput').value, document.getElementById('entranceInput').value,
-         document.getElementById('floorInput').value,  document.getElementById('apartmentInput').value].filter(Boolean).join(', ')
+      ? document.getElementById('streetInput').value
       : document.getElementById('pickupAddress').value,
+    entrance:  document.getElementById('entranceInput')?.value.trim() || '',
+    floor:     document.getElementById('floorInput')?.value.trim() || '',
+    apartment: document.getElementById('apartmentInput')?.value.trim() || '',
     name:     document.getElementById('nameInput').value.trim(),
     phone:    document.getElementById('phoneInput').value.trim(),
     comment:  document.getElementById('commentInput').value.trim(),
