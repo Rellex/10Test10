@@ -419,6 +419,18 @@ app.patch('/api/admin/orders/:id/status', auth, (req, res) => {
 app.get('/api/orders/statuses', (req, res) => res.json(ORDER_STATUSES));
 
 /* ── telegram bot ───────────────────────────── */
+async function clientBotApi(method, body) {
+  if (!CLIENT_BOT_TOKEN) return null;
+  try {
+    const r = await fetch(`https://api.telegram.org/bot${CLIENT_BOT_TOKEN}/${method}`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(body),
+    });
+    return await r.json();
+  } catch (e) { return null; }
+}
+
 async function tgApi(method, body) {
   if (!BOT_TOKEN) return null;
   try {
@@ -432,6 +444,13 @@ async function tgApi(method, body) {
     console.error('TG API error:', e.message);
     return null;
   }
+}
+
+async function setClientBotWebhook() {
+  if (!CLIENT_BOT_TOKEN) return;
+  const url = `https://${WEBHOOK_DOMAIN}/api/client-bot/webhook`;
+  const r = await clientBotApi('setWebhook', { url, drop_pending_updates: true });
+  console.log('Client bot webhook:', r?.ok ? '✅ ' + url : '❌ ' + JSON.stringify(r));
 }
 
 async function setWebhook() {
@@ -562,9 +581,54 @@ app.get('/api/bot/me', auth, async (req, res) => {
 const pendingAssemblers = {};
 
 // Webhook от Telegram
+// Клиентский бот — webhook
+app.post('/api/client-bot/webhook', async (req, res) => {
+  res.sendStatus(200);
+  const body = req.body;
+  if (body?.message?.text === '/start') {
+    const chatId = body.message.chat.id;
+    await clientBotApi('sendMessage', {
+      chat_id: chatId,
+      text: `☀️ *Добро пожаловать в «Солнечный день»\!*
+
+Здесь вы можете быстро оформить заказ на доставку или самовывоз\. Нажмите кнопку ниже, чтобы открыть меню и выбрать блюда\.
+
+Желаем вам солнечного настроения и приятного аппетита\!`,
+      parse_mode: 'MarkdownV2',
+      reply_markup: {
+        inline_keyboard: [[{
+          text: '🍽 Открыть меню',
+          web_app: { url: 'https://10test10-production.up.railway.app/' }
+        }]]
+      }
+    });
+  }
+});
+
 app.post('/api/bot/webhook', async (req, res) => {
   res.sendStatus(200);
   const body = req.body;
+  // Handle /start command
+  if (body?.message?.text === '/start') {
+    const chatId = body.message.chat.id;
+    await tgApi('sendMessage', {
+      chat_id: chatId,
+      text: `☀️ *Добро пожаловать в «Солнечный день»!*
+
+Здесь вы можете быстро оформить заказ на доставку или самовывоз\. Нажмите кнопку ниже, чтобы открыть меню и выбрать блюда\.
+
+Желаем вам солнечного настроения и приятного аппетита\!`,
+      parse_mode: 'MarkdownV2',
+      reply_markup: {
+        inline_keyboard: [[{
+          text: '🍽 Открыть меню',
+          web_app: { url: 'https://10test10-production.up.railway.app/' }
+        }]]
+      }
+    });
+    return;
+  }
+
   // Handle text message for assembler name (persistent check via order status)
   if (body?.message?.text) {
     const chatId = body.message.chat.id;
@@ -741,6 +805,7 @@ function startDeliveryCron() {
 /* ── start/export ──────────────────────────── */
 if (require.main === module) {
   setWebhook();
+setClientBotWebhook();
   startDeliveryCron();
   app.listen(PORT, () => {
     console.log(`\n☀️  Солнечный день — сервер запущен`);
