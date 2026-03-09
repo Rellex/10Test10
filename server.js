@@ -410,6 +410,7 @@ app.post('/api/orders', (req, res) => {
   };
   orders.unshift(order);
   writeOrders(orders);
+  broadcast('order', order);
   res.json({ ok: true, orderId: order.id });
   notifyNewOrder(order).catch(() => {});
 });
@@ -435,6 +436,7 @@ app.patch('/api/admin/orders/:id/status', auth, (req, res) => {
   if (!order) return res.status(404).json({ error: 'Заказ не найден' });
   order.status = status;
   writeOrders(orders);
+  broadcast('order', order);
   res.json({ ok: true });
   updateOrderMessage(order).catch(() => {});
 });
@@ -672,6 +674,7 @@ app.post('/api/bot/webhook', async (req, res) => {
       order.assembler = body.message.text.trim();
       order.status = 'ready';
       writeOrders(orders);
+      broadcast('order', order);
       delete pendingAssemblers[chatId];
       // Delete only the ask message (not the order message!) and assembler's reply
       if (order.assemblerAskMsgId) {
@@ -716,6 +719,7 @@ app.post('/api/bot/webhook', async (req, res) => {
       if (o2) {
         o2.assemblerAskMsgId = askMsg.result.message_id;
         writeOrders(orders2);
+        orders2.filter(o => o._justUpdated).forEach(o => { broadcast('order', o); delete o._justUpdated; });
       }
       pendingAssemblers[`msg:${askMsg.result.message_id}`] = orderId;
     }

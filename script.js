@@ -1033,6 +1033,21 @@ async function init() {
   updateCartSheet();
 }
 
+/* ===== STATUS TOAST ===== */
+function showStatusToast(msg) {
+  let el = document.getElementById('statusToast');
+  if (!el) {
+    el = document.createElement('div');
+    el.id = 'statusToast';
+    el.style.cssText = 'position:fixed;bottom:90px;left:50%;transform:translateX(-50%);background:#323232;color:#fff;padding:10px 18px;border-radius:24px;font-size:14px;font-weight:500;z-index:9999;box-shadow:0 4px 16px rgba(0,0,0,.3);transition:opacity .3s;white-space:nowrap;max-width:90vw;text-align:center';
+    document.body.appendChild(el);
+  }
+  el.textContent = msg;
+  el.style.opacity = '1';
+  clearTimeout(el._t);
+  el._t = setTimeout(() => { el.style.opacity = '0'; }, 3500);
+}
+
 /* ===== LIVE UPDATE via WebSocket ===== */
 function connectLiveUpdates() {
   const proto = location.protocol === 'https:' ? 'wss' : 'ws';
@@ -1053,6 +1068,25 @@ function connectLiveUpdates() {
       if (event === 'addresses') {
         _addressesCache = payload;
         renderAddressesList();
+      }
+      if (event === 'order') {
+        // Update this order in localStorage
+        const saved = JSON.parse(localStorage.getItem('myOrders') || '[]');
+        const idx = saved.findIndex(o => o.id === payload.id);
+        if (idx !== -1) {
+          saved[idx] = { ...saved[idx], ...payload };
+          localStorage.setItem('myOrders', JSON.stringify(saved));
+          // Re-render if orders screen is open
+          const overlay = document.getElementById('ordersOverlay');
+          if (overlay && overlay.style.display !== 'none') {
+            loadAndRenderOrders();
+          }
+          // Show status toast if order status changed
+          const st = ORDER_STATUS_MAP[payload.status];
+          if (st) {
+            showStatusToast(`Заказ #${payload.id.slice(-6)}: ${st.icon} ${st.label}`);
+          }
+        }
       }
     } catch (e) {}
   };
