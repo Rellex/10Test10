@@ -117,11 +117,19 @@ app.post('/api/delivery/check', async (req, res) => {
   const cityZones = DELIVERY_ZONES[cityId];
   if (!cityZones) return res.json({ allowed: true, cost: 0, label: 'Доставка', noZones: true });
 
+  // City bounding boxes for geocoder (ll + spn)
+  const CITY_GEO = {
+    vyborg: { ll: '28.74,60.70', spn: '0.3,0.15' },
+    spb:    { ll: '30.32,59.95', spn: '0.7,0.3'  },
+  };
+  const geo = CITY_GEO[cityId] || {};
+
   // Получаем координаты адреса
   let lat, lng;
   try {
-    const url = `https://geocode-maps.yandex.ru/1.x/?apikey=${YANDEX_GEO_KEY}&geocode=${encodeURIComponent(address)}&format=json&results=1`;
-    const r   = await fetch(url);
+    let geoUrl = `https://geocode-maps.yandex.ru/1.x/?apikey=${YANDEX_GEO_KEY}&geocode=${encodeURIComponent(address)}&format=json&results=1`;
+    if (geo.ll) geoUrl += `&ll=${geo.ll}&spn=${geo.spn}&rspn=1`;
+    const r   = await fetch(geoUrl);
     const d   = await r.json();
     const member = d?.response?.GeoObjectCollection?.featureMember?.[0];
     const pos = member?.GeoObject?.Point?.pos;
