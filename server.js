@@ -140,6 +140,16 @@ app.post('/api/delivery/check', async (req, res) => {
     if (!['exact','number','near','range','other'].includes(precision) || !['house','entrance','street','locality','district'].includes(kind)) {
       return res.json({ allowed: false, reason: 'Уточните адрес: укажите улицу и номер дома.' });
     }
+    // Verify geocoded address belongs to the correct city
+    const foundAddr = member?.GeoObject?.metaDataProperty?.GeocoderMetaData?.text || '';
+    const CITY_NAMES = {
+      vyborg: ['Выборг'],
+      spb: ['Санкт-Петербург', 'Санкт Петербург', 'Saint Petersburg'],
+    };
+    const allowedNames = CITY_NAMES[cityId] || [];
+    if (allowedNames.length && !allowedNames.some(n => foundAddr.includes(n))) {
+      return res.json({ allowed: false, reason: 'Адрес не найден в выбранном городе. Проверьте правильность.' });
+    }
     [lng, lat] = pos.split(' ').map(parseFloat);
   } catch(e) {
     return res.status(500).json({ error: 'Не удалось определить координаты адреса' });
