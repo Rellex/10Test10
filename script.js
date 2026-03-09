@@ -947,19 +947,34 @@ document.getElementById('checkoutForm').addEventListener('submit', e => {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(orderData)
-  }).then(r => r.json()).then(data => {
+  }).then(async r => {
+    const data = await r.json();
+    if (!r.ok) {
+      // Handle zone errors
+      if (data.zone === 'far') {
+        showZoneError(`🚚 Дальняя зона доставки — минимальная сумма заказа 3 000 ₽\nВаша корзина: ${fmt(orderData.total)} ₽`);
+      } else if (data.error) {
+        showZoneError(data.error);
+      }
+      return;
+    }
     if (data.orderId) {
       const saved = JSON.parse(localStorage.getItem('myOrders') || '[]');
       saved.unshift({ ...orderData, id: data.orderId, status: 'pending', createdAt: new Date().toISOString() });
       localStorage.setItem('myOrders', JSON.stringify(saved.slice(0, 50)));
       const numEl = document.getElementById('successOrderNum');
       if (numEl) numEl.textContent = 'Заказ #' + data.orderId.slice(-6);
+      localStorage.setItem('lastOrderPhone', orderData.phone);
+      if (tg) tg.sendData(JSON.stringify(orderData));
+      closeModal('checkoutOverlay');
+      showSuccess();
     }
-  }).catch(() => {});
-  localStorage.setItem('lastOrderPhone', orderData.phone);
-  if (tg) tg.sendData(JSON.stringify(orderData));
-  closeModal('checkoutOverlay');
-  showSuccess();
+  }).catch(() => {
+    localStorage.setItem('lastOrderPhone', orderData.phone);
+    if (tg) tg.sendData(JSON.stringify(orderData));
+    closeModal('checkoutOverlay');
+    showSuccess();
+  });
 });
 
 function showSuccess() {
@@ -1031,6 +1046,25 @@ async function init() {
   }
   updateCartFab();
   updateCartSheet();
+}
+
+/* ===== ZONE ERROR MODAL ===== */
+function showZoneError(msg) {
+  let el = document.getElementById('zoneErrorModal');
+  if (!el) {
+    el = document.createElement('div');
+    el.id = 'zoneErrorModal';
+    el.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:9999;display:flex;align-items:center;justify-content:center;padding:24px';
+    el.innerHTML = `<div style="background:#fff;border-radius:16px;padding:24px;max-width:320px;width:100%;text-align:center">
+      <div style="font-size:32px;margin-bottom:12px">🚚</div>
+      <div id="zoneErrorMsg" style="font-size:15px;line-height:1.5;color:#333;margin-bottom:20px"></div>
+      <button onclick="document.getElementById('zoneErrorModal').remove()" style="background:linear-gradient(135deg,#f5a623,#e8961a);color:#fff;border:none;border-radius:24px;padding:12px 32px;font-size:15px;font-weight:600;cursor:pointer;width:100%">Понятно</button>
+    </div>`;
+    document.body.appendChild(el);
+    el.addEventListener('click', e => { if (e.target === el) el.remove(); });
+  }
+  document.getElementById('zoneErrorMsg').textContent = msg;
+  el.style.display = 'flex';
 }
 
 /* ===== STATUS TOAST ===== */
