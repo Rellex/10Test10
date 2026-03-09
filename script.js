@@ -1033,4 +1033,35 @@ async function init() {
   updateCartSheet();
 }
 
-document.addEventListener('DOMContentLoaded', init);
+/* ===== LIVE UPDATE via WebSocket ===== */
+function connectLiveUpdates() {
+  const proto = location.protocol === 'https:' ? 'wss' : 'ws';
+  const ws = new WebSocket(`${proto}://${location.host}`);
+
+  ws.onmessage = ({ data }) => {
+    try {
+      const { event, data: payload } = JSON.parse(data);
+      if (event === 'menu') {
+        const city = state.city;
+        const items = city
+          ? payload.items.filter(i => !(i.disabledCities || []).includes(city))
+          : payload.items;
+        dynamicMenu = { ...payload, items };
+        saveMenuCache(dynamicMenu);
+        rerenderMenuAfterUpdate();
+      }
+      if (event === 'addresses') {
+        _addressesCache = payload;
+        renderAddressesList();
+      }
+    } catch (e) {}
+  };
+
+  ws.onclose = () => setTimeout(connectLiveUpdates, 3000);
+  ws.onerror = () => ws.close();
+}
+
+document.addEventListener('DOMContentLoaded', () => {
+  init();
+  connectLiveUpdates();
+});

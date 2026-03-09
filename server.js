@@ -3,9 +3,25 @@ const cors     = require('cors');
 const crypto   = require('crypto');
 const path     = require('path');
 const fs       = require('fs');
+const http     = require('http');
+const { WebSocketServer } = require('ws');
 
-const app  = express();
-const PORT = process.env.PORT || 3000;
+const app    = express();
+const server = http.createServer(app);
+const wss    = new WebSocketServer({ server });
+const PORT   = process.env.PORT || 3000;
+
+// WebSocket broadcast helper
+function broadcast(event, data) {
+  const msg = JSON.stringify({ event, data });
+  wss.clients.forEach(client => {
+    if (client.readyState === 1) client.send(msg);
+  });
+}
+
+wss.on('connection', ws => {
+  ws.on('error', () => {});
+});
 const IS_VERCEL = Boolean(process.env.VERCEL);
 
 app.use(cors());
@@ -232,6 +248,7 @@ app.post('/api/categories', auth, (req, res) => {
   const cat = { id: 'cat-' + Date.now(), name, active: true };
   menu.categories.push(cat);
   writeMenu(menu);
+  broadcast('menu', readMenu());
   res.json(cat);
 });
 
@@ -242,6 +259,7 @@ app.put('/api/categories/:id', auth, (req, res) => {
   if (req.body.name   !== undefined) cat.name   = req.body.name;
   if (req.body.active !== undefined) cat.active = req.body.active;
   writeMenu(menu);
+  broadcast('menu', readMenu());
   res.json(cat);
 });
 
@@ -252,6 +270,7 @@ app.delete('/api/categories/:id', auth, (req, res) => {
   menu.categories.splice(idx, 1);
   menu.items = menu.items.filter(i => i.categoryId !== req.params.id);
   writeMenu(menu);
+  broadcast('menu', readMenu());
   res.json({ ok: true });
 });
 
@@ -278,6 +297,7 @@ app.post('/api/menu/item', auth, (req, res) => {
   };
   menu.items.push(item);
   writeMenu(menu);
+  broadcast('menu', readMenu());
   res.json(item);
 });
 
@@ -302,6 +322,7 @@ app.put('/api/menu/item/:id', auth, (req, res) => {
   if (imageBase64 !== undefined) item.imageBase64 = imageBase64;
 
   writeMenu(menu);
+  broadcast('menu', readMenu());
   res.json(item);
 });
 
@@ -311,6 +332,7 @@ app.patch('/api/menu/item/:id/toggle', auth, (req, res) => {
   if (!item) return res.status(404).json({ error: 'Позиция не найдена' });
   item.active = !item.active;
   writeMenu(menu);
+  broadcast('menu', readMenu());
   res.json(item);
 });
 
@@ -320,6 +342,7 @@ app.delete('/api/menu/item/:id', auth, (req, res) => {
   if (idx === -1) return res.status(404).json({ error: 'Позиция не найдена' });
   menu.items.splice(idx, 1);
   writeMenu(menu);
+  broadcast('menu', readMenu());
   res.json({ ok: true });
 });
 
@@ -733,6 +756,7 @@ app.put('/api/addresses', auth, (req, res) => {
   const data = req.body;
   if (!Array.isArray(data)) return res.status(400).json({ error: 'Нужен массив' });
   writeAddresses(data);
+  broadcast('addresses', readAddresses());
   res.json({ ok: true });
 });
 
@@ -743,6 +767,7 @@ app.post('/api/menu/categories/reorder', auth, (req, res) => {
   const menu = readMenu();
   menu.categories = order.map(id => menu.categories.find(c => c.id === id)).filter(Boolean);
   writeMenu(menu);
+  broadcast('menu', readMenu());
   res.json({ ok: true });
 });
 
@@ -753,6 +778,7 @@ app.patch('/api/menu/items/:id', auth, (req, res) => {
   if (!item) return res.status(404).json({ error: 'Not found' });
   Object.assign(item, req.body);
   writeMenu(menu);
+  broadcast('menu', readMenu());
   res.json({ ok: true });
 });
 
@@ -767,6 +793,7 @@ app.post('/api/admin/import/menu', auth, (req, res) => {
   const data = req.body;
   if (!data?.categories || !data?.items) return res.status(400).json({ error: 'Неверный формат' });
   writeMenu(data);
+  broadcast('menu', readMenu());
   res.json({ ok: true, categories: data.categories.length, items: data.items.length });
 });
 
@@ -808,7 +835,7 @@ if (require.main === module) {
   setWebhook();
 setClientBotWebhook();
   startDeliveryCron();
-  app.listen(PORT, () => {
+  server.listen(PORT, () => {
     console.log(`\n☀️  Солнечный день — сервер запущен`);
     console.log(`   Мини-апп:    http://localhost:${PORT}/`);
     console.log(`   Админ-панель: http://localhost:${PORT}/admin`);
