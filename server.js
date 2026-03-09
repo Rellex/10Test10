@@ -20,7 +20,8 @@ const ORDERS_FILE    = path.join(DATA_DIR, 'orders.json');
 const UPLOADS_DIR    = path.join(DATA_DIR, 'uploads');
 const ADMIN_PASSWORD  = process.env.ADMIN_PASSWORD  || 'admin123';
 const YANDEX_GEO_KEY  = process.env.YANDEX_GEO_KEY  || '';
-const BOT_TOKEN       = process.env.BOT_TOKEN        || '';
+const BOT_TOKEN        = process.env.BOT_TOKEN        || '';
+const CLIENT_BOT_TOKEN = process.env.CLIENT_BOT_TOKEN || '8614340391:AAGpEyHQ949K6WGBu-2CCafnSOK6-ofGbBM';
 const WEBHOOK_DOMAIN  = process.env.WEBHOOK_DOMAIN   || '10test10-production.up.railway.app';
 
 /* ── delivery zones ────────────────────────── */
