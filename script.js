@@ -1134,4 +1134,31 @@ function connectLiveUpdates() {
 document.addEventListener('DOMContentLoaded', () => {
   init();
   connectLiveUpdates();
+
+  // Phone input — digits only, auto-format +7 (XXX) XXX-XX-XX
+  const phoneEl = document.getElementById('phoneInput');
+  if (phoneEl) {
+    phoneEl.addEventListener('input', e => {
+      let digits = e.target.value.replace(/\D/g, '');
+      if (digits.startsWith('8')) digits = '7' + digits.slice(1);
+      if (digits.startsWith('7')) {
+        const d = digits.slice(1);
+        let fmt = '+7';
+        if (d.length > 0) fmt += ' (' + d.slice(0,3);
+        if (d.length >= 3) fmt += ') ' + d.slice(3,6);
+        if (d.length >= 6) fmt += '-' + d.slice(6,8);
+        if (d.length >= 8) fmt += '-' + d.slice(8,10);
+        e.target.value = fmt;
+      } else if (digits.length > 0) {
+        e.target.value = '+' + digits.slice(0,15);
+      } else {
+        e.target.value = '';
+      }
+    });
+    phoneEl.addEventListener('keydown', e => {
+      if (e.key === 'Backspace' && phoneEl.value === '+7 (') {
+        phoneEl.value = '';
+      }
+    });
+  }
 });
