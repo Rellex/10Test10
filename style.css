@@ -42,6 +42,7 @@ body {
   min-height: 100dvh;
   overscroll-behavior: none;
   -webkit-font-smoothing: antialiased;
+  padding-top: var(--header-h, 140px);
 }
 
 button { cursor: pointer; border: none; background: none; font-family: inherit; }
@@ -65,8 +66,10 @@ a { text-decoration: none; color: inherit; }
 
 /* ===== HEADER ===== */
 .header {
-  position: sticky;
+  position: fixed;
   top: 0;
+  left: 0;
+  right: 0;
   z-index: 100;
   background: linear-gradient(135deg, var(--sun) 0%, var(--orange) 100%);
   padding: 0 0 0;
@@ -214,7 +217,7 @@ a { text-decoration: none; color: inherit; }
   background: var(--white);
   border-bottom: 1px solid var(--grey-2);
   position: sticky;
-  top: var(--header-h, 0px);
+  top: 0;
   z-index: 90;
 }
 
