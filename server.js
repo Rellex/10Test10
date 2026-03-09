@@ -38,6 +38,8 @@ const ADMIN_PASSWORD  = process.env.ADMIN_PASSWORD  || 'admin123';
 const YANDEX_GEO_KEY  = process.env.YANDEX_GEO_KEY  || '';
 const BOT_TOKEN        = process.env.BOT_TOKEN        || '';
 const CLIENT_BOT_TOKEN = process.env.CLIENT_BOT_TOKEN || '8614340391:AAGpEyHQ949K6WGBu-2CCafnSOK6-ofGbBM';
+const SPB_BOT_TOKEN    = process.env.SPB_BOT_TOKEN    || '8631935230:AAGYvjxYXepGH7wlnub-cULI-zqaM520F0E';
+const SPB_CHAT_ID      = process.env.SPB_CHAT_ID      || '';
 const WEBHOOK_DOMAIN  = process.env.WEBHOOK_DOMAIN   || '10test10-production.up.railway.app';
 
 /* ── delivery zones ────────────────────────── */
@@ -516,6 +518,18 @@ app.patch('/api/admin/orders/:id/status', auth, (req, res) => {
 app.get('/api/orders/statuses', (req, res) => res.json(ORDER_STATUSES));
 
 /* ── telegram bot ───────────────────────────── */
+async function spbBotApi(method, body) {
+  if (!SPB_BOT_TOKEN) return null;
+  try {
+    const r = await fetch(`https://api.telegram.org/bot${SPB_BOT_TOKEN}/${method}`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(body),
+    });
+    return await r.json();
+  } catch (e) { return null; }
+}
+
 async function clientBotApi(method, body) {
   if (!CLIENT_BOT_TOKEN) return null;
   try {
@@ -541,6 +555,13 @@ async function tgApi(method, body) {
     console.error('TG API error:', e.message);
     return null;
   }
+}
+
+async function setSpbBotWebhook() {
+  if (!SPB_BOT_TOKEN) return;
+  const url = `https://${WEBHOOK_DOMAIN}/api/spb-bot/webhook`;
+  const r = await spbBotApi('setWebhook', { url, drop_pending_updates: true });
+  console.log('SPB bot webhook:', r?.ok ? '✅ ' + url : '❌ ' + JSON.stringify(r));
 }
 
 async function setClientBotWebhook() {
@@ -627,36 +648,50 @@ function buildStatusKeyboard(orderId, currentStatus, mode) {
 
 // Уведомление о новом заказе
 async function notifyNewOrder(order) {
-  if (!BOT_TOKEN) return;
-  const chatId = process.env.TG_CHAT_ID;
-  if (!chatId) return;
-  // Только заказы из Выборга
-  const cityId = (order.cityId || order.city || '').toLowerCase();
+  const cityId   = (order.cityId || order.city || '').toLowerCase();
   const cityName = (order.cityName || '').toLowerCase();
-  if (!cityId.includes('vyborg') && !cityName.includes('выборг')) return;
+  const isVyborg = cityId.includes('vyborg') || cityName.includes('выборг');
+  const isSpb    = cityId.includes('spb')    || cityName.includes('петербург') || cityName.includes('петербург');
+
+  let botFn = null, chatId = null;
+  if (isVyborg && BOT_TOKEN && process.env.TG_CHAT_ID) {
+    botFn = tgApi; chatId = process.env.TG_CHAT_ID;
+  } else if (isSpb && SPB_BOT_TOKEN && (SPB_CHAT_ID || process.env.SPB_CHAT_ID)) {
+    botFn = spbBotApi; chatId = SPB_CHAT_ID || process.env.SPB_CHAT_ID;
+  }
+  if (!botFn || !chatId) return;
+
   const text = buildOrderMessage(order);
   const keyboard = buildStatusKeyboard(order.id, order.status, order.mode);
-  const res = await tgApi('sendMessage', {
-    chat_id: chatId,
+  const res = await botFn('sendMessage', { chat_id: chatId, text, parse_mode: 'Markdown', reply_markup: keyboard });
+  if (res?.ok && res.result?.message_id) {
+    const orders = readOrders();
+    const o = orders.find(x => x.id === order.id);
+    if (o) { o.tgMessageId = res.result.message_id; o.tgChatId = chatId; writeOrders(orders); }
+  }
+}
+
+// Обновление сообщения СПБ бота
+async function updateOrderMessageSpb(order) {
+  if (!SPB_BOT_TOKEN || !order.tgMessageId || !order.tgChatId) return;
+  const text = buildOrderMessage(order);
+  const keyboard = buildStatusKeyboard(order.id, order.status, order.mode);
+  await spbBotApi('editMessageText', {
+    chat_id: order.tgChatId,
+    message_id: order.tgMessageId,
     text,
     parse_mode: 'Markdown',
     reply_markup: keyboard,
   });
-  // Сохраняем message_id чтобы потом редактировать
-  if (res?.ok && res.result?.message_id) {
-    const orders = readOrders();
-    const o = orders.find(x => x.id === order.id);
-    if (o) {
-      o.tgMessageId = res.result.message_id;
-      o.tgChatId = chatId;
-      writeOrders(orders);
-    }
-  }
 }
 
 // Обновление сообщения при смене статуса
 async function updateOrderMessage(order) {
-  if (!BOT_TOKEN || !order.tgMessageId || !order.tgChatId) return;
+  if (!order.tgMessageId || !order.tgChatId) return;
+  const cityId = (order.cityId || order.city || '').toLowerCase();
+  const isSpb  = cityId.includes('spb');
+  if (isSpb) return updateOrderMessageSpb(order);
+  if (!BOT_TOKEN) return;
   const text = buildOrderMessage(order);
   const keyboard = buildStatusKeyboard(order.id, order.status, order.mode);
   await tgApi('editMessageText', {
@@ -678,6 +713,51 @@ app.get('/api/bot/me', auth, async (req, res) => {
 const pendingAssemblers = {};
 
 // Webhook от Telegram
+// СПБ бот — webhook (уведомления о заказах)
+app.post('/api/spb-bot/webhook', async (req, res) => {
+  res.sendStatus(200);
+  const body = req.body;
+  if (!body?.callback_query) return;
+  const { id, data, message } = body.callback_query;
+  if (data === 'noop_assembling') {
+    await spbBotApi('answerCallbackQuery', { callback_query_id: id, text: 'Ответьте на сообщение выше', show_alert: true });
+    return;
+  }
+  if (!data?.startsWith('status:') && !data?.startsWith('assemble:')) return;
+
+  if (data.startsWith('assemble:')) {
+    const orderId = data.split(':')[1];
+    const orders = readOrders();
+    const order = orders.find(o => o.id === orderId);
+    if (!order) { await spbBotApi('answerCallbackQuery', { callback_query_id: id, text: 'Заказ не найден' }); return; }
+    order.status = 'assembling';
+    const askMsg = await spbBotApi('sendMessage', {
+      chat_id: order.tgChatId,
+      text: `✍️ Заказ #${orderId.slice(-6)} собран\. Введите ФИО ответственного за сборку:`,
+      reply_markup: { force_reply: true, selective: true },
+    });
+    if (askMsg?.ok) {
+      const orders2 = readOrders();
+      const o2 = orders2.find(x => x.id === orderId);
+      if (o2) { o2.status = 'assembling'; o2.assemblerAskMsgId = askMsg.result.message_id; writeOrders(orders2); broadcast('order', o2); }
+    }
+    await spbBotApi('answerCallbackQuery', { callback_query_id: id, text: 'Введите ФИО сборщика' });
+    return;
+  }
+
+  const [, orderId, newStatus] = data.split(':');
+  const orders = readOrders();
+  const order = orders.find(o => o.id === orderId);
+  if (!order) { await spbBotApi('answerCallbackQuery', { callback_query_id: id, text: 'Заказ не найден' }); return; }
+  order.status = newStatus;
+  if (newStatus === 'delivering') order.deliveryStartedAt = new Date().toISOString();
+  writeOrders(orders);
+  broadcast('order', order);
+  const st = ORDER_STATUSES.find(s => s.id === newStatus) || { label: newStatus };
+  await spbBotApi('answerCallbackQuery', { callback_query_id: id, text: `Статус: ${st.label}` });
+  await updateOrderMessageSpb(order);
+});
+
 // Клиентский бот — webhook
 app.post('/api/client-bot/webhook', async (req, res) => {
   res.sendStatus(200);
@@ -908,6 +988,7 @@ function startDeliveryCron() {
 if (require.main === module) {
   setWebhook();
 setClientBotWebhook();
+setSpbBotWebhook();
   startDeliveryCron();
   server.listen(PORT, () => {
     console.log(`\n☀️  Солнечный день — сервер запущен`);
