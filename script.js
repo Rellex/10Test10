@@ -823,7 +823,7 @@ function applyPromo() {
 }
 
 /* ===== DELIVERY ZONE CHECK ===== */
-const CITIES_WITH_ZONES = ['vyborg'];
+const CITIES_WITH_ZONES = ['vyborg', 'spb'];
 
 function cityHasZones(cityId) {
   return CITIES_WITH_ZONES.includes(cityId);
@@ -851,7 +851,8 @@ async function checkDeliveryZone(address) {
   if (statusEl) { statusEl.textContent = 'Проверяем адрес...'; statusEl.className = 'delivery-zone-status checking'; }
 
   try {
-    const fullAddress = 'Выборг, ' + address;
+    const cityPrefix = state.city === 'spb' ? 'Санкт-Петербург' : 'Выборг';
+    const fullAddress = cityPrefix + ', ' + address;
     const res  = await fetch('/api/delivery/check', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -862,8 +863,9 @@ async function checkDeliveryZone(address) {
 
     if (statusEl) {
       if (data.allowed) {
-        statusEl.textContent = data.cost === 0 ? '✓ ' + data.label : '✓ ' + data.label;
-        statusEl.className   = 'delivery-zone-status ok';
+        const icon = data.zoneType === 'far' ? '🚚 ' : '✓ ';
+        statusEl.textContent = icon + data.label;
+        statusEl.className   = data.zoneType === 'far' ? 'delivery-zone-status far' : 'delivery-zone-status ok';
       } else {
         statusEl.textContent = '✗ ' + (data.reason || 'Адрес не в зоне доставки');
         statusEl.className   = 'delivery-zone-status error';

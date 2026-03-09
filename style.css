@@ -984,6 +984,7 @@ a { text-decoration: none; color: inherit; }
   transition: color .2s;
 }
 .delivery-zone-status.ok      { color: #22c55e; font-weight: 600; }
+.delivery-zone-status.far     { color: #f5a623; font-weight: 600; }
 .delivery-zone-status.error   { color: #ef4444; font-weight: 600; }
 .delivery-zone-status.checking { color: #f5a623; }
 
