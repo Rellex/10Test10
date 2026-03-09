@@ -139,8 +139,8 @@ app.post('/api/delivery/check', async (req, res) => {
     if (!pos) return res.json({ allowed: false, reason: 'Адрес не найден. Проверьте правильность написания.' });
     const precision = member?.GeoObject?.metaDataProperty?.GeocoderMetaData?.precision;
     const kind = member?.GeoObject?.metaDataProperty?.GeocoderMetaData?.kind;
-    if (!['exact','number','near','range','other'].includes(precision) || !['house','entrance','street','locality','district'].includes(kind)) {
-      return res.json({ allowed: false, reason: 'Уточните адрес: укажите улицу и номер дома.' });
+    if (!['exact','number','near','range'].includes(precision) || !['house','entrance','street'].includes(kind)) {
+      return res.json({ allowed: false, reason: 'Адрес не распознан. Укажите улицу и номер дома, например: Ленина 9.' });
     }
     // Verify geocoded address belongs to the correct city
     const foundAddr = member?.GeoObject?.metaDataProperty?.GeocoderMetaData?.text || '';
