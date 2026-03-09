@@ -1002,7 +1002,14 @@ function setupScrollSpy() {
 /* ===== INIT ===== */
 function updateHeaderHeight() {
   const h = document.getElementById('appHeader');
-  if (h) document.documentElement.style.setProperty('--header-h', h.offsetHeight + 'px');
+  const infoBar = document.querySelector('.work-hours-bar') || document.querySelector('.info-bar');
+  if (h) {
+    const hh = h.offsetHeight;
+    document.documentElement.style.setProperty('--header-h', hh + 'px');
+    const infoH = infoBar ? infoBar.offsetHeight : 36;
+    document.documentElement.style.setProperty('--sticky-cats-top', (hh + infoH) + 'px');
+    document.documentElement.style.setProperty('--sticky-section-top', (hh + infoH + 40) + 'px');
+  }
 }
 
 async function init() {
