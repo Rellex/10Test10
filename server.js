@@ -717,6 +717,34 @@ const pendingAssemblers = {};
 app.post('/api/spb-bot/webhook', async (req, res) => {
   res.sendStatus(200);
   const body = req.body;
+
+  // Ответ сборщика на запрос ФИО
+  if (body?.message?.text) {
+    const chatId = body.message.chat.id;
+    const replyMsgId = body.message.reply_to_message?.message_id;
+    if (!replyMsgId) return;
+    const orders = readOrders();
+    const order = orders.find(o =>
+      o.status === 'assembling' &&
+      String(o.tgChatId) === String(chatId) && (
+        String(o.assemblerAskMsgId) === String(replyMsgId) ||
+        String(o.tgMessageId) === String(replyMsgId)
+      )
+    );
+    if (order) {
+      order.assembler = body.message.text.trim();
+      order.status = 'ready';
+      writeOrders(orders);
+      broadcast('order', order);
+      if (order.assemblerAskMsgId) {
+        await spbBotApi('deleteMessage', { chat_id: chatId, message_id: order.assemblerAskMsgId });
+      }
+      await spbBotApi('deleteMessage', { chat_id: chatId, message_id: body.message.message_id });
+      await updateOrderMessageSpb(order);
+    }
+    return;
+  }
+
   if (!body?.callback_query) return;
   const { id, data, message } = body.callback_query;
   if (data === 'noop_assembling') {
