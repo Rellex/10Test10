@@ -272,9 +272,6 @@ a { text-decoration: none; color: inherit; }
   color: var(--text);
   padding: 14px 16px 8px;
   background: var(--white);
-  position: sticky;
-  top: var(--sticky-section-top, 225px);
-  z-index: 80;
   border-bottom: 1px solid var(--grey-1);
   letter-spacing: .2px;
 }
