@@ -733,17 +733,16 @@ app.post('/api/bot/webhook', async (req, res) => {
   if (!order) { await tgApi('answerCallbackQuery', { callback_query_id: id, text: 'Заказ не найден' }); return; }
 
   order.status = newStatus;
+  // Save delivery start time
+  if (newStatus === 'delivering') {
+    order.deliveryStartedAt = new Date().toISOString();
+  }
   writeOrders(orders);
+  broadcast('order', order);
 
   const st = ORDER_STATUSES.find(s => s.id === newStatus) || { label: newStatus };
   await tgApi('answerCallbackQuery', { callback_query_id: id, text: `Статус: ${st.label}` });
   await updateOrderMessage(order);
-
-  // Save delivery start time for auto-complete check
-  if (newStatus === 'delivering') {
-    order.deliveryStartedAt = new Date().toISOString();
-    writeOrders(orders);
-  }
 });
 
 // Handle assembler name reply

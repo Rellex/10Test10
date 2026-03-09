@@ -1070,22 +1070,23 @@ function connectLiveUpdates() {
         renderAddressesList();
       }
       if (event === 'order') {
-        // Update this order in localStorage
+        // Update in localStorage
         const saved = JSON.parse(localStorage.getItem('myOrders') || '[]');
         const idx = saved.findIndex(o => o.id === payload.id);
-        if (idx !== -1) {
+        const isMyOrder = idx !== -1;
+        if (isMyOrder) {
           saved[idx] = { ...saved[idx], ...payload };
           localStorage.setItem('myOrders', JSON.stringify(saved));
-          // Re-render if orders screen is open
-          const overlay = document.getElementById('ordersOverlay');
-          if (overlay && overlay.style.display !== 'none') {
-            loadAndRenderOrders();
-          }
-          // Show status toast if order status changed
+        }
+        // Re-render if orders screen is open (regardless of localStorage match)
+        const overlay = document.getElementById('ordersOverlay');
+        if (overlay && overlay.style.display !== 'none') {
+          loadAndRenderOrders();
+        }
+        // Toast notification for known orders
+        if (isMyOrder) {
           const st = ORDER_STATUS_MAP[payload.status];
-          if (st) {
-            showStatusToast(`Заказ #${payload.id.slice(-6)}: ${st.icon} ${st.label}`);
-          }
+          if (st) showStatusToast(`Заказ #${payload.id.slice(-6)}: ${st.icon} ${st.label}`);
         }
       }
     } catch (e) {}
