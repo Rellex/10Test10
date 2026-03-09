@@ -99,7 +99,7 @@ app.get('/api/geocode', async (req, res) => {
   if (!address) return res.status(400).json({ error: 'Нужен адрес' });
   if (!YANDEX_GEO_KEY) return res.status(503).json({ error: 'Яндекс API ключ не настроен' });
   try {
-    const url = `https://geocode-maps.yandex.ru/1.x/?apikey=${YANDEX_GEO_KEY}&geocode=${encodeURIComponent(address)}&format=json&results=1`;
+    const url = `https://geocode-maps.yandex.ru/1.x/?apikey=${YANDEX_GEO_KEY}&geocode=${encodeURIComponent(geocodeQuery)}&format=json&results=1`;
     const r   = await fetch(url);
     const d   = await r.json();
     const pos = d?.response?.GeoObjectCollection?.featureMember?.[0]?.GeoObject?.Point?.pos;
@@ -119,15 +119,16 @@ app.post('/api/delivery/check', async (req, res) => {
 
   // City bounding boxes for geocoder (ll + spn)
   const CITY_GEO = {
-    vyborg: { ll: '28.74,60.70', spn: '0.3,0.15' },
-    spb:    { ll: '30.32,59.95', spn: '0.7,0.3'  },
+    vyborg: { ll: '28.74,60.70', spn: '0.3,0.15', prefix: 'Выборг' },
+    spb:    { ll: '30.32,59.95', spn: '0.7,0.3',  prefix: 'Санкт-Петербург' },
   };
   const geo = CITY_GEO[cityId] || {};
+  const geocodeQuery = geo.prefix ? (geo.prefix + ', ' + address) : address;
 
   // Получаем координаты адреса
   let lat, lng;
   try {
-    let geoUrl = `https://geocode-maps.yandex.ru/1.x/?apikey=${YANDEX_GEO_KEY}&geocode=${encodeURIComponent(address)}&format=json&results=1`;
+    let geoUrl = `https://geocode-maps.yandex.ru/1.x/?apikey=${YANDEX_GEO_KEY}&geocode=${encodeURIComponent(geocodeQuery)}&format=json&results=1`;
     if (geo.ll) geoUrl += `&ll=${geo.ll}&spn=${geo.spn}&rspn=1`;
     const r   = await fetch(geoUrl);
     const d   = await r.json();

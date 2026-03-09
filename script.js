@@ -851,8 +851,7 @@ async function checkDeliveryZone(address) {
   if (statusEl) { statusEl.textContent = 'Проверяем адрес...'; statusEl.className = 'delivery-zone-status checking'; }
 
   try {
-    const cityPrefix = state.city === 'spb' ? 'Санкт-Петербург' : 'Выборг';
-    const fullAddress = cityPrefix + ', ' + address;
+    const fullAddress = address;
     const res  = await fetch('/api/delivery/check', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
