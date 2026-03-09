@@ -480,7 +480,7 @@ function buildOrderMessage(order) {
 ` +
     `🚚 ${order.mode === 'delivery' ? 'Доставка' : 'Самовывоз'}
 ` +
-    `💳 ${order.payment === 'cash' ? 'Наличные' : order.payment === 'card_on_delivery' ? 'Карта при получении' : 'Онлайн'}
+    `💳 ${order.payment === 'qr' ? 'QR-код' : order.payment === 'card' ? 'Банковская карта' : order.payment === 'cash' ? 'Наличные' : order.payment === 'card_on_delivery' ? 'Карта при получении' : 'QR-код'}
 
 ` +
     `${items}
