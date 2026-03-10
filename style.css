@@ -1121,6 +1121,13 @@ a { text-decoration: none; color: inherit; }
   .cat-tab { padding: 13px 18px; font-size: 14px; }
   .menu-items-grid { grid-template-columns: repeat(3, 1fr) !important; gap: 14px; padding: 12px 20px 16px; }
   .menu-section-title { text-align: center; font-size: 18px; padding: 18px 20px 10px; }
+  .btn-add { width: 36px; height: 36px; font-size: 22px; }
+  .cart-fab { padding: 16px 30px; font-size: 16px; max-width: none; }
+  .cart-fab-icon { font-size: 20px; }
+  .cart-fab-total { font-size: 16px; }
+  .cart-fab-count { font-size: 14px; padding: 2px 9px; }
+  .header-btn { padding: 8px 14px; font-size: 15px; }
+  .city-icon { font-size: 17px; }
   .checkout-screen, .orders-screen { max-width: 100%; }
   .form-checkout { max-width: 600px; margin: 0 auto; }
 }
@@ -1129,6 +1136,12 @@ a { text-decoration: none; color: inherit; }
   .cat-tab { padding: 14px 22px; font-size: 15px; }
   .menu-items-grid { grid-template-columns: repeat(4, 1fr) !important; gap: 16px; padding: 14px 28px 20px; }
   .menu-section-title { font-size: 22px; padding: 22px 28px 12px; }
+  .btn-add { width: 42px; height: 42px; font-size: 26px; }
+  .cart-fab { padding: 18px 36px; font-size: 18px; }
+  .cart-fab-icon { font-size: 22px; }
+  .cart-fab-total { font-size: 18px; }
+  .header-btn { padding: 10px 18px; font-size: 16px; border-radius: 24px; }
+  .city-icon { font-size: 19px; }
   .menu-card-img { height: 180px; }
   .form-checkout { max-width: 720px; }
 }
@@ -1137,6 +1150,7 @@ a { text-decoration: none; color: inherit; }
   .cat-tab { padding: 15px 26px; font-size: 16px; }
   .menu-items-grid { grid-template-columns: repeat(5, 1fr) !important; gap: 18px; padding: 16px 36px 24px; }
   .menu-section-title { font-size: 26px; padding: 26px 36px 14px; }
+  .btn-add { width: 46px; height: 46px; font-size: 28px; }
   .form-checkout { max-width: 800px; }
 }
 
