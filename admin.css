@@ -334,7 +334,7 @@ input, select, textarea { font-family: inherit; }
 .item-card.inactive { opacity: .55; }
 
 .item-card-media {
-  background: #f8f4ec; height: 120px;
+  background: #fff; height: 120px;
   display: flex; align-items: center; justify-content: center;
   overflow: hidden; position: relative;
 }
