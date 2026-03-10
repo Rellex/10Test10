@@ -174,9 +174,8 @@ a { text-decoration: none; color: inherit; }
 .work-hours-bar .header-bar-btn { flex-shrink: 0; }
 
 .work-hours-text {
-  font-size: 13px;
-  color: rgba(255,255,255,.9);
-  font-weight: 500;
+  font-size: 11px;
+  color: rgba(255,255,255,.85);
   flex: 1;
 }
 
@@ -1155,7 +1154,6 @@ a { text-decoration: none; color: inherit; }
   .cart-fab-count { font-size: 14px; padding: 2px 9px; }
   .header-btn { padding: 9px 16px; font-size: 16px; }
   .header-bar-btn { font-size: 14px; padding: 7px 16px; letter-spacing: .8px; }
-  .work-hours-text { font-size: 15px; }
   .city-icon { font-size: 17px; }
 
   /* Sheets → centered modals on wide screens */
@@ -1211,7 +1209,6 @@ a { text-decoration: none; color: inherit; }
   .cart-fab-total { font-size: 18px; }
   .header-btn { padding: 11px 20px; font-size: 17px; border-radius: 24px; }
   .header-bar-btn { font-size: 15px; padding: 8px 20px; border-radius: 16px; letter-spacing: 1px; }
-  .work-hours-text { font-size: 16px; }
   .city-icon { font-size: 19px; }
   .menu-card-img { height: 180px; }
   .bottom-sheet { max-width: 780px; }
