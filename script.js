@@ -4,8 +4,12 @@ var zoneCheckTimer     = null;
 const tg = window.Telegram?.WebApp;
 if (tg) {
   tg.ready();
-  tg.expand();
   tg.enableClosingConfirmation();
+  // Запретить разворачивание mini app
+  if (tg.lockOrientation) tg.lockOrientation();
+  tg.onEvent('viewportChanged', () => {
+    if (tg.isExpanded) tg.collapse();
+  });
 }
 
 /* Адреса — загружаем с сервера при старте, кешируем */
@@ -66,7 +70,7 @@ function rerenderMenuAfterUpdate() {
   updateCartFab();
   updateCartSheet();
   updateHeaderHeight();
-  window.addEventListener('resize', () => { updateHeaderHeight(); updateHeaderBanner(); });
+  window.addEventListener('resize', updateHeaderHeight);
 }
 
 function saveMenuCache(menu) {
@@ -1016,16 +1020,6 @@ function setupScrollSpy() {
 }
 
 /* ===== INIT ===== */
-// Switch header banner based on expanded state
-function updateHeaderBanner() {
-  const img = document.querySelector('.logo-img');
-  if (!img) return;
-  const isExpanded = (tg?.isExpanded === true) || window.innerWidth >= 600;
-  const newSrc = isExpanded ? 'solnechny_den_2.jpg' : 'logo.jpg';
-  img.src = newSrc;
-  updateHeaderHeight();
-}
-
 function updateHeaderHeight() {
   const h = document.getElementById('appHeader');
   const infoBar = document.querySelector('.work-hours-bar') || document.querySelector('.info-bar');
@@ -1144,10 +1138,9 @@ function connectLiveUpdates() {
 document.addEventListener('DOMContentLoaded', () => {
   init();
   connectLiveUpdates();
-  updateHeaderBanner();
   // Also listen for Telegram expand/collapse events
   if (tg) {
-    tg.onEvent('viewportChanged', () => { updateHeaderBanner(); updateHeaderHeight(); });
+    tg.onEvent('viewportChanged', () => { updateHeaderHeight(); });
   }
 
   // Phone input — digits only, auto-format +7 (XXX) XXX-XX-XX
