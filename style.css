@@ -148,9 +148,6 @@ a { text-decoration: none; color: inherit; }
   cursor: pointer;
   white-space: nowrap;
   transition: background .15s;
-  max-width: 120px;
-  overflow: hidden;
-  text-overflow: ellipsis;
 }
 .header-bar-btn:active { background: rgba(255,255,255,.38); }
 .city-icon { font-size: 14px; }
@@ -172,7 +169,9 @@ a { text-decoration: none; color: inherit; }
   padding: 8px 16px 10px;
   border-top: 1px solid rgba(255,255,255,.2);
   margin-top: 0;
+  flex-wrap: nowrap;
 }
+.work-hours-bar .header-bar-btn { flex-shrink: 0; }
 
 .work-hours-text {
   font-size: 13px;
@@ -1155,7 +1154,7 @@ a { text-decoration: none; color: inherit; }
   .cart-fab-total { font-size: 16px; }
   .cart-fab-count { font-size: 14px; padding: 2px 9px; }
   .header-btn { padding: 9px 16px; font-size: 16px; }
-  .header-bar-btn { font-size: 14px; padding: 6px 14px; }
+  .header-bar-btn { font-size: 14px; padding: 7px 16px; letter-spacing: .8px; }
   .work-hours-text { font-size: 15px; }
   .city-icon { font-size: 17px; }
 
@@ -1211,7 +1210,7 @@ a { text-decoration: none; color: inherit; }
   .cart-fab-icon { font-size: 22px; }
   .cart-fab-total { font-size: 18px; }
   .header-btn { padding: 11px 20px; font-size: 17px; border-radius: 24px; }
-  .header-bar-btn { font-size: 15px; padding: 7px 16px; border-radius: 16px; }
+  .header-bar-btn { font-size: 15px; padding: 8px 20px; border-radius: 16px; letter-spacing: 1px; }
   .work-hours-text { font-size: 16px; }
   .city-icon { font-size: 19px; }
   .menu-card-img { height: 180px; }

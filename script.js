@@ -202,7 +202,7 @@ function renderCityList() {
 function selectCity(id, name) {
   state.city = id;
   localStorage.setItem('selectedCity', id);
-  document.getElementById('headerCityName').textContent = 'Поддержка';
+  document.getElementById('headerCityName').textContent = 'ПОДДЕРЖКА';
   closeModal('cityModal');
   loadMenuFromAPI().then(() => showMenu());
   renderAddressesList();
@@ -766,7 +766,7 @@ function renderPickupSelect() {
       const city = CITIES.find(c => c.id === sel.value);
       state.city = sel.value;
       localStorage.setItem('selectedCity', sel.value);
-      document.getElementById('headerCityName').textContent = 'Поддержка';
+      document.getElementById('headerCityName').textContent = 'ПОДДЕРЖКА';
     }
     renderPickupAddresses(sel.value);
   });
@@ -788,7 +788,7 @@ function renderDeliveryCitySelect() {
       const city = CITIES.find(c => c.id === sel.value);
       state.city = sel.value;
       localStorage.setItem('selectedCity', sel.value);
-      document.getElementById('headerCityName').textContent = 'Поддержка';
+      document.getElementById('headerCityName').textContent = 'ПОДДЕРЖКА';
       deliveryZoneResult = null;
       const statusEl = document.getElementById('deliveryZoneStatus');
       if (statusEl) { statusEl.textContent = ''; statusEl.className = 'delivery-zone-status'; }
@@ -1020,10 +1020,10 @@ function setupScrollSpy() {
 function updateHeaderBanner() {
   const img = document.querySelector('.logo-img');
   if (!img) return;
-  // Use Telegram expanded state OR wide viewport
-  const isExpanded = tg?.isExpanded || window.innerWidth >= 600;
+  const isExpanded = (tg?.isExpanded === true) || window.innerWidth >= 600;
   const newSrc = isExpanded ? 'solnechny_den_2.jpg' : 'header_banner.png';
-  if (img.src !== newSrc && !img.src.endsWith(newSrc)) img.src = newSrc;
+  img.src = newSrc;
+  updateHeaderHeight();
 }
 
 function updateHeaderHeight() {
@@ -1050,7 +1050,7 @@ async function init() {
   if (state.city) {
     const cityObj = getCitiesFromCache().find(c => c.id === state.city);
     if (cityObj) {
-      document.getElementById('headerCityName').textContent = 'Поддержка';
+      document.getElementById('headerCityName').textContent = 'ПОДДЕРЖКА';
       showMenu();
       renderAddressesList();
     }
