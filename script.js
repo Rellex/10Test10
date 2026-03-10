@@ -66,7 +66,6 @@ function rerenderMenuAfterUpdate() {
   updateCartFab();
   updateCartSheet();
   updateHeaderHeight();
-  updateHeaderBanner();
   window.addEventListener('resize', () => { updateHeaderHeight(); updateHeaderBanner(); });
 }
 
@@ -1021,8 +1020,10 @@ function setupScrollSpy() {
 function updateHeaderBanner() {
   const img = document.querySelector('.logo-img');
   if (!img) return;
-  const isWide = window.innerWidth >= 600;
-  img.src = isWide ? 'solnechny_den_2.jpg' : 'header_banner.png';
+  // Use Telegram expanded state OR wide viewport
+  const isExpanded = tg?.isExpanded || window.innerWidth >= 600;
+  const newSrc = isExpanded ? 'solnechny_den_2.jpg' : 'header_banner.png';
+  if (img.src !== newSrc && !img.src.endsWith(newSrc)) img.src = newSrc;
 }
 
 function updateHeaderHeight() {
@@ -1143,6 +1144,11 @@ function connectLiveUpdates() {
 document.addEventListener('DOMContentLoaded', () => {
   init();
   connectLiveUpdates();
+  updateHeaderBanner();
+  // Also listen for Telegram expand/collapse events
+  if (tg) {
+    tg.onEvent('viewportChanged', () => { updateHeaderBanner(); updateHeaderHeight(); });
+  }
 
   // Phone input — digits only, auto-format +7 (XXX) XXX-XX-XX
   const phoneEl = document.getElementById('phoneInput');
