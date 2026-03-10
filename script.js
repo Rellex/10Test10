@@ -66,7 +66,8 @@ function rerenderMenuAfterUpdate() {
   updateCartFab();
   updateCartSheet();
   updateHeaderHeight();
-  window.addEventListener('resize', updateHeaderHeight);
+  updateHeaderBanner();
+  window.addEventListener('resize', () => { updateHeaderHeight(); updateHeaderBanner(); });
 }
 
 function saveMenuCache(menu) {
@@ -1016,6 +1017,14 @@ function setupScrollSpy() {
 }
 
 /* ===== INIT ===== */
+// Switch header banner based on expanded state
+function updateHeaderBanner() {
+  const img = document.querySelector('.logo-img');
+  if (!img) return;
+  const isWide = window.innerWidth >= 600;
+  img.src = isWide ? 'solnechny_den_2.jpg' : 'header_banner.png';
+}
+
 function updateHeaderHeight() {
   const h = document.getElementById('appHeader');
   const infoBar = document.querySelector('.work-hours-bar') || document.querySelector('.info-bar');
