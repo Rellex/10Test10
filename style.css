@@ -322,9 +322,8 @@ a { text-decoration: none; color: inherit; }
 /* real photo */
 .menu-card-media {
   background: var(--sun-light);
-  height: 400px;
-  width: 400px;
-  max-width: 100%;
+  width: 100%;
+  aspect-ratio: 1 / 1;
   overflow: hidden;
 }
 .menu-card-photo {
@@ -365,6 +364,12 @@ a { text-decoration: none; color: inherit; }
 }
 
 .menu-card-weight {
+  font-size: 11px;
+  color: var(--grey-3);
+  margin-bottom: 2px;
+}
+
+.menu-card-kbju {
   font-size: 11px;
   color: var(--grey-3);
   margin-bottom: 6px;
