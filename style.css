@@ -135,6 +135,24 @@ a { text-decoration: none; color: inherit; }
   transition: background .15s;
 }
 .header-btn:active { background: rgba(255,255,255,.4); }
+
+.header-bar-btn {
+  background: rgba(255,255,255,.22);
+  border: none;
+  color: var(--white);
+  font-size: 13px;
+  font-weight: 700;
+  letter-spacing: .6px;
+  padding: 5px 12px;
+  border-radius: 14px;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: background .15s;
+  max-width: 120px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.header-bar-btn:active { background: rgba(255,255,255,.38); }
 .city-icon { font-size: 14px; }
 .city-name { max-width: 120px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 
@@ -1137,6 +1155,7 @@ a { text-decoration: none; color: inherit; }
   .cart-fab-total { font-size: 16px; }
   .cart-fab-count { font-size: 14px; padding: 2px 9px; }
   .header-btn { padding: 9px 16px; font-size: 16px; }
+  .header-bar-btn { font-size: 14px; padding: 6px 14px; }
   .work-hours-text { font-size: 15px; }
   .city-icon { font-size: 17px; }
 
@@ -1192,6 +1211,7 @@ a { text-decoration: none; color: inherit; }
   .cart-fab-icon { font-size: 22px; }
   .cart-fab-total { font-size: 18px; }
   .header-btn { padding: 11px 20px; font-size: 17px; border-radius: 24px; }
+  .header-bar-btn { font-size: 15px; padding: 7px 16px; border-radius: 16px; }
   .work-hours-text { font-size: 16px; }
   .city-icon { font-size: 19px; }
   .menu-card-img { height: 180px; }
