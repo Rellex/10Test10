@@ -84,7 +84,7 @@ a { text-decoration: none; color: inherit; }
 
 .logo-img {
   width: 100%;
-  height: 90px;
+  height: 80px;
   object-fit: cover;
   object-position: center;
   display: block;
@@ -348,10 +348,8 @@ a { text-decoration: none; color: inherit; }
 #itemModalEmoji {
   width: 100%;
   text-align: center;
-  background: var(--sun-light);
   border-radius: var(--radius);
   overflow: hidden;
-  min-height: 200px;
   display: flex;
   align-items: center;
   justify-content: center;
