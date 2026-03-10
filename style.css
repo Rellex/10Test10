@@ -1120,6 +1120,7 @@ a { text-decoration: none; color: inherit; }
   .categories-scroll { justify-content: center; gap: 4px; padding: 0 20px; }
   .cat-tab { padding: 13px 18px; font-size: 14px; }
   .menu-items-grid { grid-template-columns: repeat(3, 1fr) !important; gap: 14px; padding: 12px 20px 16px; }
+  .menu-section-title { text-align: center; font-size: 18px; padding: 18px 20px 10px; }
   .checkout-screen, .orders-screen { max-width: 100%; }
   .form-checkout { max-width: 600px; margin: 0 auto; }
 }
@@ -1127,6 +1128,7 @@ a { text-decoration: none; color: inherit; }
   .categories-scroll { gap: 6px; padding: 0 28px; }
   .cat-tab { padding: 14px 22px; font-size: 15px; }
   .menu-items-grid { grid-template-columns: repeat(4, 1fr) !important; gap: 16px; padding: 14px 28px 20px; }
+  .menu-section-title { font-size: 22px; padding: 22px 28px 12px; }
   .menu-card-img { height: 180px; }
   .form-checkout { max-width: 720px; }
 }
@@ -1134,6 +1136,7 @@ a { text-decoration: none; color: inherit; }
   .categories-scroll { gap: 8px; padding: 0 36px; }
   .cat-tab { padding: 15px 26px; font-size: 16px; }
   .menu-items-grid { grid-template-columns: repeat(5, 1fr) !important; gap: 18px; padding: 16px 36px 24px; }
+  .menu-section-title { font-size: 26px; padding: 26px 36px 14px; }
   .form-checkout { max-width: 800px; }
 }
 
