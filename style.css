@@ -1149,3 +1149,19 @@ a { text-decoration: none; color: inherit; }
   color: var(--sun-dark);
   margin-top: 4px;
 }
+
+.order-review-btn {
+  display: block;
+  margin-top: 8px;
+  padding: 9px 14px;
+  background: linear-gradient(135deg, var(--sun) 0%, var(--orange) 100%);
+  color: white;
+  font-size: 13px;
+  font-weight: 700;
+  border-radius: 12px;
+  text-align: center;
+  text-decoration: none;
+  box-shadow: 0 2px 8px rgba(245,166,35,.4);
+  transition: opacity .15s;
+}
+.order-review-btn:active { opacity: .8; }
