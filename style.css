@@ -1117,16 +1117,22 @@ a { text-decoration: none; color: inherit; }
   .app { max-width: 100%; }
   .header { max-width: 100% !important; left: 0 !important; right: 0 !important; transform: none !important; }
   .categories-nav { max-width: 100% !important; }
+  .categories-scroll { justify-content: center; gap: 4px; padding: 0 20px; }
+  .cat-tab { padding: 13px 18px; font-size: 14px; }
   .menu-items-grid { grid-template-columns: repeat(3, 1fr) !important; gap: 14px; padding: 12px 20px 16px; }
   .checkout-screen, .orders-screen { max-width: 100%; }
   .form-checkout { max-width: 600px; margin: 0 auto; }
 }
 @media (min-width: 900px) {
+  .categories-scroll { gap: 6px; padding: 0 28px; }
+  .cat-tab { padding: 14px 22px; font-size: 15px; }
   .menu-items-grid { grid-template-columns: repeat(4, 1fr) !important; gap: 16px; padding: 14px 28px 20px; }
   .menu-card-img { height: 180px; }
   .form-checkout { max-width: 720px; }
 }
 @media (min-width: 1200px) {
+  .categories-scroll { gap: 8px; padding: 0 36px; }
+  .cat-tab { padding: 15px 26px; font-size: 16px; }
   .menu-items-grid { grid-template-columns: repeat(5, 1fr) !important; gap: 18px; padding: 16px 36px 24px; }
   .form-checkout { max-width: 800px; }
 }
