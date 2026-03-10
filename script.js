@@ -5,11 +5,6 @@ const tg = window.Telegram?.WebApp;
 if (tg) {
   tg.ready();
   tg.enableClosingConfirmation();
-  // Запретить разворачивание mini app
-  if (tg.lockOrientation) tg.lockOrientation();
-  tg.onEvent('viewportChanged', () => {
-    if (tg.isExpanded) tg.collapse();
-  });
 }
 
 /* Адреса — загружаем с сервера при старте, кешируем */
@@ -1140,7 +1135,6 @@ document.addEventListener('DOMContentLoaded', () => {
   connectLiveUpdates();
   // Also listen for Telegram expand/collapse events
   if (tg) {
-    tg.onEvent('viewportChanged', () => { updateHeaderHeight(); });
   }
 
   // Phone input — digits only, auto-format +7 (XXX) XXX-XX-XX
