@@ -1137,8 +1137,25 @@ a { text-decoration: none; color: inherit; }
   .cart-fab-count { font-size: 14px; padding: 2px 9px; }
   .header-btn { padding: 8px 14px; font-size: 15px; }
   .city-icon { font-size: 17px; }
-  .checkout-screen, .orders-screen { max-width: 100%; }
-  .form-checkout { max-width: 600px; margin: 0 auto; }
+
+  /* Sheets → centered modals on wide screens */
+  .modal-overlay { align-items: center !important; }
+  .modal-overlay .modal { border-radius: 16px !important; margin: 20px; max-width: 640px; }
+  .bottom-sheet {
+    border-radius: 16px !important;
+    max-width: 640px;
+    max-height: 88vh;
+    margin: 20px;
+    animation: modalIn .25s cubic-bezier(.22,.61,.36,1);
+  }
+  @keyframes modalIn {
+    from { transform: scale(.96); opacity: 0; }
+    to   { transform: scale(1);   opacity: 1; }
+  }
+  .sheet-handle { display: none; }
+  .checkout-sheet { max-height: 90vh; max-width: 640px; }
+  .orders-sheet { max-height: 88vh; max-width: 640px; }
+  .form-checkout { max-width: 580px; margin: 0 auto; }
 }
 @media (min-width: 900px) {
   .categories-scroll { gap: 6px; padding: 0 28px; }
@@ -1152,7 +1169,10 @@ a { text-decoration: none; color: inherit; }
   .header-btn { padding: 10px 18px; font-size: 16px; border-radius: 24px; }
   .city-icon { font-size: 19px; }
   .menu-card-img { height: 180px; }
-  .form-checkout { max-width: 720px; }
+  .bottom-sheet { max-width: 780px; }
+  .checkout-sheet, .orders-sheet { max-width: 780px; }
+  .form-checkout { max-width: 680px; }
+  .modal-overlay .modal { max-width: 760px; }
 }
 @media (min-width: 1200px) {
   .categories-scroll { gap: 8px; padding: 0 36px; }
@@ -1160,6 +1180,9 @@ a { text-decoration: none; color: inherit; }
   .menu-items-grid { grid-template-columns: repeat(5, 1fr) !important; gap: 18px; padding: 16px 36px 24px; }
   .menu-section-title { font-size: 26px; padding: 26px 36px 14px; }
   .btn-add { width: 46px; height: 46px; font-size: 28px; }
+  .bottom-sheet { max-width: 900px; }
+  .checkout-sheet, .orders-sheet { max-width: 900px; }
   .form-checkout { max-width: 800px; }
+  .modal-overlay .modal { max-width: 880px; }
 }
 
