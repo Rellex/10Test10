@@ -189,7 +189,7 @@ function getCitiesFromCache() {
 function renderCityList() {
   const list = document.getElementById('cityList');
   list.innerHTML = '';
-  getCitiesFromCache().forEach(city => {
+  getCitiesFromCache().filter(city => city.active !== false).forEach(city => {
     const li = document.createElement('li');
     li.className = 'city-item' + (state.city === city.id ? ' selected' : '');
     li.innerHTML = `<span class="city-item-icon">📍</span><span>${city.name}</span>`;
@@ -710,7 +710,7 @@ document.getElementById('goToCheckoutBtn').addEventListener('click', () => {
   if (!getCartCount()) return;
   closeModal('cartOverlay');
   recalcDeliveryZoneCost();
-  renderPickupSelect(); renderDeliveryCitySelect(); updateCheckoutSummary();
+  renderPickupSelect(); renderDeliveryCitySelect(); renderPaymentOptions(); updateCheckoutSummary();
   openModal('checkoutOverlay');
   tg?.HapticFeedback?.impactOccurred('medium');
 });
@@ -752,7 +752,7 @@ function renderPickupSelect() {
   const sel = document.getElementById('pickupCitySelect');
   if (!sel) return;
   sel.innerHTML = '<option value="">— Выберите город —</option>';
-  CITIES.forEach(function(city) {
+  getCitiesFromCache().filter(c => c.active !== false).forEach(function(city) {
     const opt = document.createElement('option');
     opt.value = city.id;
     opt.textContent = city.name;
@@ -762,10 +762,10 @@ function renderPickupSelect() {
   renderPickupAddresses(state.city);
   sel.addEventListener('change', function() {
     if (sel.value) {
-      const city = CITIES.find(c => c.id === sel.value);
       state.city = sel.value;
       localStorage.setItem('selectedCity', sel.value);
       document.getElementById('headerCityName').textContent = 'ПОДДЕРЖКА';
+      renderPaymentOptions();
     }
     renderPickupAddresses(sel.value);
   });
@@ -775,7 +775,7 @@ function renderDeliveryCitySelect() {
   const sel = document.getElementById('deliveryCitySelect');
   if (!sel) return;
   sel.innerHTML = '<option value="">— Выберите город —</option>';
-  CITIES.forEach(function(city) {
+  getCitiesFromCache().filter(c => c.active !== false).forEach(function(city) {
     const opt = document.createElement('option');
     opt.value = city.id;
     opt.textContent = city.name;
@@ -784,15 +784,39 @@ function renderDeliveryCitySelect() {
   });
   sel.addEventListener('change', function() {
     if (sel.value) {
-      const city = CITIES.find(c => c.id === sel.value);
       state.city = sel.value;
       localStorage.setItem('selectedCity', sel.value);
       document.getElementById('headerCityName').textContent = 'ПОДДЕРЖКА';
       deliveryZoneResult = null;
       const statusEl = document.getElementById('deliveryZoneStatus');
       if (statusEl) { statusEl.textContent = ''; statusEl.className = 'delivery-zone-status'; }
+      renderPaymentOptions();
     }
   });
+}
+
+function renderPaymentOptions() {
+  const city = getCitiesFromCache().find(c => c.id === state.city);
+  const paymentEnabled = !city || city.paymentEnabled !== false;
+  const wrap = document.querySelector('.payment-options');
+  if (!wrap) return;
+  if (paymentEnabled) {
+    wrap.innerHTML = `
+      <label class="payment-option">
+        <input type="radio" name="payment" value="qr" checked />
+        <span class="payment-label"><span class="payment-icon">📲</span>Оплата QR-кодом</span>
+      </label>
+      <label class="payment-option">
+        <input type="radio" name="payment" value="card" />
+        <span class="payment-label"><span class="payment-icon">💳</span>Оплата банковской картой</span>
+      </label>`;
+  } else {
+    wrap.innerHTML = `
+      <div style="padding:12px;background:#fff3d6;border-radius:10px;font-size:13px;color:#e0900f;font-weight:600;text-align:center">
+        💳 Онлайн-оплата временно недоступна для этого города.<br>
+        <span style="font-weight:400;color:#757575">Оплата при получении.</span>
+      </div>`;
+  }
 }
 
 /* ===== PROMO ===== */

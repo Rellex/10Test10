@@ -1081,9 +1081,52 @@ function renderAddressesPanel(openCities) {
 
     var actions = document.createElement('div');
     actions.className = 'addr-city-actions';
+
+    // Active toggle
+    var activeToggle = document.createElement('label');
+    activeToggle.className = 'city-toggle-wrap';
+    activeToggle.title = city.active === false ? 'Город отключён' : 'Город активен';
+    activeToggle.innerHTML =
+      '<input type="checkbox" class="city-toggle-input" data-field="active" data-id="' + city.id + '" ' + (city.active !== false ? 'checked' : '') + ' />' +
+      '<span class="city-toggle-slider"></span>' +
+      '<span class="city-toggle-label">' + (city.active !== false ? 'Активен' : 'Откл.') + '</span>';
+
+    // Payment toggle
+    var payToggle = document.createElement('label');
+    payToggle.className = 'city-toggle-wrap';
+    payToggle.title = city.paymentEnabled === false ? 'Оплата отключена' : 'Оплата включена';
+    payToggle.innerHTML =
+      '<input type="checkbox" class="city-toggle-input" data-field="payment" data-id="' + city.id + '" ' + (city.paymentEnabled !== false ? 'checked' : '') + ' />' +
+      '<span class="city-toggle-slider pay"></span>' +
+      '<span class="city-toggle-label">💳</span>';
+
     actions.innerHTML =
       '<button class="addr-icon-btn" data-action="edit-city" data-id="' + city.id + '" title="Переименовать">&#9998;</button>' +
       '<button class="addr-icon-btn danger" data-action="del-city" data-id="' + city.id + '" title="Удалить">&#128465;</button>';
+
+    actions.insertBefore(payToggle, actions.firstChild);
+    actions.insertBefore(activeToggle, actions.firstChild);
+
+    // Toggle handlers
+    activeToggle.querySelector('input').addEventListener('change', function(e) {
+      var c = addrData.find(function(x){ return x.id === e.target.dataset.id; });
+      if (c) {
+        c.active = e.target.checked;
+        activeToggle.title = c.active ? 'Город активен' : 'Город отключён';
+        activeToggle.querySelector('.city-toggle-label').textContent = c.active ? 'Активен' : 'Откл.';
+        saveAddresses(addrData);
+        toast(c.name + ': ' + (c.active ? 'включён' : 'отключён'), 'success');
+      }
+    });
+    payToggle.querySelector('input').addEventListener('change', function(e) {
+      var c = addrData.find(function(x){ return x.id === e.target.dataset.id; });
+      if (c) {
+        c.paymentEnabled = e.target.checked;
+        payToggle.title = c.paymentEnabled ? 'Оплата включена' : 'Оплата отключена';
+        saveAddresses(addrData);
+        toast(c.name + ': оплата ' + (c.paymentEnabled ? 'включена' : 'отключена'), 'success');
+      }
+    });
 
     hdr.appendChild(dragHandle);
     hdr.appendChild(nameBtn);

@@ -702,3 +702,50 @@ input, select, textarea { font-family: inherit; }
   margin: 2px 8px;
   pointer-events: none;
 }
+
+/* ── City toggles ── */
+.city-toggle-wrap {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  cursor: pointer;
+  user-select: none;
+  flex-shrink: 0;
+}
+.city-toggle-input { display: none; }
+.city-toggle-slider {
+  width: 32px;
+  height: 18px;
+  border-radius: 9px;
+  background: #555;
+  position: relative;
+  transition: background .2s;
+  flex-shrink: 0;
+}
+.city-toggle-slider::after {
+  content: "";
+  position: absolute;
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  background: #fff;
+  top: 2px;
+  left: 2px;
+  transition: left .2s;
+}
+.city-toggle-input:checked + .city-toggle-slider {
+  background: #27ae60;
+}
+.city-toggle-input:checked + .city-toggle-slider::after {
+  left: 16px;
+}
+.city-toggle-slider.pay { background: #555; }
+.city-toggle-input:checked + .city-toggle-slider.pay {
+  background: #f5a623;
+}
+.city-toggle-label {
+  font-size: 10px;
+  color: rgba(255,255,255,.6);
+  white-space: nowrap;
+}
+

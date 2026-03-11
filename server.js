@@ -479,6 +479,13 @@ app.post('/api/payments/create', async (req, res) => {
     return res.status(400).json({ error: 'Неверные данные заказа' });
   }
 
+  // Check if payment is enabled for this city
+  const addresses = readAddresses();
+  const cityData = addresses.find(c => c.id === orderData.city);
+  if (cityData && cityData.paymentEnabled === false) {
+    return res.status(403).json({ error: 'Онлайн-оплата недоступна для этого города' });
+  }
+
   const tempId = 'tmp-' + Date.now() + '-' + Math.random().toString(36).slice(2, 7);
   const returnUrl = `https://${WEBHOOK_DOMAIN}/?payment_success=1&orderId=${tempId}`;
 
