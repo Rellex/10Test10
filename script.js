@@ -933,7 +933,14 @@ function applyPromo() {
 
   state.promo = code;
   const sub   = getSubtotal();
-  state.promoDiscount = promo.type === 'percent' ? Math.round(sub * promo.discount / 100) : promo.discount;
+  const del   = getDeliveryPrice(sub);
+  if (promo.type === 'percent') {
+    state.promoDiscount = Math.round(sub * promo.discount / 100);
+  } else if (promo.type === 'total_1') {
+    state.promoDiscount = Math.max(0, sub + del - 1);
+  } else {
+    state.promoDiscount = promo.discount;
+  }
   statusEl.className   = 'promo-status success';
   statusEl.textContent = '✅ ' + promo.label;
   updateCheckoutSummary();

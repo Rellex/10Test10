@@ -611,16 +611,6 @@ app.post('/api/payments/webhook', async (req, res) => {
   notifyNewOrder(order).catch(() => {});
   // Notify client via broadcast with their tempId
   broadcast('payment_confirmed', { tempId: pending.tempId, orderId: order.id });
-
-  // Отправляем подтверждение оплаты в бот
-  if (order.tgChatId) {
-    const modeLabel = order.mode === 'pickup' ? '🏪 Самовывоз' : '🚚 Доставка';
-    const text = `✅ *Оплата прошла успешно!*\n\nПерейдите в мини-апп → «Мои заказы» чтобы отследить статус заказа.`;
-    const isSpb = order.city === 'spb';
-    const botFn = isSpb ? spbBotApi : clientBotApi;
-    botFn('sendMessage', { chat_id: order.tgChatId, text, parse_mode: 'Markdown' })
-      .catch(e => console.error('Bot confirm error:', e));
-  }
 });
 
 // Создать заказ (публичный)

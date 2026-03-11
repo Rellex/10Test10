@@ -169,6 +169,7 @@ const PROMO_CODES = {
   'SUNNY10': { discount: 10, type: 'percent', label: 'Скидка 10%' },
   'FREE99':  { discount: 99, type: 'fixed',   label: 'Бесплатная доставка' },
   'BONUS50': { discount: 50, type: 'fixed',   label: 'Скидка 50 рублей' },
+  'КОЛБАС':  { discount: 1,  type: 'total_1', label: 'Итого 1 ₽ 🌭' },
 };
 
 const BONUS_PROGRAM = [
