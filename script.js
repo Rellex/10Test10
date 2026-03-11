@@ -1039,8 +1039,10 @@ function validateCheckoutForm() {
 }
 
 /* ===== SUBMIT ORDER ===== */
-document.getElementById('checkoutForm').addEventListener('submit', async e => {
-  e.preventDefault();
+async function handleCheckoutSubmit(e) {
+  if (e) e.preventDefault();
+  const submitBtn = document.getElementById('submitOrderBtn');
+  if (submitBtn.disabled) return; // prevent double call
   console.log('submit fired, mode:', state.deliveryMode, 'city:', state.city, 'valid:', validateCheckoutForm());
   if (!validateCheckoutForm()) { tg?.HapticFeedback?.notificationOccurred('error'); return; }
 
@@ -1073,7 +1075,6 @@ document.getElementById('checkoutForm').addEventListener('submit', async e => {
     }),
   };
 
-  const submitBtn = document.getElementById('submitOrderBtn');
   submitBtn.disabled = true;
   submitBtn.innerHTML = '<span>Создаём платёж…</span>';
 
@@ -1104,6 +1105,13 @@ document.getElementById('checkoutForm').addEventListener('submit', async e => {
     submitBtn.disabled = false;
     submitBtn.innerHTML = '<span>Заказать</span>';
   }
+}
+
+document.getElementById('checkoutForm').addEventListener('submit', handleCheckoutSubmit);
+document.getElementById('submitOrderBtn').addEventListener('click', function(e) {
+  // On mobile Telegram the form submit may not fire — handle click directly
+  e.preventDefault();
+  handleCheckoutSubmit(e);
 });
 
 /* ── QR PAYMENT MODAL ───────────────────────── */
