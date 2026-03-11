@@ -693,6 +693,38 @@ document.getElementById('detectAddressBtn')?.addEventListener('click', function(
         const road = addr.road || addr.pedestrian || addr.footway || '';
         const num  = addr.house_number || '';
         const parts = [road, num].filter(Boolean).join(' ');
+
+        // Try to match city from geocoded address
+        const cityName = (addr.city || addr.town || addr.village || addr.county || '').toLowerCase();
+        const CITY_KEYWORDS = {
+          'новосибирск': 'novosibirsk', 'novosibirsk': 'novosibirsk',
+          'санкт-петербург': 'spb', 'санкт петербург': 'spb', 'saint petersburg': 'spb', 'петербург': 'spb', 'питер': 'spb',
+          'искитим': 'iskitim', 'iskitim': 'iskitim',
+          'омск': 'omsk', 'omsk': 'omsk',
+          'барнаул': 'barnaul', 'barnaul': 'barnaul',
+          'выборг': 'vyborg', 'vyborg': 'vyborg',
+        };
+        const activeCities = getCitiesFromCache().filter(c => c.active !== false);
+        let matchedCity = null;
+        for (const [keyword, cityId] of Object.entries(CITY_KEYWORDS)) {
+          if (cityName.includes(keyword)) {
+            matchedCity = activeCities.find(c => c.id === cityId);
+            if (matchedCity) break;
+          }
+        }
+
+        // Switch city if matched and different
+        if (matchedCity && matchedCity.id !== state.city) {
+          state.city = matchedCity.id;
+          localStorage.setItem('selectedCity', matchedCity.id);
+          // Update city selects
+          const dSel = document.getElementById('deliveryCitySelect');
+          const pSel = document.getElementById('pickupCitySelect');
+          if (dSel) dSel.value = matchedCity.id;
+          if (pSel) pSel.value = matchedCity.id;
+          renderPaymentOptions();
+        }
+
         if (parts) {
           document.getElementById('streetInput').value = parts;
           checkDeliveryZone(parts);
