@@ -425,7 +425,7 @@ function yooAuth() {
   return 'Basic ' + Buffer.from(`${YOOKASSA_SHOP_ID}:${YOOKASSA_SECRET}`).toString('base64');
 }
 
-async function createYooPayment({ amount, description, paymentMethod, orderId, returnUrl, customerEmail, customerPhone, items, delivery }) {
+async function createYooPayment({ amount, description, paymentMethod, orderId, returnUrl, customerEmail, customerPhone, items, delivery, discount }) {
   const cleanPhone = customerPhone
     ? '+' + customerPhone.replace(/\D/g, '').replace(/^8/, '7')
     : null;
@@ -456,6 +456,18 @@ async function createYooPayment({ amount, description, paymentMethod, orderId, r
       vat_code:    1,
       payment_mode: 'full_payment',
       payment_subject: 'service',
+    });
+  }
+
+  // Add discount as negative item if > 0
+  if (discount && discount > 0) {
+    receiptItems.push({
+      description: 'Скидка по промокоду',
+      quantity:    '1.000',
+      amount:      { value: '-' + parseFloat(discount).toFixed(2), currency: 'RUB' },
+      vat_code:    1,
+      payment_mode: 'full_payment',
+      payment_subject: 'commodity',
     });
   }
 
@@ -540,6 +552,7 @@ app.post('/api/payments/create', async (req, res) => {
       customerPhone: orderData.phone || null,
       items: orderData.items || [],
       delivery: orderData.delivery || 0,
+      discount: orderData.discount || 0,
     });
 
     console.log('YooKassa response:', JSON.stringify(payment));
