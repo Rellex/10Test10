@@ -498,6 +498,8 @@ app.post('/api/payments/create', async (req, res) => {
       returnUrl,
     });
 
+    console.log('YooKassa response:', JSON.stringify(payment));
+
     if (payment.id) {
       // Save order data pending payment confirmation
       pendingPayments[payment.id] = { orderData, tempId, paymentMethod, createdAt: Date.now() };
