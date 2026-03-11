@@ -1044,6 +1044,7 @@ function validateCheckoutForm() {
 /* ===== SUBMIT ORDER ===== */
 document.getElementById('checkoutForm').addEventListener('submit', async e => {
   e.preventDefault();
+  console.log('submit fired, mode:', state.deliveryMode, 'city:', state.city, 'valid:', validateCheckoutForm());
   if (!validateCheckoutForm()) { tg?.HapticFeedback?.notificationOccurred('error'); return; }
 
   const payment   = document.querySelector('input[name="payment"]:checked')?.value || 'qr';
