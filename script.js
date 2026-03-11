@@ -240,10 +240,36 @@ function setActiveCatTab(catId) {
     ?.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'center' });
 }
 
+let _scrollSpyLocked = false;
+let _scrollSpyTimer  = null;
+let _scrollStopTimer = null;
+
 function scrollToSection(catId) {
   const section = document.getElementById('section-' + catId);
   if (!section) return;
+
+  // Lock scroll spy so observer doesn't override our selection
+  _scrollSpyLocked = true;
+  clearTimeout(_scrollSpyTimer);
+  clearTimeout(_scrollStopTimer);
+
   window.scrollTo({ top: section.getBoundingClientRect().top + window.scrollY - 145, behavior: 'smooth' });
+
+  // Watch for scroll stop, then unlock
+  const unlockOnStop = () => {
+    clearTimeout(_scrollStopTimer);
+    _scrollStopTimer = setTimeout(() => {
+      window.removeEventListener('scroll', unlockOnStop);
+      _scrollSpyLocked = false;
+    }, 150);
+  };
+  window.addEventListener('scroll', unlockOnStop, { passive: true });
+
+  // Safety fallback after 2s
+  _scrollSpyTimer = setTimeout(() => {
+    window.removeEventListener('scroll', unlockOnStop);
+    _scrollSpyLocked = false;
+  }, 2000);
 }
 
 function renderMenuContent() {
@@ -1187,6 +1213,7 @@ document.getElementById('checkoutOverlay').addEventListener('click', e => { if (
 /* ===== SCROLL SPY ===== */
 function setupScrollSpy() {
   const observer = new IntersectionObserver(entries => {
+    if (_scrollSpyLocked) return;
     entries.forEach(entry => {
       if (entry.isIntersecting) {
         const catId = entry.target.id.replace('section-', '');
