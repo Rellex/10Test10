@@ -425,11 +425,39 @@ function yooAuth() {
   return 'Basic ' + Buffer.from(`${YOOKASSA_SHOP_ID}:${YOOKASSA_SECRET}`).toString('base64');
 }
 
-async function createYooPayment({ amount, description, paymentMethod, orderId, returnUrl, customerEmail, customerPhone, items }) {
-  // Format phone: keep only digits and leading +
+async function createYooPayment({ amount, description, paymentMethod, orderId, returnUrl, customerEmail, customerPhone, items, delivery }) {
   const cleanPhone = customerPhone
     ? '+' + customerPhone.replace(/\D/g, '').replace(/^8/, '7')
     : null;
+
+  // Build receipt items including delivery
+  let receiptItems = items && items.length ? items.map(i => ({
+    description: (i.name || 'Товар').slice(0, 128),
+    quantity:    parseFloat(i.qty || 1).toFixed(3),
+    amount:      { value: parseFloat(i.price).toFixed(2), currency: 'RUB' },
+    vat_code:    1,
+    payment_mode: 'full_payment',
+    payment_subject: 'commodity',
+  })) : [{
+    description:  description.slice(0, 128),
+    quantity:     '1.000',
+    amount:       { value: amount.toFixed(2), currency: 'RUB' },
+    vat_code:     1,
+    payment_mode: 'full_payment',
+    payment_subject: 'commodity',
+  }];
+
+  // Add delivery as separate item if > 0
+  if (delivery && delivery > 0) {
+    receiptItems.push({
+      description: 'Доставка',
+      quantity:    '1.000',
+      amount:      { value: parseFloat(delivery).toFixed(2), currency: 'RUB' },
+      vat_code:    1,
+      payment_mode: 'full_payment',
+      payment_subject: 'service',
+    });
+  }
 
   const body = {
     amount: { value: amount.toFixed(2), currency: 'RUB' },
@@ -440,21 +468,7 @@ async function createYooPayment({ amount, description, paymentMethod, orderId, r
       customer: customerEmail
         ? { email: customerEmail }
         : { phone: cleanPhone },
-      items: items && items.length ? items.map(i => ({
-        description: (i.name || 'Товар').slice(0, 128),
-        quantity:    String(i.qty || 1),
-        amount:      { value: parseFloat(i.price).toFixed(2), currency: 'RUB' },
-        vat_code:    1,
-        payment_mode: 'full_payment',
-        payment_subject: 'commodity',
-      })) : [{
-        description:  description.slice(0, 128),
-        quantity:     '1',
-        amount:       { value: amount.toFixed(2), currency: 'RUB' },
-        vat_code:     1,
-        payment_mode: 'full_payment',
-        payment_subject: 'commodity',
-      }],
+      items: receiptItems,
     },
   };
 
@@ -525,6 +539,7 @@ app.post('/api/payments/create', async (req, res) => {
       customerEmail: orderData.email || null,
       customerPhone: orderData.phone || null,
       items: orderData.items || [],
+      delivery: orderData.delivery || 0,
     });
 
     console.log('YooKassa response:', JSON.stringify(payment));
@@ -543,6 +558,7 @@ app.post('/api/payments/create', async (req, res) => {
 
       // Отправляем кнопку оплаты в бот если есть chat_id
       const redirectUrl = response.redirectUrl || response.qrUrl;
+      console.log('tgChatId:', orderData.tgChatId, 'city:', orderData.city, 'redirectUrl:', !!redirectUrl);
       if (orderData.tgChatId && redirectUrl) {
         const cityName = orderData.cityName || orderData.city || '';
         const modeLabel = orderData.mode === 'pickup' ? '🏪 Самовывоз' : '🚚 Доставка';
@@ -552,7 +568,9 @@ app.post('/api/payments/create', async (req, res) => {
         // Определяем какой бот использовать по городу
         const isSpb = orderData.city === 'spb';
         const botFn = isSpb ? spbBotApi : clientBotApi;
+        console.log('Sending via bot:', isSpb ? 'SPB' : 'CLIENT', 'to chat:', orderData.tgChatId);
         botFn('sendMessage', { chat_id: orderData.tgChatId, text, parse_mode: 'Markdown', reply_markup: keyboard })
+          .then(r => console.log('Bot send result:', JSON.stringify(r)))
           .catch(e => console.error('Bot send error:', e));
       }
 
