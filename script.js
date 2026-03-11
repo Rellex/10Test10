@@ -1203,6 +1203,27 @@ function connectLiveUpdates() {
       if (event === 'addresses') {
         _addressesCache = payload;
         renderAddressesList();
+
+        // Если текущий город стал неактивным — сбросить
+        if (state.city) {
+          const currentCity = _addressesCache.find(c => c.id === state.city);
+          if (currentCity && currentCity.active === false) {
+            state.city = null;
+            localStorage.removeItem('selectedCity');
+            document.getElementById('menuWrapper').style.display = 'none';
+            document.getElementById('cityPrompt').style.display  = 'flex';
+          }
+        }
+
+        // Обновить список городов если модалка открыта
+        if (document.getElementById('cityModal')?.style.display !== 'none') {
+          renderCityList();
+        }
+
+        // Обновить переключатели оплаты если чекаут открыт
+        if (document.getElementById('checkoutOverlay')?.style.display !== 'none') {
+          renderPaymentOptions();
+        }
       }
       if (event === 'order') {
         // Update in localStorage
