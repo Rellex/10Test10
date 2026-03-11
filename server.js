@@ -300,13 +300,13 @@ app.delete('/api/categories/:id', auth, (req, res) => {
 /* ── routes: items (admin) ─────────────────── */
 app.post('/api/menu/item', auth, (req, res) => {
   const { name, categoryId, price, weight, emoji, imageBase64, description, composition, kcal, protein, fat, carbs } = req.body;
-  if (!name || !categoryId || !price) return res.status(400).json({ error: 'name, categoryId, price — обязательны' });
+  if (!name || !categoryId) return res.status(400).json({ error: 'name, categoryId — обязательны' });
   const menu = readMenu();
   const item = {
     id:          'item-' + Date.now(),
     categoryId,
     name,
-    price:       parseInt(price, 10),
+    price:       price !== undefined && price !== '' ? parseInt(price, 10) : 0,
     weight:      weight      || '',
     emoji:       emoji       || '🍽️',
     description: description || '',
