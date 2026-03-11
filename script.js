@@ -532,7 +532,8 @@ function updateCheckoutSummary() {
 
   const total = fmt(getTotal());
   document.getElementById('checkoutTotal').textContent    = total;
-  document.getElementById('submitOrderTotal').textContent = total;
+  const totalEl = document.getElementById('submitOrderTotal');
+  if (totalEl) totalEl.textContent = total;
 }
 
 /* ===== ITEM MODAL (user view) ===== */
@@ -1051,7 +1052,7 @@ async function handleCheckoutSubmit(e) {
   if (!validateCheckoutForm()) {
     tg?.HapticFeedback?.notificationOccurred('error');
     submitBtn.disabled = false;
-    submitBtn.innerHTML = '<span>Заказать</span>';
+    submitBtn.innerHTML = '<span>Заказать</span><span id="submitOrderTotal"></span>';
     return;
   }
 
@@ -1097,7 +1098,7 @@ async function handleCheckoutSubmit(e) {
     if (!res.ok || data.error) {
       showZoneError(data.error || 'Ошибка создания платежа');
       submitBtn.disabled = false;
-      submitBtn.innerHTML = '<span>Заказать</span>';
+      submitBtn.innerHTML = '<span>Заказать</span><span id="submitOrderTotal"></span>';
       return;
     }
 
@@ -1111,7 +1112,7 @@ async function handleCheckoutSubmit(e) {
   } catch(err) {
     showZoneError('Ошибка соединения. Попробуйте снова.');
     submitBtn.disabled = false;
-    submitBtn.innerHTML = '<span>Заказать</span>';
+    submitBtn.innerHTML = '<span>Заказать</span><span id="submitOrderTotal"></span>';
   }
 }
 
@@ -1124,30 +1125,32 @@ document.getElementById('submitOrderBtn').addEventListener('click', function(e) 
 
 /* ── QR PAYMENT MODAL ───────────────────────── */
 function showPaymentReadyButton(redirectUrl, paymentId, tempId, orderData) {
-  closeModal('checkoutOverlay');
+  // Сохраняем ссылку глобально для кнопки
+  window._paymentRedirectUrl = redirectUrl;
+  window._paymentId = paymentId;
+  window._paymentOrderData = orderData;
 
   let modal = document.getElementById('payReadyModal');
   if (!modal) {
     modal = document.createElement('div');
     modal.id = 'payReadyModal';
-    modal.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:9999;display:flex;align-items:flex-end;justify-content:center;padding:0';
+    modal.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:99999;display:flex;align-items:flex-end;justify-content:center;padding:0';
     document.body.appendChild(modal);
   }
 
   modal.innerHTML = `
-    <div style="background:#fff;border-radius:24px 24px 0 0;padding:32px 24px 40px;width:100%;max-width:480px;text-align:center">
+    <div style="background:#fff;border-radius:24px 24px 0 0;padding:32px 24px 48px;width:100%;max-width:480px;text-align:center">
       <div style="font-size:48px;margin-bottom:12px">💳</div>
-      <div style="font-size:20px;font-weight:800;margin-bottom:8px">Платёж создан!</div>
-      <div style="font-size:14px;color:#888;margin-bottom:24px">Нажмите кнопку ниже — откроется страница оплаты в браузере</div>
-      <div style="font-size:22px;font-weight:800;color:#f5a623;margin-bottom:24px">${orderData.total} ₽</div>
-      <a href="${redirectUrl}" target="_blank" style="display:block;width:100%;padding:16px;background:linear-gradient(135deg,#f5a623,#e8920e);color:#fff;font-size:17px;font-weight:800;border-radius:14px;text-decoration:none;margin-bottom:12px;box-shadow:0 4px 16px rgba(245,166,35,.4)">
-        💳 Оплатить заказ
-      </a>
-      <div style="font-size:12px;color:#aaa;margin-bottom:20px">После оплаты вернитесь в приложение</div>
-      <button id="payReadyCheckBtn" style="width:100%;padding:13px;background:#f5f5f5;border:none;border-radius:12px;font-size:15px;font-weight:600;color:#444;cursor:pointer">
-        ✅ Я оплатил — проверить статус
+      <div style="font-size:20px;font-weight:800;margin-bottom:8px;color:#222">Платёж готов!</div>
+      <div style="font-size:14px;color:#888;margin-bottom:20px;line-height:1.5">Нажмите кнопку — откроется страница оплаты.<br>После оплаты вернитесь сюда.</div>
+      <div style="font-size:26px;font-weight:800;color:#f5a623;margin-bottom:24px">${orderData.total} ₽</div>
+      <button id="payNowBtn" style="width:100%;padding:18px;background:linear-gradient(135deg,#f5a623,#e8920e);color:#fff;font-size:17px;font-weight:800;border-radius:14px;border:none;cursor:pointer;margin-bottom:12px;box-shadow:0 4px 16px rgba(245,166,35,.4)">
+        💳 Перейти к оплате
       </button>
-      <button id="payReadyCancelBtn" style="background:none;border:none;color:#bbb;font-size:13px;cursor:pointer;margin-top:16px">
+      <button id="payReadyCheckBtn" style="width:100%;padding:14px;background:#f5f5f5;border:none;border-radius:12px;font-size:15px;font-weight:600;color:#444;cursor:pointer;margin-bottom:12px">
+        ✅ Я оплатил — проверить
+      </button>
+      <button id="payReadyCancelBtn" style="background:none;border:none;color:#bbb;font-size:13px;cursor:pointer">
         Отменить
       </button>
     </div>
@@ -1155,30 +1158,43 @@ function showPaymentReadyButton(redirectUrl, paymentId, tempId, orderData) {
 
   modal.style.display = 'flex';
 
-  // Check payment status
+  document.getElementById('payNowBtn').addEventListener('click', () => {
+    if (tg?.openLink) {
+      tg.openLink(window._paymentRedirectUrl, { try_instant_view: false });
+    } else {
+      window.open(window._paymentRedirectUrl, '_blank');
+    }
+  });
+
   document.getElementById('payReadyCheckBtn').addEventListener('click', async () => {
     const btn = document.getElementById('payReadyCheckBtn');
     btn.textContent = '⏳ Проверяем…';
     btn.disabled = true;
     try {
-      const r = await fetch('/api/payments/' + paymentId + '/status');
+      const r = await fetch('/api/payments/' + window._paymentId + '/status');
       const d = await r.json();
       if (d.status === 'succeeded') {
         modal.style.display = 'none';
-        handlePaymentSuccess(orderData);
+        handlePaymentSuccess(window._paymentOrderData);
       } else {
         btn.disabled = false;
-        btn.textContent = '✅ Я оплатил — проверить статус';
+        btn.textContent = '✅ Я оплатил — проверить';
         showZoneError('Оплата ещё не прошла. Попробуйте снова после оплаты.');
       }
     } catch(e) {
       btn.disabled = false;
-      btn.textContent = '✅ Я оплатил — проверить статус';
+      btn.textContent = '✅ Я оплатил — проверить';
     }
   });
 
   document.getElementById('payReadyCancelBtn').addEventListener('click', () => {
     modal.style.display = 'none';
+    const submitBtn = document.getElementById('submitOrderBtn');
+    if (submitBtn) {
+      submitBtn.disabled = false;
+      submitBtn.innerHTML = '<span>Заказать</span><span id="submitOrderTotal"></span>';
+      updateCheckoutSummary();
+    }
   });
 }
 
