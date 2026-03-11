@@ -1096,10 +1096,15 @@ document.getElementById('checkoutForm').addEventListener('submit', async e => {
 
     if (payment === 'card' && data.redirectUrl) {
       if (tg?.openLink) {
-        tg.openLink(data.redirectUrl);
+        tg.openLink(data.redirectUrl, { try_instant_view: false });
       } else {
-        window.location.href = data.redirectUrl;
+        window.open(data.redirectUrl, '_blank');
       }
+      // После открытия страницы оплаты — разблокируем кнопку
+      setTimeout(() => {
+        submitBtn.disabled = false;
+        submitBtn.innerHTML = '<span>⏳ Ожидаем оплату…</span>';
+      }, 1500);
     } else if (payment === 'qr' && data.qrUrl) {
       showQrPayment(data.qrUrl, data.paymentId, data.tempId, orderData);
     }
