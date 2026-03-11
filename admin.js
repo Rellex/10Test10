@@ -186,15 +186,16 @@ document.getElementById('importAddressesInput')?.addEventListener('change', asyn
   try {
     const text = await file.text();
     const data = JSON.parse(text);
+    if (!Array.isArray(data)) throw new Error('Ожидается массив городов');
     const res = await api('PUT', '/api/addresses', data);
     if (res.ok) {
-      showToast('✅ Адреса импортированы!');
+      toast('✅ Адреса импортированы!', 'success');
       if (typeof fetchAddresses === 'function') fetchAddresses();
     } else {
-      showToast('❌ Ошибка импорта', 'error');
+      toast('❌ Ошибка импорта', 'error');
     }
   } catch(e) {
-    showToast('❌ Неверный файл: ' + e.message, 'error');
+    toast('❌ Неверный файл: ' + e.message, 'error');
   }
   e.target.value = '';
 });
@@ -205,23 +206,23 @@ document.getElementById('importMenuInput')?.addEventListener('change', async (e)
   try {
     const text = await file.text();
     const data = JSON.parse(text);
+    if (!data?.categories || !data?.items) throw new Error('Неверный формат: нужны поля categories и items');
     const res = await api('POST', '/api/admin/import/menu', data);
     if (res.ok) {
-      showToast(`✅ Импортировано: ${res.categories} категорий, ${res.items} позиций`);
-      location.reload();
+      toast(`✅ Импортировано: ${res.categories} категорий, ${res.items} позиций`, 'success');
+      await loadMenu();
     } else {
-      showToast('❌ Ошибка импорта', 'error');
+      toast('❌ Ошибка импорта', 'error');
     }
   } catch(e) {
-    showToast('❌ Неверный файл: ' + e.message, 'error');
+    toast('❌ ' + e.message, 'error');
   }
   e.target.value = '';
 });
 
 document.getElementById('exportMenuBtn')?.addEventListener('click', async () => {
   try {
-    const res = await fetch('/api/menu');
-    const data = await res.json();
+    const data = await api('GET', '/api/admin/export/menu');
     const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
@@ -229,8 +230,9 @@ document.getElementById('exportMenuBtn')?.addEventListener('click', async () => 
     a.download = 'menu.json';
     a.click();
     URL.revokeObjectURL(url);
+    toast('✅ Меню экспортировано', 'success');
   } catch(e) {
-    alert('Ошибка экспорта: ' + e.message);
+    toast('❌ Ошибка экспорта: ' + e.message, 'error');
   }
 });
 
@@ -1453,9 +1455,9 @@ async function changeOrderStatus(orderId, status) {
       headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + S.token },
       body: JSON.stringify({ status: status })
     });
-    showToast('Статус обновлён');
+    toast('Статус обновлён', 'success');
     loadOrders();
   } catch(e) {
-    showToast('Ошибка обновления');
+    toast('Ошибка обновления', 'error');
   }
 }

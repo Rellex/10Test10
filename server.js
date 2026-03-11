@@ -1195,7 +1195,6 @@ app.patch('/api/menu/items/:id', auth, (req, res) => {
 /* ── menu export/import ────────────────────── */
 app.get('/api/admin/export/menu', auth, (req, res) => {
   const menu = readMenu();
-  res.setHeader('Content-Disposition', 'attachment; filename="menu.json"');
   res.json(menu);
 });
 
