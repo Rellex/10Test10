@@ -425,7 +425,7 @@ function yooAuth() {
   return 'Basic ' + Buffer.from(`${YOOKASSA_SHOP_ID}:${YOOKASSA_SECRET}`).toString('base64');
 }
 
-async function createYooPayment({ amount, description, paymentMethod, orderId, returnUrl, customerEmail, customerPhone, items, delivery, discount }) {
+async function createYooPayment({ amount, description, paymentMethod, orderId, returnUrl, customerEmail, customerPhone, items, delivery }) {
   const cleanPhone = customerPhone
     ? '+' + customerPhone.replace(/\D/g, '').replace(/^8/, '7')
     : null;
@@ -464,45 +464,21 @@ async function createYooPayment({ amount, description, paymentMethod, orderId, r
     });
   }
 
-  // Если есть скидка — пересчитываем цену каждой позиции пропорционально
-  if (discount && discount > 0) {
-    const fullTotal = receiptItems.reduce((s, i) => s + i._lineTotal, 0);
-    const ratio = fullTotal > 0 ? amount / fullTotal : 1;
-    receiptItems = receiptItems.map(i => ({
-      ...i,
-      amount: { value: (parseFloat(i.amount.value) * ratio).toFixed(2), currency: 'RUB' },
-    }));
-    // Корректируем копейки на последней позиции
-    const receiptSum = receiptItems.reduce((s, i) => s + Math.round(parseFloat(i.amount.value) * parseFloat(i.quantity) * 100), 0);
-    const diff = Math.round(amount * 100) - receiptSum;
-    if (diff !== 0) {
-      const last = receiptItems[receiptItems.length - 1];
-      last.amount.value = (parseFloat(last.amount.value) + diff / 100).toFixed(2);
-    }
-  }
-
   // Убираем служебное поле
   receiptItems = receiptItems.map(({ _lineTotal, ...i }) => i);
-
-  // Проверяем минимальную цену — ЮКасса требует >= 1.00 за позицию
-  const hasInvalidPrice = receiptItems.some(i => parseFloat(i.amount.value) < 1.00);
 
   const body = {
     amount: { value: amount.toFixed(2), currency: 'RUB' },
     description,
     metadata: { orderId },
     capture: true,
-  };
-
-  // Добавляем чек только если все цены >= 1.00
-  if (!hasInvalidPrice) {
-    body.receipt = {
+    receipt: {
       customer: customerEmail
         ? { email: customerEmail }
         : { phone: cleanPhone },
       items: receiptItems,
-    };
-  }
+    },
+  };
 
   if (paymentMethod === 'qr') {
     body.payment_method_data = { type: 'sbp' };
@@ -572,7 +548,6 @@ app.post('/api/payments/create', async (req, res) => {
       customerPhone: orderData.phone || null,
       items: orderData.items || [],
       delivery: orderData.delivery || 0,
-      discount: orderData.discount || 0,
     });
 
     console.log('YooKassa response:', JSON.stringify(payment));
