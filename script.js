@@ -331,6 +331,18 @@ function renderMenuContent() {
     const grid     = document.createElement('div');
     grid.className = 'menu-items-grid';
     items.forEach(item => grid.appendChild(createMenuCard(item)));
+
+    // Если нечётное число карточек — последняя по центру
+    if (items.length % 2 !== 0) {
+      const last = grid.lastElementChild;
+      if (last) {
+        last.style.gridColumn  = '1 / -1';
+        last.style.width       = '50%';
+        last.style.marginLeft  = 'auto';
+        last.style.marginRight = 'auto';
+      }
+    }
+
     section.appendChild(grid);
     content.appendChild(section);
   });
