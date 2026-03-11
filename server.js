@@ -580,6 +580,30 @@ app.get('/api/payments/:paymentId/status', async (req, res) => {
   const { paymentId } = req.params;
   try {
     const payment = await getYooPayment(paymentId);
+
+    // Если оплата прошла но webhook ещё не сработал — создаём заказ сами
+    if (payment.paid && payment.status === 'succeeded' && pendingPayments[paymentId]) {
+      const pending = pendingPayments[paymentId];
+      delete pendingPayments[paymentId];
+      savePendingPayments();
+
+      const orderData = pending.orderData;
+      const orders = readOrders();
+      const order = {
+        id: Date.now().toString(),
+        createdAt: new Date().toISOString(),
+        status: 'pending',
+        paymentId: payment.id,
+        paymentStatus: 'paid',
+        ...orderData,
+      };
+      orders.unshift(order);
+      writeOrders(orders);
+      broadcast('order', order);
+      notifyNewOrder(order).catch(() => {});
+      broadcast('payment_confirmed', { tempId: pending.tempId, orderId: order.id });
+    }
+
     res.json({ status: payment.status, paid: payment.paid });
   } catch(e) {
     res.status(500).json({ error: 'Ошибка проверки платежа' });
