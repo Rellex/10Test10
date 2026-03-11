@@ -1138,15 +1138,142 @@ async function init() {
   await Promise.all([loadMenuFromAPI(), loadAddressesCache()]);
 
   if (state.city) {
-    const cityObj = getCitiesFromCache().find(c => c.id === state.city);
+    const cityObj = getCitiesFromCache().find(c => c.id === state.city && c.active !== false);
     if (cityObj) {
       document.getElementById('headerCityName').textContent = 'ПОДДЕРЖКА';
       showMenu();
       renderAddressesList();
+      updateCartFab();
+      updateCartSheet();
+      return;
+    } else {
+      // City was disabled — reset
+      state.city = null;
+      localStorage.removeItem('selectedCity');
     }
   }
+
+  // Auto-detect city by geolocation
+  autoDetectCity();
   updateCartFab();
   updateCartSheet();
+}
+
+function autoDetectCity() {
+  const cities = getCitiesFromCache().filter(c => c.active !== false);
+  if (!cities.length) return;
+
+  // City name keywords mapped to city ids
+  const CITY_KEYWORDS = {
+    'новосибирск': 'novosibirsk',
+    'novosibirsk': 'novosibirsk',
+    'санкт-петербург': 'spb',
+    'санкт петербург': 'spb',
+    'saint petersburg': 'spb',
+    'st. petersburg': 'spb',
+    'петербург': 'spb',
+    'питер': 'spb',
+    'искитим': 'iskitim',
+    'iskitim': 'iskitim',
+    'омск': 'omsk',
+    'omsk': 'omsk',
+    'барнаул': 'barnaul',
+    'barnaul': 'barnaul',
+    'выборг': 'vyborg',
+    'vyborg': 'vyborg',
+  };
+
+  // Show loading state on prompt
+  const promptText = document.getElementById('cityPrompt')?.querySelector('.city-prompt-text');
+  if (promptText) promptText.textContent = '📍 Определяем ваш город…';
+
+  if (!navigator.geolocation) {
+    showCityPromptWithList(cities);
+    return;
+  }
+
+  navigator.geolocation.getCurrentPosition(
+    async (pos) => {
+      try {
+        const { latitude, longitude } = pos.coords;
+        const url = `https://nominatim.openstreetmap.org/reverse?lat=${latitude}&lon=${longitude}&format=json&accept-language=ru`;
+        const r = await fetch(url);
+        const d = await r.json();
+
+        const cityName = (
+          d.address?.city ||
+          d.address?.town ||
+          d.address?.village ||
+          d.address?.county ||
+          ''
+        ).toLowerCase();
+
+        // Try to match to available city
+        let matchedId = null;
+        for (const [keyword, cityId] of Object.entries(CITY_KEYWORDS)) {
+          if (cityName.includes(keyword)) {
+            // Check if this city is in our active list
+            const found = cities.find(c => c.id === cityId);
+            if (found) { matchedId = cityId; break; }
+          }
+        }
+
+        if (matchedId) {
+          const city = cities.find(c => c.id === matchedId);
+          showCityAutoDetected(city, cities);
+        } else {
+          showCityPromptWithList(cities, cityName);
+        }
+      } catch(e) {
+        showCityPromptWithList(cities);
+      }
+    },
+    () => {
+      // Permission denied or error
+      showCityPromptWithList(cities);
+    },
+    { timeout: 6000 }
+  );
+}
+
+function showCityAutoDetected(city, allCities) {
+  const prompt = document.getElementById('cityPrompt');
+  if (!prompt) return;
+  prompt.innerHTML = `
+    <div class="city-detect-icon">📍</div>
+    <div class="city-prompt-text">Ваш город</div>
+    <div class="city-detected-name">${city.name}</div>
+    <button class="btn-primary" id="confirmDetectedCity">Верно, продолжить</button>
+    <button class="btn-city-change" id="changeDetectedCity">Выбрать другой город</button>
+  `;
+  document.getElementById('confirmDetectedCity').addEventListener('click', () => {
+    selectCity(city.id, city.name);
+  });
+  document.getElementById('changeDetectedCity').addEventListener('click', () => {
+    renderCityList();
+    openModal('cityModal');
+  });
+}
+
+function showCityPromptWithList(cities, detectedName) {
+  const prompt = document.getElementById('cityPrompt');
+  if (!prompt) return;
+  const msg = detectedName
+    ? `Не нашли «${detectedName}» среди наших городов`
+    : 'Выберите ваш город';
+  prompt.innerHTML = `
+    <div class="city-detect-icon">🏙️</div>
+    <div class="city-prompt-text">${msg}</div>
+    <div class="city-quick-list" id="cityQuickList"></div>
+  `;
+  const list = document.getElementById('cityQuickList');
+  cities.forEach(city => {
+    const btn = document.createElement('button');
+    btn.className = 'city-quick-btn';
+    btn.textContent = city.name;
+    btn.addEventListener('click', () => selectCity(city.id, city.name));
+    list.appendChild(btn);
+  });
 }
 
 /* ===== ZONE ERROR MODAL ===== */
