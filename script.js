@@ -650,6 +650,36 @@ document.getElementById('selectCityPromptBtn').addEventListener('click', () => {
 document.getElementById('cityModalClose').addEventListener('click', () => closeModal('cityModal'));
 document.getElementById('supportModalClose').addEventListener('click', () => closeModal('supportOverlay'));
 
+/* ===== FEEDBACK ===== */
+document.getElementById('feedbackSendBtn').addEventListener('click', async () => {
+  const text = document.getElementById('feedbackText').value.trim();
+  if (!text) return;
+
+  const btn = document.getElementById('feedbackSendBtn');
+  btn.textContent = 'Отправляем...';
+  btn.disabled = true;
+
+  try {
+    await fetch('/api/feedback', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ text, city: state.city || '' })
+    });
+    document.getElementById('feedbackText').value = '';
+    document.getElementById('feedbackOk').style.display = 'block';
+    document.querySelector('.support-feedback-wrap').style.display = 'none';
+    setTimeout(() => {
+      document.getElementById('feedbackOk').style.display = 'none';
+      document.querySelector('.support-feedback-wrap').style.display = 'flex';
+    }, 3000);
+  } catch (e) {
+    btn.textContent = 'Ошибка, попробуйте снова';
+  } finally {
+    btn.disabled = false;
+    btn.textContent = 'Отправить';
+  }
+});
+
 /* ===== MY ORDERS ===== */
 const ORDER_STATUS_MAP = {
   pending:    { label: 'Ожидание',   color: '#9b59b6', icon: '⏳' },

@@ -1169,6 +1169,27 @@ app.get('/api/orders/statuses', (req, res) => res.json(ORDER_STATUSES));
 
 app.get('/api/addresses', (_req, res) => res.json(readAddresses()));
 
+/* ── feedback ──────────────────────────────── */
+app.post('/api/feedback', async (req, res) => {
+  const { text, city } = req.body;
+  if (!text) return res.status(400).json({ error: 'Нет текста' });
+
+  const FEEDBACK_CHAT = '-5160909076';
+  const cityLabel = city ? ` (${city})` : '';
+  const msg = `💬 *Фидбэк${cityLabel}*\n\n${text}`;
+
+  try {
+    await spbBotApi('sendMessage', {
+      chat_id: FEEDBACK_CHAT,
+      text: msg,
+      parse_mode: 'Markdown'
+    });
+    res.json({ ok: true });
+  } catch (e) {
+    res.status(500).json({ error: 'Не удалось отправить' });
+  }
+});
+
 app.put('/api/addresses', auth, (req, res) => {
   const data = req.body;
   if (!Array.isArray(data)) return res.status(400).json({ error: 'Нужен массив' });
