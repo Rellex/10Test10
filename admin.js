@@ -1066,6 +1066,10 @@ function renderAddressesPanel(openCities) {
     var hdr = document.createElement('div');
     hdr.className = 'addr-city-header';
 
+    // Top row: drag + name + actions
+    var topRow = document.createElement('div');
+    topRow.className = 'addr-city-header-top';
+
     var dragHandle = document.createElement('span');
     dragHandle.className = 'addr-drag-handle';
     dragHandle.title     = 'Перетащить';
@@ -1081,56 +1085,71 @@ function renderAddressesPanel(openCities) {
 
     var actions = document.createElement('div');
     actions.className = 'addr-city-actions';
-
-    // Active toggle
-    var activeToggle = document.createElement('label');
-    activeToggle.className = 'city-toggle-wrap';
-    activeToggle.title = city.active === false ? 'Город отключён' : 'Город активен';
-    activeToggle.innerHTML =
-      '<input type="checkbox" class="city-toggle-input" data-field="active" data-id="' + city.id + '" ' + (city.active !== false ? 'checked' : '') + ' />' +
-      '<span class="city-toggle-slider"></span>' +
-      '<span class="city-toggle-label">' + (city.active !== false ? 'Активен' : 'Откл.') + '</span>';
-
-    // Payment toggle
-    var payToggle = document.createElement('label');
-    payToggle.className = 'city-toggle-wrap';
-    payToggle.title = city.paymentEnabled === false ? 'Оплата отключена' : 'Оплата включена';
-    payToggle.innerHTML =
-      '<input type="checkbox" class="city-toggle-input" data-field="payment" data-id="' + city.id + '" ' + (city.paymentEnabled !== false ? 'checked' : '') + ' />' +
-      '<span class="city-toggle-slider pay"></span>' +
-      '<span class="city-toggle-label">💳</span>';
-
     actions.innerHTML =
       '<button class="addr-icon-btn" data-action="edit-city" data-id="' + city.id + '" title="Переименовать">&#9998;</button>' +
       '<button class="addr-icon-btn danger" data-action="del-city" data-id="' + city.id + '" title="Удалить">&#128465;</button>';
 
-    actions.insertBefore(payToggle, actions.firstChild);
-    actions.insertBefore(activeToggle, actions.firstChild);
+    topRow.appendChild(dragHandle);
+    topRow.appendChild(nameBtn);
+    topRow.appendChild(actions);
+
+    // Toggles row
+    var togglesRow = document.createElement('div');
+    togglesRow.className = 'addr-city-toggles';
+
+    // Active toggle
+    var activeItem = document.createElement('div');
+    activeItem.className = 'addr-toggle-item';
+    var activeLabel = document.createElement('label');
+    activeLabel.className = 'city-toggle-wrap';
+    activeLabel.innerHTML =
+      '<input type="checkbox" class="city-toggle-input" data-field="active" data-id="' + city.id + '" ' + (city.active !== false ? 'checked' : '') + ' />' +
+      '<span class="city-toggle-slider"></span>';
+    var activeTitle = document.createElement('span');
+    activeTitle.className = 'addr-toggle-title';
+    activeTitle.textContent = 'Город активен';
+    activeItem.appendChild(activeLabel);
+    activeItem.appendChild(activeTitle);
+
+    // Payment toggle
+    var payItem = document.createElement('div');
+    payItem.className = 'addr-toggle-item';
+    var payLabel = document.createElement('label');
+    payLabel.className = 'city-toggle-wrap';
+    payLabel.innerHTML =
+      '<input type="checkbox" class="city-toggle-input" data-field="payment" data-id="' + city.id + '" ' + (city.paymentEnabled !== false ? 'checked' : '') + ' />' +
+      '<span class="city-toggle-slider pay"></span>';
+    var payTitle = document.createElement('span');
+    payTitle.className = 'addr-toggle-title';
+    payTitle.textContent = 'Онлайн-оплата';
+    payItem.appendChild(payLabel);
+    payItem.appendChild(payTitle);
+
+    togglesRow.appendChild(activeItem);
+    togglesRow.appendChild(payItem);
+
+    hdr.appendChild(topRow);
+    hdr.appendChild(togglesRow);
 
     // Toggle handlers
-    activeToggle.querySelector('input').addEventListener('change', function(e) {
+    activeLabel.querySelector('input').addEventListener('change', function(e) {
       var c = addrData.find(function(x){ return x.id === e.target.dataset.id; });
       if (c) {
         c.active = e.target.checked;
-        activeToggle.title = c.active ? 'Город активен' : 'Город отключён';
-        activeToggle.querySelector('.city-toggle-label').textContent = c.active ? 'Активен' : 'Откл.';
+        activeTitle.textContent = c.active ? 'Город активен' : 'Город откл.';
         saveAddresses(addrData);
         toast(c.name + ': ' + (c.active ? 'включён' : 'отключён'), 'success');
       }
     });
-    payToggle.querySelector('input').addEventListener('change', function(e) {
+    payLabel.querySelector('input').addEventListener('change', function(e) {
       var c = addrData.find(function(x){ return x.id === e.target.dataset.id; });
       if (c) {
         c.paymentEnabled = e.target.checked;
-        payToggle.title = c.paymentEnabled ? 'Оплата включена' : 'Оплата отключена';
+        payTitle.textContent = c.paymentEnabled ? 'Онлайн-оплата' : 'Оплата откл.';
         saveAddresses(addrData);
         toast(c.name + ': оплата ' + (c.paymentEnabled ? 'включена' : 'отключена'), 'success');
       }
     });
-
-    hdr.appendChild(dragHandle);
-    hdr.appendChild(nameBtn);
-    hdr.appendChild(actions);
     block.appendChild(hdr);
 
     var body = document.createElement('div');
