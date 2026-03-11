@@ -1179,7 +1179,7 @@ app.post('/api/feedback', async (req, res) => {
   const msg = `💬 *Фидбэк${cityLabel}*\n\n${text}`;
 
   try {
-    await spbBotApi('sendMessage', {
+    await tgApi('sendMessage', {
       chat_id: FEEDBACK_CHAT,
       text: msg,
       parse_mode: 'Markdown'
