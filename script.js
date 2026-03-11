@@ -1097,7 +1097,11 @@ document.getElementById('checkoutForm').addEventListener('submit', async e => {
     localStorage.setItem('lastOrderPhone', orderData.phone);
 
     if (payment === 'card' && data.redirectUrl) {
-      window.location.href = data.redirectUrl;
+      if (tg?.openLink) {
+        tg.openLink(data.redirectUrl);
+      } else {
+        window.location.href = data.redirectUrl;
+      }
     } else if (payment === 'qr' && data.qrUrl) {
       showQrPayment(data.qrUrl, data.paymentId, data.tempId, orderData);
     }
