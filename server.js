@@ -41,7 +41,7 @@ const YANDEX_GEO_KEY  = process.env.YANDEX_GEO_KEY  || '';
 const BOT_TOKEN        = process.env.BOT_TOKEN        || '8602156854:AAE1-cdqeKGBk538Rghj_ZIBl6jXjqa0JH0';
 const CLIENT_BOT_TOKEN = process.env.CLIENT_BOT_TOKEN || '8614340391:AAGpEyHQ949K6WGBu-2CCafnSOK6-ofGbBM';
 const SPB_BOT_TOKEN    = process.env.SPB_BOT_TOKEN    || '8631935230:AAGYvjxYXepGH7wlnub-cULI-zqaM520F0E';
-const VYBORG_CHAT_ID   = process.env.TG_CHAT_ID       || '-5160909076';
+const VYBORG_CHAT_ID   = process.env.TG_CHAT_ID       || '-1001884949760';
 const WEBHOOK_DOMAIN  = process.env.WEBHOOK_DOMAIN   || '10test10-production.up.railway.app';
 
 /* ── delivery zones ────────────────────────── */
@@ -1026,17 +1026,15 @@ app.post('/api/client-bot/webhook', async (req, res) => {
     const chatId = body.message.chat.id;
     await clientBotApi('sendMessage', {
       chat_id: chatId,
-      text: `☀️ *Добро пожаловать в «Солнечный день»\!*
-
-Здесь вы можете быстро оформить заказ на доставку или самовывоз\. Нажмите кнопку ниже, чтобы открыть меню и выбрать блюда\.
-
-Желаем вам солнечного настроения и приятного аппетита\!`,
-      parse_mode: 'MarkdownV2',
+      text: `☀️ *Добро пожаловать в «Солнечный день»!*\n\nНажмите кнопку «Меню» чтобы открыть приложение и сделать заказ 🍽`,
+      parse_mode: 'Markdown',
       reply_markup: {
-        inline_keyboard: [[{
-          text: '🍽 Открыть меню',
+        keyboard: [[{
+          text: '🍽 Меню',
           web_app: { url: 'https://10test10-production.up.railway.app/' }
-        }]]
+        }]],
+        resize_keyboard: true,
+        persistent: true,
       }
     });
   }
