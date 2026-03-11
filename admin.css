@@ -364,6 +364,8 @@ input, select, textarea { font-family: inherit; }
 .card-btn-edit:hover { background: #dbeafe; }
 .card-btn-toggle { background: var(--bg); color: var(--text-sub); }
 .card-btn-toggle:hover { background: var(--border); }
+.card-btn-cities { background: #fff7ed; color: #ea580c; }
+.card-btn-cities:hover { background: #fed7aa; }
 .card-btn-delete { background: var(--red-bg); color: var(--red); }
 .card-btn-delete:hover { background: #fecaca; }
 

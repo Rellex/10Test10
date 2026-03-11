@@ -89,9 +89,36 @@ function getCategories() {
   return dynamicMenu.categories.filter(c => c.active !== false);
 }
 
+/* Возвращает цену блюда для текущего города.
+   Если у блюда задан cityPrices — берём цену оттуда.
+   Если cityPrices пуст или города нет — берём base price. */
+function getItemPrice(item) {
+  if (!item) return 0;
+  const city = state.city;
+  if (city && item.cityPrices && Object.keys(item.cityPrices).length > 0) {
+    return item.cityPrices[city] !== undefined ? item.cityPrices[city] : item.price;
+  }
+  return item.price;
+}
+
+/* Проверяет, должно ли блюдо показываться в текущем городе:
+   - не в disabledCities
+   - если у блюда есть cityPrices (хоть один город) — в текущем городе цена должна быть явно задана */
+function itemVisibleInCity(item) {
+  const city = state.city;
+  if (!city) return true;
+  if ((item.disabledCities || []).includes(city)) return false;
+  if (item.cityPrices && Object.keys(item.cityPrices).length > 0) {
+    return item.cityPrices[city] !== undefined;
+  }
+  return true;
+}
+
 function getItems(catId) {
   if (!dynamicMenu || menuLoadError) return [];
-  return dynamicMenu.items.filter(i => i.categoryId === catId && i.active !== false);
+  return dynamicMenu.items.filter(i =>
+    i.categoryId === catId && i.active !== false && itemVisibleInCity(i)
+  );
 }
 
 function findItemAny(id) {
@@ -101,7 +128,7 @@ function findItemAny(id) {
 
 function getAllItems() {
   if (!dynamicMenu || menuLoadError) return [];
-  return dynamicMenu.items.filter(i => i.active !== false);
+  return dynamicMenu.items.filter(i => i.active !== false && itemVisibleInCity(i));
 }
 
 function itemImgSrc(item) {
@@ -156,7 +183,7 @@ function getSubtotal() {
   let total = 0;
   for (const [id, qty] of Object.entries(state.cart)) {
     const item = findItemAny(id);
-    if (item) total += item.price * qty;
+    if (item) total += getItemPrice(item) * qty;
   }
   return total;
 }
@@ -334,7 +361,7 @@ function createMenuCard(item) {
       ${item.weight ? `<div class="menu-card-weight">${item.weight.toString().replace('г','')}г</div>` : ''}
       ${(item.kcal || item.protein || item.fat || item.carbs) ? `<div class="menu-card-kbju">${item.kcal ? item.kcal+'ккал ' : ''}${item.protein ? 'Б'+item.protein+' ' : ''}${item.fat ? 'Ж'+item.fat+' ' : ''}${item.carbs ? 'У'+item.carbs : ''}</div>` : ''}
       <div class="menu-card-footer">
-        <div class="menu-card-price">${item.price ? fmt(item.price) : ''}</div>
+        <div class="menu-card-price">${getItemPrice(item) ? fmt(getItemPrice(item)) : ''}</div>
         <div class="card-actions" id="card-actions-${item.id}"></div>
       </div>
     </div>`;
@@ -454,7 +481,7 @@ function updateCartSheet() {
         : `<div class="cart-item-emoji">${item.emoji}</div>`}
       <div class="cart-item-info">
         <div class="cart-item-name">${item.name}</div>
-        <div class="cart-item-price">${fmt(item.price * qty)}</div>
+        <div class="cart-item-price">${fmt(getItemPrice(item) * qty)}</div>
       </div>
       <div class="cart-item-controls">
         <button class="cart-qty-btn ${qty === 1 ? 'remove' : ''}" data-action="dec">${qty === 1 ? '🗑' : '−'}</button>
@@ -566,7 +593,7 @@ function openItemModal(item) {
       ].filter(Boolean).join('');
     }
   }
-  document.getElementById('itemModalPrice').textContent  = fmt(item.price);
+  document.getElementById('itemModalPrice').textContent  = fmt(getItemPrice(item));
   document.getElementById('itemModalQty').textContent    = state.itemModal.qty;
   openModal('itemModal');
   tg?.HapticFeedback?.impactOccurred('light');
@@ -576,14 +603,14 @@ document.getElementById('itemModalMinus').addEventListener('click', () => {
   if (state.itemModal.qty > 1) {
     state.itemModal.qty--;
     document.getElementById('itemModalQty').textContent   = state.itemModal.qty;
-    document.getElementById('itemModalPrice').textContent = fmt(state.itemModal.item.price * state.itemModal.qty);
+    document.getElementById('itemModalPrice').textContent = fmt(getItemPrice(state.itemModal.item) * state.itemModal.qty);
   }
 });
 
 document.getElementById('itemModalPlus').addEventListener('click', () => {
   state.itemModal.qty++;
   document.getElementById('itemModalQty').textContent   = state.itemModal.qty;
-  document.getElementById('itemModalPrice').textContent = fmt(state.itemModal.item.price * state.itemModal.qty);
+  document.getElementById('itemModalPrice').textContent = fmt(getItemPrice(state.itemModal.item) * state.itemModal.qty);
 });
 
 document.getElementById('itemModalAdd').addEventListener('click', () => {
@@ -1084,7 +1111,7 @@ async function handleCheckoutSubmit(e) {
     total:    getTotal(),
     items:    Object.entries(state.cart).map(([id, qty]) => {
       const item = findItemAny(id);
-      return { id, name: item?.name, price: item?.price, qty };
+      return { id, name: item?.name, price: getItemPrice(item), qty };
     }),
   };
 
@@ -1537,11 +1564,7 @@ function connectLiveUpdates() {
     try {
       const { event, data: payload } = JSON.parse(data);
       if (event === 'menu') {
-        const city = state.city;
-        const items = city
-          ? payload.items.filter(i => !(i.disabledCities || []).includes(city))
-          : payload.items;
-        dynamicMenu = { ...payload, items };
+        dynamicMenu = payload;
         saveMenuCache(dynamicMenu);
         rerenderMenuAfterUpdate();
       }
