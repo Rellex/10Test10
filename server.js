@@ -805,15 +805,8 @@ async function setWebhook() {
   const res = await tgApi('setWebhook', { url, drop_pending_updates: true });
   console.log('Webhook set:', res?.ok ? 'OK' : res?.description);
 
-  // Кнопка «Меню» встроенная в интерфейс Telegram
-  const menuRes = await tgApi('setChatMenuButton', {
-    menu_button: {
-      type: 'web_app',
-      text: '☀️ Меню',
-      web_app: { url: `https://${WEBHOOK_DOMAIN}/` }
-    }
-  });
-  console.log('Menu button set:', menuRes?.ok ? 'OK' : menuRes?.description);
+  // Убираем кнопку меню — ставим стандартную
+  await tgApi('setChatMenuButton', { menu_button: { type: 'default' } });
 }
 
 function buildOrderMessage(order) {
@@ -1051,8 +1044,17 @@ app.post('/api/client-bot/webhook', async (req, res) => {
 app.post('/api/bot/webhook', async (req, res) => {
   res.sendStatus(200);
   const body = req.body;
+  const ALLOWED_CHAT = String(VYBORG_CHAT_ID);
+  const incomingChat = String(body?.message?.chat?.id || body?.callback_query?.message?.chat?.id || '');
+
+  // Разрешаем только сообщения из admin-чата (callback_query) или /start от любого пользователя
+  const isAdminChat = incomingChat === ALLOWED_CHAT;
+  const isStart = body?.message?.text === '/start';
+
+  if (!isAdminChat && !isStart) return; // игнорируем всех остальных
+
   // Handle /start command
-  if (body?.message?.text === '/start') {
+  if (isStart) {
     const chatId = body.message.chat.id;
     await tgApi('sendMessage', {
       chat_id: chatId,
