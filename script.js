@@ -986,7 +986,17 @@ function validateCheckoutForm() {
   if (state.deliveryMode === 'delivery' && !street.value.trim()) { street.classList.add('error'); valid = false; }
   if (state.deliveryMode === 'pickup') {
     const pickupTime = document.getElementById('pickupTimeInput');
-    if (pickupTime && !pickupTime.value) { pickupTime.classList.add('error'); valid = false; }
+    if (pickupTime && !pickupTime.value) {
+      pickupTime.classList.add('error'); valid = false;
+    } else if (pickupTime && pickupTime.value) {
+      const [h, m] = pickupTime.value.split(':').map(Number);
+      const totalMin = h * 60 + m;
+      if (totalMin < 8 * 60 || totalMin > 20 * 60) {
+        pickupTime.classList.add('error');
+        showZoneError('Время самовывоза должно быть с 8:00 до 20:00');
+        valid = false;
+      }
+    }
     const pickupAddr = document.getElementById('pickupAddress');
     if (pickupAddr && !pickupAddr.value) { pickupAddr.classList.add('error'); valid = false; }
   }
