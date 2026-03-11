@@ -856,13 +856,18 @@ async function notifyNewOrder(order) {
   const isVyborg = cityId.includes('vyborg') || cityName.includes('выборг');
   const isSpb    = cityId.includes('spb')    || cityName.includes('петербург') || cityName.includes('петербург');
 
+  console.log('notifyNewOrder:', { cityId, cityName, isVyborg, isSpb, hasBotToken: !!BOT_TOKEN, chatId: VYBORG_CHAT_ID });
+
   let botFn = null, chatId = null;
   if (isVyborg && BOT_TOKEN && VYBORG_CHAT_ID) {
     botFn = tgApi; chatId = VYBORG_CHAT_ID;
   } else if (isSpb && SPB_BOT_TOKEN && (SPB_CHAT_ID || process.env.SPB_CHAT_ID)) {
     botFn = spbBotApi; chatId = SPB_CHAT_ID || process.env.SPB_CHAT_ID;
   }
-  if (!botFn || !chatId) return;
+  if (!botFn || !chatId) {
+    console.log('notifyNewOrder: no bot/chat configured for city:', cityId);
+    return;
+  }
 
   const text = buildOrderMessage(order);
   const keyboard = buildStatusKeyboard(order.id, order.status, order.mode);
