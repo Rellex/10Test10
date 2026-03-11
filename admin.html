@@ -166,14 +166,10 @@
             <input type="text" class="field-input" id="itemName" placeholder="Борщ со сметаной" required />
           </div>
           <div class="field-group">
-            <label class="field-label">Цена (₽)*</label>
-            <input type="number" class="field-input" id="itemPrice" placeholder="140" min="0" required />
-          </div>
-          <div class="field-group">
             <label class="field-label">Вес/объём</label>
             <input type="number" class="field-input" id="itemWeight" placeholder="300" min="1" />
           </div>
-          <div class="field-group full">
+          <div class="field-group">
             <label class="field-label">Категория*</label>
             <select class="field-input field-select" id="itemCategory" required></select>
           </div>
@@ -186,8 +182,8 @@
             <textarea class="field-input field-textarea" id="itemComposition" placeholder="Например: картофель, морковь, лук..."></textarea>
           </div>
           <div class="field-group full" id="cityPricesSection">
-            <label class="field-label">Цены по городам — необязательно <span style="font-size:11px;color:#aaa">(если пусто — используется основная цена)</span></label>
-            <div id="cityPricesGrid" style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:6px"></div>
+            <label class="field-label">Цены по городам*</label>
+            <div id="cityPricesGrid" style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;margin-top:8px"></div>
           </div>
           <div class="field-group full">
             <label class="field-label">КБЖУ (на 100г) — необязательно</label>

@@ -90,27 +90,22 @@ function getCategories() {
 }
 
 /* Возвращает цену блюда для текущего города.
-   Если у блюда задан cityPrices — берём цену оттуда.
-   Если cityPrices пуст или города нет — берём base price. */
+   Цена берётся только из cityPrices[city] — базовой цены нет. */
 function getItemPrice(item) {
   if (!item) return 0;
   const city = state.city;
-  if (city && item.cityPrices && Object.keys(item.cityPrices).length > 0) {
-    return item.cityPrices[city] !== undefined ? item.cityPrices[city] : item.price;
-  }
-  return item.price;
+  if (city && item.cityPrices) return item.cityPrices[city] ?? 0;
+  // Fallback для старых записей без cityPrices
+  return item.price || 0;
 }
 
-/* Проверяет, должно ли блюдо показываться в текущем городе:
-   - не в disabledCities
-   - если у блюда есть cityPrices (хоть один город) — в текущем городе цена должна быть явно задана */
+/* Блюдо показывается только если есть цена для текущего города */
 function itemVisibleInCity(item) {
   const city = state.city;
   if (!city) return true;
   if ((item.disabledCities || []).includes(city)) return false;
-  if (item.cityPrices && Object.keys(item.cityPrices).length > 0) {
-    return item.cityPrices[city] !== undefined;
-  }
+  if (item.cityPrices) return item.cityPrices[city] !== undefined;
+  // Старые записи без cityPrices — показываем
   return true;
 }
 

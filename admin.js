@@ -433,12 +433,13 @@ function createItemCard(item) {
   const toggleText = item.active ? '🙈 Скрыть' : '👁 Показать';
 
   // City-specific price
-  const basePrice = item.price;
-  const cityPrice = S.activeCity && item.cityPrices && item.cityPrices[S.activeCity] !== undefined
-    ? item.cityPrices[S.activeCity] : null;
-  const priceHtml = cityPrice !== null
-    ? `<span class="item-card-price" title="Цена для выбранного города">${cityPrice} ₽ <span style="font-size:10px;color:#aaa;text-decoration:line-through">${basePrice}</span></span>`
-    : `<span class="item-card-price">${basePrice} ₽</span>`;
+  // Show city-specific price if available, otherwise show nothing or "—"
+  const displayPrice = S.activeCity && item.cityPrices && item.cityPrices[S.activeCity] !== undefined
+    ? item.cityPrices[S.activeCity]
+    : (item.cityPrices && Object.keys(item.cityPrices).length > 0 ? null : item.price);
+  const priceHtml = displayPrice !== null && displayPrice !== undefined
+    ? `<span class="item-card-price">${displayPrice} ₽</span>`
+    : `<span class="item-card-price" style="color:#ccc">нет цены</span>`;
 
   card.innerHTML = `
     <div class="item-card-media">
@@ -545,7 +546,6 @@ function openItemModal(item) {
   document.getElementById('itemModalTitle').textContent = item ? 'Редактировать' : 'Добавить позицию';
   document.getElementById('editItemId').value           = item?.id          || '';
   document.getElementById('itemName').value             = item?.name        || '';
-  document.getElementById('itemPrice').value            = item?.price       || '';
   document.getElementById('itemWeight').value           = item?.weight      || '';
   document.getElementById('itemDescription').value      = item?.description || '';
   document.getElementById('itemComposition').value      = item?.composition  || '';
@@ -555,7 +555,6 @@ function openItemModal(item) {
   document.getElementById('itemCarbs').value            = item?.carbs   ?? '';
   document.getElementById('emojiCustom').value          = item?.emoji       || '🍽️';
   document.getElementById('itemName').classList.remove('error');
-  document.getElementById('itemPrice').classList.remove('error');
   document.getElementById('imageInput').value           = '';
 
   populateCategorySelect(item?.categoryId || S.activeCatId);
@@ -569,25 +568,27 @@ function populateCityPricesGrid(cityPrices) {
   const grid = document.getElementById('cityPricesGrid');
   if (!grid) return;
   grid.innerHTML = '';
-  const cities = addrData.length ? addrData : [];
-  if (!cities.length) { grid.innerHTML = '<span style="font-size:12px;color:#bbb">Города не загружены</span>'; return; }
+  const cities = addrData.filter(c => c.active !== false);
+  if (!cities.length) {
+    grid.innerHTML = '<span style="font-size:12px;color:#bbb">Нет активных городов</span>';
+    return;
+  }
   cities.forEach(city => {
+    const val = cityPrices[city.id] !== undefined ? cityPrices[city.id] : '';
     const wrap = document.createElement('div');
-    wrap.style.cssText = 'display:flex;flex-direction:column;gap:3px';
-    const lbl = document.createElement('label');
-    lbl.style.cssText = 'font-size:11px;color:#aaa';
-    lbl.textContent = city.name;
-    const inp = document.createElement('input');
-    inp.type = 'number';
-    inp.className = 'field-input';
-    inp.placeholder = 'Осн. цена';
-    inp.min = 0;
-    inp.dataset.cityId = city.id;
-    inp.id = 'cityPrice_' + city.id;
-    inp.value = cityPrices[city.id] !== undefined ? cityPrices[city.id] : '';
-    inp.style.cssText = 'padding:6px 8px;font-size:13px';
-    wrap.appendChild(lbl);
-    wrap.appendChild(inp);
+    wrap.style.cssText = 'display:flex;flex-direction:column;gap:4px';
+    wrap.innerHTML = `
+      <label style="font-size:12px;font-weight:600;color:#555">${city.name}</label>
+      <input
+        type="number"
+        class="field-input city-price-input"
+        data-city-id="${city.id}"
+        placeholder="—"
+        min="0"
+        value="${val}"
+        style="padding:7px 10px;font-size:13px"
+      />
+    `;
     grid.appendChild(wrap);
   });
 }
@@ -699,14 +700,9 @@ document.getElementById('itemModalCancel').addEventListener('click', () => close
 document.getElementById('itemForm').addEventListener('submit', async e => {
   e.preventDefault();
 
-  const name  = document.getElementById('itemName').value.trim();
-  const price = document.getElementById('itemPrice').value;
-  let valid   = true;
+  const name = document.getElementById('itemName').value.trim();
   document.getElementById('itemName').classList.remove('error');
-  document.getElementById('itemPrice').classList.remove('error');
-  if (!name)  { document.getElementById('itemName').classList.add('error');  valid = false; }
-  if (!price) { document.getElementById('itemPrice').classList.add('error'); valid = false; }
-  if (!valid) return;
+  if (!name) { document.getElementById('itemName').classList.add('error'); return; }
 
   const btn = document.getElementById('itemFormSubmit');
   btn.textContent = 'Сохранение...';
@@ -719,7 +715,7 @@ document.getElementById('itemForm').addEventListener('submit', async e => {
 
     // Collect per-city prices
     const cityPrices = {};
-    document.querySelectorAll('#cityPricesGrid input[data-city-id]').forEach(inp => {
+    document.querySelectorAll('.city-price-input').forEach(inp => {
       if (inp.value !== '') cityPrices[inp.dataset.cityId] = parseInt(inp.value, 10);
     });
 
@@ -729,7 +725,6 @@ document.getElementById('itemForm').addEventListener('submit', async e => {
 
     const data = {
       name,
-      price:       parseInt(price, 10),
       weight:      document.getElementById('itemWeight').value.trim(),
       emoji,
       categoryId,
