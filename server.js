@@ -425,12 +425,32 @@ function yooAuth() {
   return 'Basic ' + Buffer.from(`${YOOKASSA_SHOP_ID}:${YOOKASSA_SECRET}`).toString('base64');
 }
 
-async function createYooPayment({ amount, description, paymentMethod, orderId, returnUrl }) {
+async function createYooPayment({ amount, description, paymentMethod, orderId, returnUrl, customerEmail, customerPhone, items }) {
   const body = {
     amount: { value: amount.toFixed(2), currency: 'RUB' },
     description,
     metadata: { orderId },
     capture: true,
+    receipt: {
+      customer: customerEmail
+        ? { email: customerEmail }
+        : { phone: customerPhone },
+      items: items && items.length ? items.map(i => ({
+        description: (i.name || 'Товар').slice(0, 128),
+        quantity:    String(i.qty || 1),
+        amount:      { value: (i.price * (i.qty || 1)).toFixed(2), currency: 'RUB' },
+        vat_code:    1,
+        payment_mode: 'full_payment',
+        payment_subject: 'commodity',
+      })) : [{
+        description:  description.slice(0, 128),
+        quantity:     '1',
+        amount:       { value: amount.toFixed(2), currency: 'RUB' },
+        vat_code:     1,
+        payment_mode: 'full_payment',
+        payment_subject: 'commodity',
+      }],
+    },
   };
 
   if (paymentMethod === 'qr') {
@@ -496,6 +516,9 @@ app.post('/api/payments/create', async (req, res) => {
       paymentMethod,
       orderId: tempId,
       returnUrl,
+      customerEmail: orderData.email || null,
+      customerPhone: orderData.phone || null,
+      items: orderData.items || [],
     });
 
     console.log('YooKassa response:', JSON.stringify(payment));

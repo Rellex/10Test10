@@ -972,7 +972,8 @@ async function checkDeliveryZone(address) {
   if (statusEl) { statusEl.textContent = 'Проверяем адрес...'; statusEl.className = 'delivery-zone-status checking'; }
 
   try {
-    const fullAddress = address;
+    const cityName = getCitiesFromCache().find(c => c.id === cityId)?.name || '';
+    const fullAddress = cityName ? cityName + ', ' + address : address;
     const res  = await fetch('/api/delivery/check', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -1033,7 +1034,7 @@ function validateCheckoutForm() {
       if (statusEl) { statusEl.textContent = 'Введите адрес для проверки зоны доставки'; statusEl.className = 'delivery-zone-status error'; }
       street.classList.add('error');
       valid = false;
-    } else if (!deliveryZoneResult.allowed) {
+    } else if (deliveryZoneResult && deliveryZoneResult.allowed === false) {
       street.classList.add('error');
       valid = false;
     }
@@ -1063,6 +1064,7 @@ document.getElementById('checkoutForm').addEventListener('submit', async e => {
     name:     document.getElementById('nameInput').value.trim(),
     phone:    document.getElementById('phoneInput').value.trim(),
     comment:  document.getElementById('commentInput').value.trim(),
+    email:    document.getElementById('emailInput')?.value.trim() || '',
     payment,
     promo:    state.promo,
     subtotal: getSubtotal(),
