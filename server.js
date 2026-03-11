@@ -438,7 +438,7 @@ async function createYooPayment({ amount, description, paymentMethod, orderId, r
       items: items && items.length ? items.map(i => ({
         description: (i.name || 'Товар').slice(0, 128),
         quantity:    String(i.qty || 1),
-        amount:      { value: (i.price * (i.qty || 1)).toFixed(2), currency: 'RUB' },
+        amount:      { value: (parseFloat(i.price) * parseInt(i.qty || 1)).toFixed(2), currency: 'RUB' },
         vat_code:    1,
         payment_mode: 'full_payment',
         payment_subject: 'commodity',
@@ -461,6 +461,7 @@ async function createYooPayment({ amount, description, paymentMethod, orderId, r
     body.confirmation = { type: 'redirect', return_url: returnUrl };
   }
 
+  console.log('Creating payment, body:', JSON.stringify(body));
   const r = await fetch(`${YOOKASSA_API}/payments`, {
     method: 'POST',
     headers: {
