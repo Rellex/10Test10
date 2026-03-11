@@ -430,6 +430,14 @@ function createItemCard(item) {
   const badgeText  = item.active ? 'Активно' : 'Скрыто';
   const toggleText = item.active ? '🙈 Скрыть' : '👁 Показать';
 
+  // City-specific price
+  const basePrice = item.price;
+  const cityPrice = S.activeCity && item.cityPrices && item.cityPrices[S.activeCity] !== undefined
+    ? item.cityPrices[S.activeCity] : null;
+  const priceHtml = cityPrice !== null
+    ? `<span class="item-card-price" title="Цена для выбранного города">${cityPrice} ₽ <span style="font-size:10px;color:#aaa;text-decoration:line-through">${basePrice}</span></span>`
+    : `<span class="item-card-price">${basePrice} ₽</span>`;
+
   card.innerHTML = `
     <div class="item-card-media">
       ${mediaPart}
@@ -438,7 +446,7 @@ function createItemCard(item) {
     <div class="item-card-body">
       <div class="item-card-name">${item.name}</div>
       <div class="item-card-meta">
-        <span class="item-card-price">${item.price} ₽</span>
+        ${priceHtml}
         <span class="item-card-weight">${item.weight || ''}</span>
       </div>
       <div class="item-card-actions">
@@ -535,7 +543,35 @@ function openItemModal(item) {
   populateCategorySelect(item?.categoryId || S.activeCatId);
   renderEmojiGrid();
   updatePhotoPreview(itemImg(item));
+  populateCityPricesGrid(item?.cityPrices || {});
   openModal('itemModal');
+}
+
+function populateCityPricesGrid(cityPrices) {
+  const grid = document.getElementById('cityPricesGrid');
+  if (!grid) return;
+  grid.innerHTML = '';
+  const cities = addrData.length ? addrData : [];
+  if (!cities.length) { grid.innerHTML = '<span style="font-size:12px;color:#bbb">Города не загружены</span>'; return; }
+  cities.forEach(city => {
+    const wrap = document.createElement('div');
+    wrap.style.cssText = 'display:flex;flex-direction:column;gap:3px';
+    const lbl = document.createElement('label');
+    lbl.style.cssText = 'font-size:11px;color:#aaa';
+    lbl.textContent = city.name;
+    const inp = document.createElement('input');
+    inp.type = 'number';
+    inp.className = 'field-input';
+    inp.placeholder = 'Осн. цена';
+    inp.min = 0;
+    inp.dataset.cityId = city.id;
+    inp.id = 'cityPrice_' + city.id;
+    inp.value = cityPrices[city.id] !== undefined ? cityPrices[city.id] : '';
+    inp.style.cssText = 'padding:6px 8px;font-size:13px';
+    wrap.appendChild(lbl);
+    wrap.appendChild(inp);
+    grid.appendChild(wrap);
+  });
 }
 
 function openItemEdit(id) {
@@ -663,6 +699,12 @@ document.getElementById('itemForm').addEventListener('submit', async e => {
     const categoryId = document.getElementById('itemCategory').value;
     const emoji      = document.getElementById('emojiCustom').value.trim() || S.currentEmoji;
 
+    // Collect per-city prices
+    const cityPrices = {};
+    document.querySelectorAll('#cityPricesGrid input[data-city-id]').forEach(inp => {
+      if (inp.value !== '') cityPrices[inp.dataset.cityId] = parseInt(inp.value, 10);
+    });
+
     let imageBase64 = S.editingItem?.imageBase64 || null;
     if (S.editingItem?._removeImage) imageBase64 = null;
     if (S.pendingImage !== null)     imageBase64 = S.pendingImage;
@@ -680,6 +722,7 @@ document.getElementById('itemForm').addEventListener('submit', async e => {
       fat:     document.getElementById('itemFat').value     ? Number(document.getElementById('itemFat').value)     : null,
       carbs:   document.getElementById('itemCarbs').value   ? Number(document.getElementById('itemCarbs').value)   : null,
       imageBase64,
+      cityPrices,
     };
 
     if (editId) {

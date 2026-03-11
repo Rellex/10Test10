@@ -343,6 +343,7 @@ app.put('/api/menu/item/:id', auth, (req, res) => {
   if (fat         !== undefined) item.fat          = fat;
   if (carbs       !== undefined) item.carbs        = carbs;
   if (imageBase64 !== undefined) item.imageBase64 = imageBase64;
+  if (req.body.cityPrices !== undefined) item.cityPrices = req.body.cityPrices;
 
   writeMenu(menu);
   broadcast('menu', readMenu());
