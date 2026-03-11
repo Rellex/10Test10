@@ -1075,6 +1075,7 @@ async function handleCheckoutSubmit(e) {
     phone:    document.getElementById('phoneInput').value.trim(),
     comment:  document.getElementById('commentInput').value.trim(),
     email:    document.getElementById('emailInput')?.value.trim() || '',
+    tgChatId: tg?.initDataUnsafe?.user?.id || null,
     payment,
     promo:    state.promo,
     subtotal: getSubtotal(),
