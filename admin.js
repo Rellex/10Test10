@@ -56,6 +56,7 @@ function compressImage(file, maxPx = 480, quality = 0.78) {
 const S = {
   menu:        { categories: [], items: [] },
   activeCatId: null,
+  activeCity:  null,
   editingItem: null,
   pendingImage: null,
   currentEmoji: '🍽️',
@@ -254,6 +255,7 @@ async function loadMenu() {
     S.menu.categories = menu.categories || [];
     S.menu.items      = menu.items      || [];
     saveMenuCache();
+    renderCityTabs();
     renderSidebar();
     if (S.activeCatId) renderItems(S.activeCatId);
     if (S.menu.categories.length === 0) showInitPrompt();
@@ -261,6 +263,7 @@ async function loadMenu() {
     const cached = loadMenuCache();
     if (cached) {
       S.menu = cached;
+      renderCityTabs();
       renderSidebar();
       if (!S.activeCatId && S.menu.categories.length) S.activeCatId = S.menu.categories[0].id;
       if (S.activeCatId) renderItems(S.activeCatId);
@@ -300,14 +303,37 @@ async function uploadInitialMenu() {
   }
 }
 
-/* ══════════════════════════════════════════════
-   SIDEBAR
-══════════════════════════════════════════════ */
+function renderCityTabs() {
+  const wrap = document.getElementById('cityTabs');
+  if (!wrap) return;
+  const cities = addrData.length ? addrData : [];
+  if (!S.activeCity && cities.length) S.activeCity = cities[0].id;
+  wrap.innerHTML = '';
+  cities.forEach(city => {
+    const btn = document.createElement('button');
+    btn.className = 'city-tab-btn' + (S.activeCity === city.id ? ' active' : '');
+    btn.textContent = city.name;
+    btn.addEventListener('click', () => {
+      S.activeCity = city.id;
+      S.activeCatId = null;
+      renderCityTabs();
+      renderSidebar();
+      document.getElementById('itemsGrid').innerHTML = '';
+      document.getElementById('welcomeState').classList.remove('hidden');
+    });
+    wrap.appendChild(btn);
+  });
+}
+
+
 function renderSidebar() {
   const nav = document.getElementById('sidebarNav');
   nav.innerHTML = '';
   S.menu.categories.forEach(cat => {
-    const items  = S.menu.items.filter(i => i.categoryId === cat.id);
+    const allItems  = S.menu.items.filter(i => i.categoryId === cat.id);
+    const items     = S.activeCity
+      ? allItems.filter(i => !(i.disabledCities || []).includes(S.activeCity))
+      : allItems;
     const active = items.filter(i => i.active).length;
     const li     = document.createElement('div');
     li.className  = 'sidebar-cat-item' + (S.activeCatId === cat.id ? ' active' : '');
@@ -371,8 +397,11 @@ function selectCategory(catId) {
    ITEMS RENDER
 ══════════════════════════════════════════════ */
 function renderItems(catId) {
-  const cat   = S.menu.categories.find(c => c.id === catId);
-  const items = S.menu.items.filter(i => i.categoryId === catId);
+  const cat      = S.menu.categories.find(c => c.id === catId);
+  const allItems = S.menu.items.filter(i => i.categoryId === catId);
+  const items    = S.activeCity
+    ? allItems.filter(i => !(i.disabledCities || []).includes(S.activeCity))
+    : allItems;
   const grid  = document.getElementById('itemsGrid');
   const empty = document.getElementById('emptyState');
 
@@ -415,14 +444,12 @@ function createItemCard(item) {
       <div class="item-card-actions">
         <button class="card-btn card-btn-edit"   data-action="edit"   data-id="${item.id}">✏️ Изменить</button>
         <button class="card-btn card-btn-toggle" data-action="toggle" data-id="${item.id}">${toggleText}</button>
-        <button class="card-btn card-btn-cities" data-action="cities" data-id="${item.id}">🏙 Города</button>
         <button class="card-btn card-btn-delete" data-action="delete" data-id="${item.id}">🗑</button>
       </div>
     </div>`;
 
   card.querySelector('[data-action="edit"]').addEventListener('click',   () => openItemEdit(item.id));
   card.querySelector('[data-action="toggle"]').addEventListener('click', () => toggleItem(item.id));
-  card.querySelector('[data-action="cities"]').addEventListener('click', () => openCityToggleModal(item.id));
   card.querySelector('[data-action="delete"]').addEventListener('click', () => {
     showConfirm(`Удалить «${item.name}»?`, () => deleteItem(item.id));
   });
@@ -898,6 +925,8 @@ async function fetchAddresses() {
     addrData = await res.json();
     var wasAddresses = document.getElementById('addressesSection').style.display === 'block';
     if (wasAddresses) renderAddressesPanel(getOpenCities());
+    renderCityTabs();
+    renderSidebar();
   } catch(e) { console.error('Ошибка загрузки адресов:', e); }
 }
 

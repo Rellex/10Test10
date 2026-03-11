@@ -780,3 +780,32 @@ input, select, textarea { font-family: inherit; }
   white-space: nowrap;
 }
 
+
+/* ── City tabs in menu section ── */
+.city-tabs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  padding: 0 12px 8px;
+}
+.city-tab-btn {
+  flex: 1 1 auto;
+  min-width: 0;
+  padding: 6px 8px;
+  border: 1.5px solid #e0e0e0;
+  border-radius: 8px;
+  background: #fff;
+  font-size: 12px;
+  font-weight: 600;
+  color: #888;
+  cursor: pointer;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  transition: all .15s;
+}
+.city-tab-btn.active {
+  background: #f5a623;
+  border-color: #f5a623;
+  color: #fff;
+}
