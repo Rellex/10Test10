@@ -1095,16 +1095,7 @@ document.getElementById('checkoutForm').addEventListener('submit', async e => {
     localStorage.setItem('lastOrderPhone', orderData.phone);
 
     if (payment === 'card' && data.redirectUrl) {
-      if (tg?.openLink) {
-        tg.openLink(data.redirectUrl, { try_instant_view: false });
-      } else {
-        window.open(data.redirectUrl, '_blank');
-      }
-      // После открытия страницы оплаты — разблокируем кнопку
-      setTimeout(() => {
-        submitBtn.disabled = false;
-        submitBtn.innerHTML = '<span>⏳ Ожидаем оплату…</span>';
-      }, 1500);
+      showPaymentReadyButton(data.redirectUrl, data.paymentId, data.tempId, orderData);
     } else if (payment === 'qr' && data.qrUrl) {
       showQrPayment(data.qrUrl, data.paymentId, data.tempId, orderData);
     }
@@ -1116,6 +1107,65 @@ document.getElementById('checkoutForm').addEventListener('submit', async e => {
 });
 
 /* ── QR PAYMENT MODAL ───────────────────────── */
+function showPaymentReadyButton(redirectUrl, paymentId, tempId, orderData) {
+  closeModal('checkoutOverlay');
+
+  let modal = document.getElementById('payReadyModal');
+  if (!modal) {
+    modal = document.createElement('div');
+    modal.id = 'payReadyModal';
+    modal.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:9999;display:flex;align-items:flex-end;justify-content:center;padding:0';
+    document.body.appendChild(modal);
+  }
+
+  modal.innerHTML = `
+    <div style="background:#fff;border-radius:24px 24px 0 0;padding:32px 24px 40px;width:100%;max-width:480px;text-align:center">
+      <div style="font-size:48px;margin-bottom:12px">💳</div>
+      <div style="font-size:20px;font-weight:800;margin-bottom:8px">Платёж создан!</div>
+      <div style="font-size:14px;color:#888;margin-bottom:24px">Нажмите кнопку ниже — откроется страница оплаты в браузере</div>
+      <div style="font-size:22px;font-weight:800;color:#f5a623;margin-bottom:24px">${orderData.total} ₽</div>
+      <a href="${redirectUrl}" target="_blank" style="display:block;width:100%;padding:16px;background:linear-gradient(135deg,#f5a623,#e8920e);color:#fff;font-size:17px;font-weight:800;border-radius:14px;text-decoration:none;margin-bottom:12px;box-shadow:0 4px 16px rgba(245,166,35,.4)">
+        💳 Оплатить заказ
+      </a>
+      <div style="font-size:12px;color:#aaa;margin-bottom:20px">После оплаты вернитесь в приложение</div>
+      <button id="payReadyCheckBtn" style="width:100%;padding:13px;background:#f5f5f5;border:none;border-radius:12px;font-size:15px;font-weight:600;color:#444;cursor:pointer">
+        ✅ Я оплатил — проверить статус
+      </button>
+      <button id="payReadyCancelBtn" style="background:none;border:none;color:#bbb;font-size:13px;cursor:pointer;margin-top:16px">
+        Отменить
+      </button>
+    </div>
+  `;
+
+  modal.style.display = 'flex';
+
+  // Check payment status
+  document.getElementById('payReadyCheckBtn').addEventListener('click', async () => {
+    const btn = document.getElementById('payReadyCheckBtn');
+    btn.textContent = '⏳ Проверяем…';
+    btn.disabled = true;
+    try {
+      const r = await fetch('/api/payments/' + paymentId + '/status');
+      const d = await r.json();
+      if (d.status === 'succeeded') {
+        modal.style.display = 'none';
+        handlePaymentSuccess(orderData);
+      } else {
+        btn.disabled = false;
+        btn.textContent = '✅ Я оплатил — проверить статус';
+        showZoneError('Оплата ещё не прошла. Попробуйте снова после оплаты.');
+      }
+    } catch(e) {
+      btn.disabled = false;
+      btn.textContent = '✅ Я оплатил — проверить статус';
+    }
+  });
+
+  document.getElementById('payReadyCancelBtn').addEventListener('click', () => {
+    modal.style.display = 'none';
+  });
+}
+
 function showQrPayment(qrUrl, paymentId, tempId, orderData) {
   closeModal('checkoutOverlay');
 
