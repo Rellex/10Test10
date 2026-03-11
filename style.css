@@ -1097,13 +1097,17 @@ a { text-decoration: none; color: inherit; }
 /* ===== SUPPORT SHEET ===== */
 .support-sheet {
   padding: 0 0 32px;
+  max-height: 80vh;
+  display: flex;
+  flex-direction: column;
 }
 .support-header {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 12px 16px 12px;
+  padding: 12px 16px;
   border-bottom: 1px solid var(--grey-2);
+  flex-shrink: 0;
 }
 .support-title {
   font-size: 16px;
@@ -1111,10 +1115,11 @@ a { text-decoration: none; color: inherit; }
   color: var(--text);
 }
 .support-body {
-  padding: 20px 16px;
+  padding: 16px 16px;
   display: flex;
   flex-direction: column;
   gap: 8px;
+  overflow-y: auto;
 }
 .support-city {
   font-size: 13px;
@@ -1149,7 +1154,8 @@ a { text-decoration: none; color: inherit; }
 }
 .support-feedback-input {
   width: 100%;
-  min-height: 90px;
+  min-height: 60px;
+  max-height: 100px;
   border: 1.5px solid var(--grey-2);
   border-radius: 12px;
   padding: 10px 12px;
