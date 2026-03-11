@@ -1214,13 +1214,31 @@ document.getElementById('checkoutOverlay').addEventListener('click', e => { if (
 function setupScrollSpy() {
   const observer = new IntersectionObserver(entries => {
     if (_scrollSpyLocked) return;
-    entries.forEach(entry => {
-      if (entry.isIntersecting) {
-        const catId = entry.target.id.replace('section-', '');
-        if (state.activeCategory !== catId) { state.activeCategory = catId; setActiveCatTab(catId); }
+
+    // Collect all currently visible sections, pick the one closest to top
+    const visible = [];
+    document.querySelectorAll('.menu-section').forEach(sec => {
+      const rect = sec.getBoundingClientRect();
+      const top  = 150; // header offset
+      if (rect.bottom > top && rect.top < window.innerHeight) {
+        visible.push({ id: sec.id, top: rect.top });
       }
     });
-  }, { rootMargin: '-140px 0px -55% 0px', threshold: 0 });
+    if (!visible.length) return;
+
+    // Sort by proximity to header line
+    visible.sort((a, b) => {
+      const distA = Math.abs(a.top - 150);
+      const distB = Math.abs(b.top - 150);
+      // Prefer sections whose top is just above or at the header line
+      const scoreA = a.top <= 150 ? distA : distA + 10000;
+      const scoreB = b.top <= 150 ? distB : distB + 10000;
+      return scoreA - scoreB;
+    });
+
+    const catId = visible[0].id.replace('section-', '');
+    if (state.activeCategory !== catId) { state.activeCategory = catId; setActiveCatTab(catId); }
+  }, { rootMargin: '-140px 0px -10% 0px', threshold: [0, 0.1, 0.5] });
   document.querySelectorAll('.menu-section').forEach(sec => observer.observe(sec));
 }
 
