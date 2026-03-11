@@ -675,6 +675,46 @@ document.getElementById('streetInput')?.addEventListener('input', function() {
   }, 700);
 });
 
+document.getElementById('detectAddressBtn')?.addEventListener('click', function() {
+  const btn = this;
+  if (!navigator.geolocation) {
+    showZoneError('Геолокация не поддерживается вашим браузером');
+    return;
+  }
+  btn.classList.add('loading');
+  btn.textContent = '⏳';
+  navigator.geolocation.getCurrentPosition(
+    async function(pos) {
+      try {
+        const url = 'https://nominatim.openstreetmap.org/reverse?lat=' + pos.coords.latitude + '&lon=' + pos.coords.longitude + '&format=json&accept-language=ru';
+        const r = await fetch(url);
+        const d = await r.json();
+        const addr = d.address || {};
+        const road = addr.road || addr.pedestrian || addr.footway || '';
+        const num  = addr.house_number || '';
+        const parts = [road, num].filter(Boolean).join(' ');
+        if (parts) {
+          document.getElementById('streetInput').value = parts;
+          checkDeliveryZone(parts);
+        } else {
+          showZoneError('Не удалось определить адрес. Введите вручную.');
+        }
+      } catch(e) {
+        showZoneError('Ошибка определения адреса. Попробуйте снова.');
+      } finally {
+        btn.classList.remove('loading');
+        btn.textContent = '📍';
+      }
+    },
+    function() {
+      btn.classList.remove('loading');
+      btn.textContent = '📍';
+      showZoneError('Доступ к геолокации запрещён. Введите адрес вручную.');
+    },
+    { timeout: 8000 }
+  );
+});
+
 
 
 function renderBonusLevels() {
@@ -1347,8 +1387,11 @@ function connectLiveUpdates() {
           renderCityList();
         }
 
-        // Обновить переключатели оплаты если чекаут открыт
-        if (document.getElementById('checkoutOverlay')?.style.display !== 'none') {
+        // Обновить чекаут если открыт — перестроить селекты городов и оплату
+        const checkoutEl = document.getElementById('checkoutOverlay');
+        if (checkoutEl && checkoutEl.style.display === 'flex') {
+          renderPickupSelect();
+          renderDeliveryCitySelect();
           renderPaymentOptions();
         }
       }

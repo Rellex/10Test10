@@ -1213,3 +1213,30 @@ a { text-decoration: none; color: inherit; }
   transition: opacity .15s;
 }
 .order-review-btn:active { opacity: .8; }
+
+/* ===== GEO ADDRESS DETECT ===== */
+.street-input-wrap {
+  display: flex;
+  gap: 8px;
+  align-items: stretch;
+}
+.street-input-wrap .form-input {
+  flex: 1;
+}
+.btn-geo-detect {
+  width: 44px;
+  height: 44px;
+  border-radius: var(--radius-sm);
+  border: 1.5px solid var(--grey-2);
+  background: var(--white);
+  font-size: 20px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  transition: border-color .15s, background .15s;
+}
+.btn-geo-detect:hover  { border-color: var(--sun); background: var(--sun-pale); }
+.btn-geo-detect:active { background: var(--sun-light); }
+.btn-geo-detect.loading { animation: pulse 1s ease-in-out infinite; }

@@ -138,7 +138,10 @@
             </div>
             <div class="form-group">
               <label class="form-label">Улица и дом*</label>
-              <input type="text" class="form-input" id="streetInput" placeholder="Ленина 10, кв. 5" required />
+              <div class="street-input-wrap">
+                <input type="text" class="form-input" id="streetInput" placeholder="Ленина 10, кв. 5" required />
+                <button type="button" class="btn-geo-detect" id="detectAddressBtn" title="Определить адрес по геолокации">📍</button>
+              </div>
               <div class="delivery-zone-status" id="deliveryZoneStatus"></div>
             </div>
             <div class="form-row form-row-4">
@@ -268,7 +271,7 @@
     <header class="header" id="appHeader">
       <div class="header-top">
         <div class="header-logo">
-          <img src="logo.jpg" class="logo-img" alt="Солнечный день" />
+          <img src="header_banner.png" class="logo-img" alt="Солнечный день" />
         </div>
       </div>
       <div class="work-hours-bar">
