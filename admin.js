@@ -308,7 +308,7 @@ async function uploadInitialMenu() {
 function renderCityTabs() {
   const wrap = document.getElementById('cityTabs');
   if (!wrap) return;
-  const cities = addrData.length ? addrData : [];
+  const cities = addrData.filter(c => c.active !== false);
   if (!S.activeCity && cities.length) S.activeCity = cities[0].id;
   wrap.innerHTML = '';
   cities.forEach(city => {
