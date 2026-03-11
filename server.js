@@ -38,7 +38,7 @@ const ORDERS_FILE    = path.join(DATA_DIR, 'orders.json');
 const UPLOADS_DIR    = path.join(DATA_DIR, 'uploads');
 const ADMIN_PASSWORD  = process.env.ADMIN_PASSWORD  || 'admin123';
 const YANDEX_GEO_KEY  = process.env.YANDEX_GEO_KEY  || '';
-const BOT_TOKEN        = process.env.BOT_TOKEN        || '8602156854:AAE1-cdqeKGBk538Rghj_ZIBl6jXjqa0JH0';
+const BOT_TOKEN        = process.env.BOT_TOKEN        || '7621767388:AAEsY2d5jC1_cbbp5VJOTDog-sD6gGONN_';
 const CLIENT_BOT_TOKEN = process.env.CLIENT_BOT_TOKEN || '8614340391:AAGpEyHQ949K6WGBu-2CCafnSOK6-ofGbBM';
 const SPB_BOT_TOKEN    = process.env.SPB_BOT_TOKEN    || '8631935230:AAGYvjxYXepGH7wlnub-cULI-zqaM520F0E';
 const VYBORG_CHAT_ID   = process.env.TG_CHAT_ID       || '-1001884949760';
@@ -804,6 +804,16 @@ async function setWebhook() {
   const url = `https://${WEBHOOK_DOMAIN}/api/bot/webhook`;
   const res = await tgApi('setWebhook', { url, drop_pending_updates: true });
   console.log('Webhook set:', res?.ok ? 'OK' : res?.description);
+
+  // Кнопка «Меню» встроенная в интерфейс Telegram
+  const menuRes = await tgApi('setChatMenuButton', {
+    menu_button: {
+      type: 'web_app',
+      text: '☀️ Меню',
+      web_app: { url: `https://${WEBHOOK_DOMAIN}/` }
+    }
+  });
+  console.log('Menu button set:', menuRes?.ok ? 'OK' : menuRes?.description);
 }
 
 function buildOrderMessage(order) {
@@ -1031,7 +1041,7 @@ app.post('/api/client-bot/webhook', async (req, res) => {
       reply_markup: {
         inline_keyboard: [[{
           text: '🍽 Меню',
-          web_app: { url: 'https://10test10-production.up.railway.app/' }
+          web_app: { url: `https://${WEBHOOK_DOMAIN}/` }
         }]]
       }
     });
@@ -1055,7 +1065,7 @@ app.post('/api/bot/webhook', async (req, res) => {
       reply_markup: {
         inline_keyboard: [[{
           text: '🍽 Открыть меню',
-          web_app: { url: 'https://10test10-production.up.railway.app/' }
+          web_app: { url: `https://${WEBHOOK_DOMAIN}/` }
         }]]
       }
     });
