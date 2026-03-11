@@ -22,7 +22,9 @@ function broadcast(event, data) {
 wss.on('connection', ws => {
   ws.on('error', () => {});
 });
-const IS_VERCEL = Boolean(process.env.VERCEL);
+const YOOKASSA_SHOP_ID = process.env.YOOKASSA_SHOP_ID || '1220854';
+const YOOKASSA_SECRET  = process.env.YOOKASSA_SECRET  || 'live_5gzVyNewIBgNBZ4X43gkUkwMlGtNK8gKecdynUVWll8';
+const YOOKASSA_API     = 'https://api.yookassa.ru/v3';
 
 app.use(cors());
 app.use(express.json());
@@ -417,6 +419,145 @@ const ORDER_STATUSES = [
   { id: 'done',       label: 'Доставлен',   color: '#7f8c8d' },
   { id: 'cancelled',  label: 'Отменён',     color: '#e74c3c' },
 ];
+
+/* ── yookassa helpers ──────────────────────── */
+function yooAuth() {
+  return 'Basic ' + Buffer.from(`${YOOKASSA_SHOP_ID}:${YOOKASSA_SECRET}`).toString('base64');
+}
+
+async function createYooPayment({ amount, description, paymentMethod, orderId, returnUrl }) {
+  const body = {
+    amount: { value: amount.toFixed(2), currency: 'RUB' },
+    description,
+    metadata: { orderId },
+    capture: true,
+  };
+
+  if (paymentMethod === 'qr') {
+    body.payment_method_data = { type: 'sbp' };
+    body.confirmation = { type: 'qr' };
+  } else {
+    // bank card
+    body.confirmation = { type: 'redirect', return_url: returnUrl };
+  }
+
+  const r = await fetch(`${YOOKASSA_API}/payments`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'Authorization': yooAuth(),
+      'Idempotence-Key': orderId + '-' + Date.now(),
+    },
+    body: JSON.stringify(body),
+  });
+  return await r.json();
+}
+
+async function getYooPayment(paymentId) {
+  const r = await fetch(`${YOOKASSA_API}/payments/${paymentId}`, {
+    headers: { 'Authorization': yooAuth() },
+  });
+  return await r.json();
+}
+
+// Pending payments storage (in-memory + file)
+const PENDING_PAYMENTS_FILE = path.join(DATA_DIR, 'pending_payments.json');
+let pendingPayments = {};
+try {
+  if (fs.existsSync(PENDING_PAYMENTS_FILE))
+    pendingPayments = JSON.parse(fs.readFileSync(PENDING_PAYMENTS_FILE, 'utf8'));
+} catch(e) {}
+
+function savePendingPayments() {
+  try { fs.writeFileSync(PENDING_PAYMENTS_FILE, JSON.stringify(pendingPayments, null, 2)); } catch(e) {}
+}
+
+/* ── CREATE PAYMENT (public) ───────────────── */
+app.post('/api/payments/create', async (req, res) => {
+  const { orderData, paymentMethod } = req.body;
+  if (!orderData || !orderData.total || !orderData.name) {
+    return res.status(400).json({ error: 'Неверные данные заказа' });
+  }
+
+  const tempId = 'tmp-' + Date.now() + '-' + Math.random().toString(36).slice(2, 7);
+  const returnUrl = `https://${WEBHOOK_DOMAIN}/?payment_success=1&orderId=${tempId}`;
+
+  try {
+    const payment = await createYooPayment({
+      amount: orderData.total,
+      description: `Заказ в «Солнечный день» для ${orderData.name}`,
+      paymentMethod,
+      orderId: tempId,
+      returnUrl,
+    });
+
+    if (payment.id) {
+      // Save order data pending payment confirmation
+      pendingPayments[payment.id] = { orderData, tempId, paymentMethod, createdAt: Date.now() };
+      savePendingPayments();
+
+      const response = { paymentId: payment.id, tempId, status: payment.status };
+      if (paymentMethod === 'qr') {
+        response.qrUrl = payment.confirmation?.confirmation_url;
+      } else {
+        response.redirectUrl = payment.confirmation?.confirmation_url;
+      }
+      res.json(response);
+    } else {
+      console.error('YooKassa error:', payment);
+      res.status(500).json({ error: payment.description || 'Ошибка создания платежа' });
+    }
+  } catch(e) {
+    console.error('Payment creation error:', e);
+    res.status(500).json({ error: 'Ошибка соединения с платёжной системой' });
+  }
+});
+
+/* ── CHECK PAYMENT STATUS (public polling) ─── */
+app.get('/api/payments/:paymentId/status', async (req, res) => {
+  const { paymentId } = req.params;
+  try {
+    const payment = await getYooPayment(paymentId);
+    res.json({ status: payment.status, paid: payment.paid });
+  } catch(e) {
+    res.status(500).json({ error: 'Ошибка проверки платежа' });
+  }
+});
+
+/* ── YOOKASSA WEBHOOK ──────────────────────── */
+app.post('/api/payments/webhook', async (req, res) => {
+  res.sendStatus(200); // always respond fast
+  const event = req.body;
+  if (event?.event !== 'payment.succeeded') return;
+
+  const payment = event.object;
+  if (!payment?.id || !payment?.paid) return;
+
+  const pending = pendingPayments[payment.id];
+  if (!pending) return; // already processed or unknown
+
+  // Remove from pending
+  delete pendingPayments[payment.id];
+  savePendingPayments();
+
+  // Create the actual order
+  const orderData = pending.orderData;
+  const orders = readOrders();
+  const order = {
+    id: Date.now().toString(),
+    createdAt: new Date().toISOString(),
+    status: 'pending',
+    paymentId: payment.id,
+    paymentStatus: 'paid',
+    ...orderData,
+  };
+  orders.unshift(order);
+  writeOrders(orders);
+  broadcast('order', order);
+  notifyNewOrder(order).catch(() => {});
+  // Notify client via broadcast with their tempId
+  broadcast('payment_confirmed', { tempId: pending.tempId, orderId: order.id });
+});
 
 // Создать заказ (публичный)
 /* ══════════════════════════════════════════════

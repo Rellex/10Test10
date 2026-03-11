@@ -910,11 +910,11 @@ function validateCheckoutForm() {
 }
 
 /* ===== SUBMIT ORDER ===== */
-document.getElementById('checkoutForm').addEventListener('submit', e => {
+document.getElementById('checkoutForm').addEventListener('submit', async e => {
   e.preventDefault();
   if (!validateCheckoutForm()) { tg?.HapticFeedback?.notificationOccurred('error'); return; }
 
-  const payment   = document.querySelector('input[name="payment"]:checked')?.value || 'online';
+  const payment   = document.querySelector('input[name="payment"]:checked')?.value || 'qr';
   const orderData = {
     city:     state.city,
     cityName: getCitiesFromCache().find(c => c.id === state.city)?.name || '',
@@ -942,40 +942,117 @@ document.getElementById('checkoutForm').addEventListener('submit', e => {
     }),
   };
 
-  // Сохраняем заказ на сервере
-  fetch('/api/orders', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(orderData)
-  }).then(async r => {
-    const data = await r.json();
-    if (!r.ok) {
-      // Handle zone errors
-      if (data.zone === 'far') {
-        showZoneError(`🚚 Дальняя зона доставки — минимальная сумма заказа 3 000 ₽\nВаша корзина: ${fmt(orderData.total)} ₽`);
-      } else if (data.error) {
-        showZoneError(data.error);
-      }
+  const submitBtn = document.getElementById('submitOrderBtn');
+  submitBtn.disabled = true;
+  submitBtn.innerHTML = '<span>Создаём платёж…</span>';
+
+  try {
+    const res = await fetch('/api/payments/create', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ orderData, paymentMethod: payment }),
+    });
+    const data = await res.json();
+
+    if (!res.ok || data.error) {
+      showZoneError(data.error || 'Ошибка создания платежа');
+      submitBtn.disabled = false;
+      submitBtn.innerHTML = '<span>Заказать</span>';
       return;
     }
-    if (data.orderId) {
-      const saved = JSON.parse(localStorage.getItem('myOrders') || '[]');
-      saved.unshift({ ...orderData, id: data.orderId, status: 'pending', createdAt: new Date().toISOString() });
-      localStorage.setItem('myOrders', JSON.stringify(saved.slice(0, 50)));
-      const numEl = document.getElementById('successOrderNum');
-      if (numEl) numEl.textContent = 'Заказ #' + data.orderId.slice(-6);
-      localStorage.setItem('lastOrderPhone', orderData.phone);
-      if (tg) tg.sendData(JSON.stringify(orderData));
-      closeModal('checkoutOverlay');
-      showSuccess();
-    }
-  }).catch(() => {
+
     localStorage.setItem('lastOrderPhone', orderData.phone);
-    if (tg) tg.sendData(JSON.stringify(orderData));
-    closeModal('checkoutOverlay');
-    showSuccess();
-  });
+
+    if (payment === 'card' && data.redirectUrl) {
+      window.location.href = data.redirectUrl;
+    } else if (payment === 'qr' && data.qrUrl) {
+      showQrPayment(data.qrUrl, data.paymentId, data.tempId, orderData);
+    }
+  } catch(err) {
+    showZoneError('Ошибка соединения. Попробуйте снова.');
+    submitBtn.disabled = false;
+    submitBtn.innerHTML = '<span>Заказать</span>';
+  }
 });
+
+/* ── QR PAYMENT MODAL ───────────────────────── */
+function showQrPayment(qrUrl, paymentId, tempId, orderData) {
+  closeModal('checkoutOverlay');
+
+  let modal = document.getElementById('qrPaymentModal');
+  if (!modal) {
+    modal = document.createElement('div');
+    modal.id = 'qrPaymentModal';
+    modal.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.6);display:flex;align-items:center;justify-content:center;z-index:9999;';
+    modal.innerHTML = `
+      <div style="background:#fff;border-radius:20px;padding:28px 24px;max-width:340px;width:90%;text-align:center;box-shadow:0 8px 40px rgba(0,0,0,.2)">
+        <div style="font-size:22px;font-weight:800;margin-bottom:6px">Оплата по QR</div>
+        <div style="font-size:13px;color:#757575;margin-bottom:18px">Отсканируйте QR-код приложением банка</div>
+        <img id="qrCodeImg" src="" alt="QR" style="width:220px;height:220px;border-radius:12px;border:1px solid #eee;margin-bottom:18px" />
+        <div id="qrStatus" style="font-size:13px;color:#f5a623;font-weight:600;margin-bottom:16px">⏳ Ожидаем оплату…</div>
+        <button id="qrCancelBtn" style="padding:10px 24px;border-radius:12px;border:none;background:#f5f5f5;color:#212121;font-size:14px;font-weight:600;cursor:pointer">Отмена</button>
+      </div>
+    `;
+    document.body.appendChild(modal);
+  }
+
+  document.getElementById('qrCodeImg').src = qrUrl;
+  document.getElementById('qrStatus').textContent = '⏳ Ожидаем оплату…';
+  modal.style.display = 'flex';
+
+  let pollInterval;
+  document.getElementById('qrCancelBtn').onclick = () => {
+    clearInterval(pollInterval);
+    modal.style.display = 'none';
+    const btn = document.getElementById('submitOrderBtn');
+    if (btn) { btn.disabled = false; btn.innerHTML = '<span>Заказать</span><span id="submitOrderTotal"></span>'; }
+  };
+
+  let attempts = 0;
+  pollInterval = setInterval(async () => {
+    attempts++;
+    if (attempts > 60) {
+      clearInterval(pollInterval);
+      document.getElementById('qrStatus').textContent = '⌛ Время ожидания истекло. Попробуйте снова.';
+      return;
+    }
+    try {
+      const r = await fetch('/api/payments/' + paymentId + '/status');
+      const d = await r.json();
+      if (d.paid || d.status === 'succeeded') {
+        clearInterval(pollInterval);
+        document.getElementById('qrStatus').textContent = '✅ Оплата прошла!';
+        setTimeout(() => {
+          modal.style.display = 'none';
+          handlePaymentSuccess(orderData);
+        }, 1200);
+      }
+    } catch(e) {}
+  }, 3000);
+}
+
+function handlePaymentSuccess(orderData) {
+  state.cart = {};
+  saveCart();
+  getAllItems().forEach(item => updateCardActions(item.id));
+  updateCartFab();
+  document.getElementById('checkoutForm').reset();
+  state.promo = null; state.promoDiscount = 0;
+  document.getElementById('successOverlay').style.display = 'flex';
+  tg?.HapticFeedback?.notificationOccurred('success');
+  const btn = document.getElementById('submitOrderBtn');
+  if (btn) { btn.disabled = false; btn.innerHTML = '<span>Заказать</span><span id="submitOrderTotal"></span>'; }
+}
+
+(function checkCardReturn() {
+  const params = new URLSearchParams(window.location.search);
+  if (params.get('payment_success') === '1') {
+    history.replaceState({}, '', '/');
+    setTimeout(() => {
+      document.getElementById('successOverlay').style.display = 'flex';
+    }, 500);
+  }
+})();
 
 function showSuccess() {
   state.cart = {};
