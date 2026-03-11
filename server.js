@@ -22,8 +22,8 @@ function broadcast(event, data) {
 wss.on('connection', ws => {
   ws.on('error', () => {});
 });
-const YOOKASSA_SHOP_ID = process.env.YOOKASSA_SHOP_ID || '1299395';
-const YOOKASSA_SECRET  = process.env.YOOKASSA_SECRET  || 'test_x5pj7hP0iK68lZlcI0bUL00Kb7QhljgyviZQLCBZt4A';
+const YOOKASSA_SHOP_ID = process.env.YOOKASSA_SHOP_ID || '1297471';
+const YOOKASSA_SECRET  = process.env.YOOKASSA_SECRET  || 'live_HruyIJAB-UGfH7BrsNNu7fI2iyX_7cclcgOIk__2JGs';
 const YOOKASSA_API     = 'https://api.yookassa.ru/v3';
 
 app.use(cors());
