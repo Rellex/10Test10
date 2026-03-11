@@ -484,18 +484,25 @@ async function createYooPayment({ amount, description, paymentMethod, orderId, r
   // Убираем служебное поле
   receiptItems = receiptItems.map(({ _lineTotal, ...i }) => i);
 
+  // Проверяем минимальную цену — ЮКасса требует >= 1.00 за позицию
+  const hasInvalidPrice = receiptItems.some(i => parseFloat(i.amount.value) < 1.00);
+
   const body = {
     amount: { value: amount.toFixed(2), currency: 'RUB' },
     description,
     metadata: { orderId },
     capture: true,
-    receipt: {
+  };
+
+  // Добавляем чек только если все цены >= 1.00
+  if (!hasInvalidPrice) {
+    body.receipt = {
       customer: customerEmail
         ? { email: customerEmail }
         : { phone: cleanPhone },
       items: receiptItems,
-    },
-  };
+    };
+  }
 
   if (paymentMethod === 'qr') {
     body.payment_method_data = { type: 'sbp' };
