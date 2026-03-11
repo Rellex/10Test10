@@ -1043,8 +1043,19 @@ async function handleCheckoutSubmit(e) {
   if (e) e.preventDefault();
   const submitBtn = document.getElementById('submitOrderBtn');
   if (submitBtn.disabled) return; // prevent double call
-  console.log('submit fired, mode:', state.deliveryMode, 'city:', state.city, 'valid:', validateCheckoutForm());
-  if (!validateCheckoutForm()) { tg?.HapticFeedback?.notificationOccurred('error'); return; }
+
+  // Сразу меняем кнопку — до любых проверок
+  submitBtn.disabled = true;
+  submitBtn.innerHTML = '<span>⏳ Создаём платёж…</span>';
+
+  if (!validateCheckoutForm()) {
+    tg?.HapticFeedback?.notificationOccurred('error');
+    submitBtn.disabled = false;
+    submitBtn.innerHTML = '<span>Заказать</span>';
+    return;
+  }
+
+  console.log('submit fired, mode:', state.deliveryMode, 'city:', state.city);
 
   const payment   = document.querySelector('input[name="payment"]:checked')?.value || 'qr';
   const orderData = {
@@ -1074,9 +1085,6 @@ async function handleCheckoutSubmit(e) {
       return { id, name: item?.name, price: item?.price, qty };
     }),
   };
-
-  submitBtn.disabled = true;
-  submitBtn.innerHTML = '<span>Создаём платёж…</span>';
 
   try {
     const res = await fetch('/api/payments/create', {
