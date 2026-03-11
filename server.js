@@ -556,24 +556,6 @@ app.post('/api/payments/create', async (req, res) => {
         response.redirectUrl = payment.confirmation?.confirmation_url;
       }
 
-      // Отправляем кнопку оплаты в бот если есть chat_id
-      const redirectUrl = response.redirectUrl || response.qrUrl;
-      console.log('tgChatId:', orderData.tgChatId, 'city:', orderData.city, 'redirectUrl:', !!redirectUrl);
-      if (orderData.tgChatId && redirectUrl) {
-        const cityName = orderData.cityName || orderData.city || '';
-        const modeLabel = orderData.mode === 'pickup' ? '🏪 Самовывоз' : '🚚 Доставка';
-        const text = `💳 *Оплата заказа*\n\n👤 ${orderData.name}\n${modeLabel}: ${cityName}\n💰 Сумма: *${orderData.total} ₽*\n\nНажмите кнопку для оплаты:`;
-        const keyboard = { inline_keyboard: [[{ text: '💳 Оплатить заказ', url: redirectUrl }]] };
-
-        // Определяем какой бот использовать по городу
-        const isSpb = orderData.city === 'spb';
-        const botFn = isSpb ? spbBotApi : clientBotApi;
-        console.log('Sending via bot:', isSpb ? 'SPB' : 'CLIENT', 'to chat:', orderData.tgChatId);
-        botFn('sendMessage', { chat_id: orderData.tgChatId, text, parse_mode: 'Markdown', reply_markup: keyboard })
-          .then(r => console.log('Bot send result:', JSON.stringify(r)))
-          .catch(e => console.error('Bot send error:', e));
-      }
-
       res.json(response);
     } else {
       console.error('YooKassa error:', payment);
