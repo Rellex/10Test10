@@ -431,13 +431,17 @@ async function createYooPayment({ amount, description, paymentMethod, orderId, r
     : null;
 
   // Build receipt items including delivery
-  let receiptItems = items && items.length ? items.map(i => ({
+  // ЮКасса: amount = цена за 1 единицу, итог позиции = amount * quantity
+  const rawItems = items && items.length ? items : null;
+
+  let receiptItems = rawItems ? rawItems.map(i => ({
     description: (i.name || 'Товар').slice(0, 128),
     quantity:    parseFloat(i.qty || 1).toFixed(3),
     amount:      { value: parseFloat(i.price).toFixed(2), currency: 'RUB' },
     vat_code:    1,
     payment_mode: 'full_payment',
     payment_subject: 'commodity',
+    _lineTotal: parseFloat(i.price) * parseFloat(i.qty || 1),
   })) : [{
     description:  description.slice(0, 128),
     quantity:     '1.000',
@@ -445,9 +449,9 @@ async function createYooPayment({ amount, description, paymentMethod, orderId, r
     vat_code:     1,
     payment_mode: 'full_payment',
     payment_subject: 'commodity',
+    _lineTotal: amount,
   }];
 
-  // Add delivery as separate item if > 0
   if (delivery && delivery > 0) {
     receiptItems.push({
       description: 'Доставка',
@@ -456,20 +460,29 @@ async function createYooPayment({ amount, description, paymentMethod, orderId, r
       vat_code:    1,
       payment_mode: 'full_payment',
       payment_subject: 'service',
+      _lineTotal: parseFloat(delivery),
     });
   }
 
-  // Add discount as negative item if > 0
+  // Если есть скидка — пересчитываем цену каждой позиции пропорционально
   if (discount && discount > 0) {
-    receiptItems.push({
-      description: 'Скидка по промокоду',
-      quantity:    '1.000',
-      amount:      { value: '-' + parseFloat(discount).toFixed(2), currency: 'RUB' },
-      vat_code:    1,
-      payment_mode: 'full_payment',
-      payment_subject: 'commodity',
-    });
+    const fullTotal = receiptItems.reduce((s, i) => s + i._lineTotal, 0);
+    const ratio = fullTotal > 0 ? amount / fullTotal : 1;
+    receiptItems = receiptItems.map(i => ({
+      ...i,
+      amount: { value: (parseFloat(i.amount.value) * ratio).toFixed(2), currency: 'RUB' },
+    }));
+    // Корректируем копейки на последней позиции
+    const receiptSum = receiptItems.reduce((s, i) => s + Math.round(parseFloat(i.amount.value) * parseFloat(i.quantity) * 100), 0);
+    const diff = Math.round(amount * 100) - receiptSum;
+    if (diff !== 0) {
+      const last = receiptItems[receiptItems.length - 1];
+      last.amount.value = (parseFloat(last.amount.value) + diff / 100).toFixed(2);
+    }
   }
+
+  // Убираем служебное поле
+  receiptItems = receiptItems.map(({ _lineTotal, ...i }) => i);
 
   const body = {
     amount: { value: amount.toFixed(2), currency: 'RUB' },
