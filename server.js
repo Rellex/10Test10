@@ -38,10 +38,10 @@ const ORDERS_FILE    = path.join(DATA_DIR, 'orders.json');
 const UPLOADS_DIR    = path.join(DATA_DIR, 'uploads');
 const ADMIN_PASSWORD  = process.env.ADMIN_PASSWORD  || 'admin123';
 const YANDEX_GEO_KEY  = process.env.YANDEX_GEO_KEY  || '';
-const BOT_TOKEN        = process.env.BOT_TOKEN        || '';
+const BOT_TOKEN        = process.env.BOT_TOKEN        || '8602156854:AAE1-cdqeKGBk538Rghj_ZIBl6jXjqa0JH0';
 const CLIENT_BOT_TOKEN = process.env.CLIENT_BOT_TOKEN || '8614340391:AAGpEyHQ949K6WGBu-2CCafnSOK6-ofGbBM';
 const SPB_BOT_TOKEN    = process.env.SPB_BOT_TOKEN    || '8631935230:AAGYvjxYXepGH7wlnub-cULI-zqaM520F0E';
-const SPB_CHAT_ID      = process.env.SPB_CHAT_ID      || '';
+const VYBORG_CHAT_ID   = process.env.TG_CHAT_ID       || '-5160909076';
 const WEBHOOK_DOMAIN  = process.env.WEBHOOK_DOMAIN   || '10test10-production.up.railway.app';
 
 /* ── delivery zones ────────────────────────── */
@@ -857,8 +857,8 @@ async function notifyNewOrder(order) {
   const isSpb    = cityId.includes('spb')    || cityName.includes('петербург') || cityName.includes('петербург');
 
   let botFn = null, chatId = null;
-  if (isVyborg && BOT_TOKEN && process.env.TG_CHAT_ID) {
-    botFn = tgApi; chatId = process.env.TG_CHAT_ID;
+  if (isVyborg && BOT_TOKEN && VYBORG_CHAT_ID) {
+    botFn = tgApi; chatId = VYBORG_CHAT_ID;
   } else if (isSpb && SPB_BOT_TOKEN && (SPB_CHAT_ID || process.env.SPB_CHAT_ID)) {
     botFn = spbBotApi; chatId = SPB_CHAT_ID || process.env.SPB_CHAT_ID;
   }
