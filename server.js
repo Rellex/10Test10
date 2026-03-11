@@ -426,6 +426,11 @@ function yooAuth() {
 }
 
 async function createYooPayment({ amount, description, paymentMethod, orderId, returnUrl, customerEmail, customerPhone, items }) {
+  // Format phone: keep only digits and leading +
+  const cleanPhone = customerPhone
+    ? '+' + customerPhone.replace(/\D/g, '').replace(/^8/, '7')
+    : null;
+
   const body = {
     amount: { value: amount.toFixed(2), currency: 'RUB' },
     description,
@@ -434,11 +439,11 @@ async function createYooPayment({ amount, description, paymentMethod, orderId, r
     receipt: {
       customer: customerEmail
         ? { email: customerEmail }
-        : { phone: customerPhone },
+        : { phone: cleanPhone },
       items: items && items.length ? items.map(i => ({
         description: (i.name || 'Товар').slice(0, 128),
         quantity:    String(i.qty || 1),
-        amount:      { value: (parseFloat(i.price) * parseInt(i.qty || 1)).toFixed(2), currency: 'RUB' },
+        amount:      { value: parseFloat(i.price).toFixed(2), currency: 'RUB' },
         vat_code:    1,
         payment_mode: 'full_payment',
         payment_subject: 'commodity',

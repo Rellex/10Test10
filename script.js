@@ -900,12 +900,8 @@ function renderPaymentOptions() {
   if (!wrap) return;
   if (paymentEnabled) {
     wrap.innerHTML = `
-      <label class="payment-option">
-        <input type="radio" name="payment" value="qr" checked />
-        <span class="payment-label"><span class="payment-icon">📲</span>Оплата QR-кодом</span>
-      </label>
-      <label class="payment-option">
-        <input type="radio" name="payment" value="card" />
+      <label class="payment-option active">
+        <input type="radio" name="payment" value="card" checked />
         <span class="payment-label"><span class="payment-icon">💳</span>Оплата банковской картой</span>
       </label>`;
   } else {
