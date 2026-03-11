@@ -1026,15 +1026,12 @@ app.post('/api/client-bot/webhook', async (req, res) => {
     const chatId = body.message.chat.id;
     await clientBotApi('sendMessage', {
       chat_id: chatId,
-      text: `☀️ *Добро пожаловать в «Солнечный день»!*\n\nНажмите кнопку «Меню» чтобы открыть приложение и сделать заказ 🍽`,
-      parse_mode: 'Markdown',
+      text: `☀️ Добро пожаловать в «Солнечный день»!`,
       reply_markup: {
-        keyboard: [[{
+        inline_keyboard: [[{
           text: '🍽 Меню',
           web_app: { url: 'https://10test10-production.up.railway.app/' }
-        }]],
-        resize_keyboard: true,
-        persistent: true,
+        }]]
       }
     });
   }
