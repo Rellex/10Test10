@@ -61,7 +61,69 @@ const S = {
   pendingImage: null,
   currentEmoji: '🍽️',
   confirmCallback: null,
+  dayFilter:   { auto: true, day: null },
 };
+
+/* ── Day filter helpers ── */
+function getTodayDayId() {
+  const d = new Date().getDay();
+  if (d === 0 || d === 6) return 'weekend';
+  return ['','monday','tuesday','wednesday','thursday','friday'][d];
+}
+const DAY_NAMES = {
+  monday:'Понедельник', tuesday:'Вторник', wednesday:'Среда',
+  thursday:'Четверг', friday:'Пятница', weekend:'Сб — Вс'
+};
+function getActiveDayId() {
+  return S.dayFilter.auto ? getTodayDayId() : S.dayFilter.day;
+}
+function getDayItemIds() {
+  const schedule = S.menu.weeklySchedule;
+  if (!schedule) return null;
+  const dayId = getActiveDayId();
+  const day = schedule.days.find(d => d.id === dayId);
+  return day ? day.itemIds : null;
+}
+function initDayFilter() {
+  const bar = document.getElementById('dayFilterBar');
+  const autoBtn = document.getElementById('dayAutoBtn');
+  const sel = document.getElementById('daySelect');
+  const label = document.getElementById('dayFilterLabel');
+  if (!bar) return;
+
+  // Show bar only if schedule exists
+  if (!S.menu.weeklySchedule) { bar.style.display = 'none'; return; }
+  bar.style.display = 'flex';
+
+  // Set select to today
+  S.dayFilter.day = getTodayDayId();
+  sel.value = S.dayFilter.day;
+  updateDayLabel();
+
+  autoBtn.addEventListener('click', () => {
+    S.dayFilter.auto = !S.dayFilter.auto;
+    autoBtn.classList.toggle('active', S.dayFilter.auto);
+    sel.disabled = S.dayFilter.auto;
+    if (S.dayFilter.auto) S.dayFilter.day = getTodayDayId();
+    sel.value = S.dayFilter.day;
+    updateDayLabel();
+    if (S.activeCatId) renderItems(S.activeCatId);
+  });
+
+  sel.addEventListener('change', () => {
+    S.dayFilter.day = sel.value;
+    updateDayLabel();
+    if (S.activeCatId) renderItems(S.activeCatId);
+  });
+}
+function updateDayLabel() {
+  const label = document.getElementById('dayFilterLabel');
+  if (!label) return;
+  const dayId = getActiveDayId();
+  const name = DAY_NAMES[dayId] || '';
+  const ids = getDayItemIds();
+  label.textContent = ids ? `${name} — ${ids.length} блюд` : name;
+}
 
 const EMOJI_LIST = [
   '🍱','🥘','🍽️','🍲','🥣','🍳','🥞','🥗','🫒','🥦','🍖','🍗','🐟',
@@ -186,16 +248,15 @@ document.getElementById('importAddressesInput')?.addEventListener('change', asyn
   try {
     const text = await file.text();
     const data = JSON.parse(text);
-    if (!Array.isArray(data)) throw new Error('Ожидается массив городов');
     const res = await api('PUT', '/api/addresses', data);
     if (res.ok) {
-      toast('✅ Адреса импортированы!', 'success');
+      showToast('✅ Адреса импортированы!');
       if (typeof fetchAddresses === 'function') fetchAddresses();
     } else {
-      toast('❌ Ошибка импорта', 'error');
+      showToast('❌ Ошибка импорта', 'error');
     }
   } catch(e) {
-    toast('❌ Неверный файл: ' + e.message, 'error');
+    showToast('❌ Неверный файл: ' + e.message, 'error');
   }
   e.target.value = '';
 });
@@ -206,23 +267,23 @@ document.getElementById('importMenuInput')?.addEventListener('change', async (e)
   try {
     const text = await file.text();
     const data = JSON.parse(text);
-    if (!data?.categories || !data?.items) throw new Error('Неверный формат: нужны поля categories и items');
     const res = await api('POST', '/api/admin/import/menu', data);
     if (res.ok) {
-      toast(`✅ Импортировано: ${res.categories} категорий, ${res.items} позиций`, 'success');
-      await loadMenu();
+      showToast(`✅ Импортировано: ${res.categories} категорий, ${res.items} позиций`);
+      location.reload();
     } else {
-      toast('❌ Ошибка импорта', 'error');
+      showToast('❌ Ошибка импорта', 'error');
     }
   } catch(e) {
-    toast('❌ ' + e.message, 'error');
+    showToast('❌ Неверный файл: ' + e.message, 'error');
   }
   e.target.value = '';
 });
 
 document.getElementById('exportMenuBtn')?.addEventListener('click', async () => {
   try {
-    const data = await api('GET', '/api/admin/export/menu');
+    const res = await fetch('/api/menu');
+    const data = await res.json();
     const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
@@ -230,9 +291,8 @@ document.getElementById('exportMenuBtn')?.addEventListener('click', async () => 
     a.download = 'menu.json';
     a.click();
     URL.revokeObjectURL(url);
-    toast('✅ Меню экспортировано', 'success');
   } catch(e) {
-    toast('❌ Ошибка экспорта: ' + e.message, 'error');
+    alert('Ошибка экспорта: ' + e.message);
   }
 });
 
@@ -308,7 +368,7 @@ async function uploadInitialMenu() {
 function renderCityTabs() {
   const wrap = document.getElementById('cityTabs');
   if (!wrap) return;
-  const cities = addrData.filter(c => c.active !== false);
+  const cities = addrData.length ? addrData : [];
   if (!S.activeCity && cities.length) S.activeCity = cities[0].id;
   wrap.innerHTML = '';
   cities.forEach(city => {
@@ -401,9 +461,11 @@ function selectCategory(catId) {
 function renderItems(catId) {
   const cat      = S.menu.categories.find(c => c.id === catId);
   const allItems = S.menu.items.filter(i => i.categoryId === catId);
-  const items    = S.activeCity
+  const cityFiltered = S.activeCity
     ? allItems.filter(i => !(i.disabledCities || []).includes(S.activeCity))
     : allItems;
+  const dayIds = getDayItemIds();
+  const items = dayIds ? cityFiltered.filter(i => dayIds.includes(i.id)) : cityFiltered;
   const grid  = document.getElementById('itemsGrid');
   const empty = document.getElementById('emptyState');
 
@@ -432,15 +494,6 @@ function createItemCard(item) {
   const badgeText  = item.active ? 'Активно' : 'Скрыто';
   const toggleText = item.active ? '🙈 Скрыть' : '👁 Показать';
 
-  // City-specific price
-  // Show city-specific price if available, otherwise show nothing or "—"
-  const displayPrice = S.activeCity && item.cityPrices && item.cityPrices[S.activeCity] !== undefined
-    ? item.cityPrices[S.activeCity]
-    : (item.cityPrices && Object.keys(item.cityPrices).length > 0 ? null : item.price);
-  const priceHtml = displayPrice !== null && displayPrice !== undefined
-    ? `<span class="item-card-price">${displayPrice} ₽</span>`
-    : `<span class="item-card-price" style="color:#ccc">нет цены</span>`;
-
   card.innerHTML = `
     <div class="item-card-media">
       ${mediaPart}
@@ -449,20 +502,18 @@ function createItemCard(item) {
     <div class="item-card-body">
       <div class="item-card-name">${item.name}</div>
       <div class="item-card-meta">
-        ${priceHtml}
+        <span class="item-card-price">${item.price} ₽</span>
         <span class="item-card-weight">${item.weight || ''}</span>
       </div>
       <div class="item-card-actions">
         <button class="card-btn card-btn-edit"   data-action="edit"   data-id="${item.id}">✏️ Изменить</button>
         <button class="card-btn card-btn-toggle" data-action="toggle" data-id="${item.id}">${toggleText}</button>
-        <button class="card-btn card-btn-cities" data-action="cities" data-id="${item.id}" title="Видимость по городам">🏙 Города</button>
         <button class="card-btn card-btn-delete" data-action="delete" data-id="${item.id}">🗑</button>
       </div>
     </div>`;
 
   card.querySelector('[data-action="edit"]').addEventListener('click',   () => openItemEdit(item.id));
   card.querySelector('[data-action="toggle"]').addEventListener('click', () => toggleItem(item.id));
-  card.querySelector('[data-action="cities"]').addEventListener('click', () => openCityToggleModal(item.id));
   card.querySelector('[data-action="delete"]').addEventListener('click', () => {
     showConfirm(`Удалить «${item.name}»?`, () => deleteItem(item.id));
   });
@@ -476,37 +527,25 @@ function openCityToggleModal(itemId) {
   const item = S.menu.items.find(i => i.id === itemId);
   if (!item) return;
   const disabled = item.disabledCities || [];
-  const cityPrices = item.cityPrices || {};
-  const hasCityPrices = Object.keys(cityPrices).length > 0;
   const cities = addrData.length ? addrData : [];
 
   const html = `
     <div class="modal-overlay" id="cityToggleModal" style="display:flex;background:rgba(0,0,0,0.55);position:fixed;inset:0;z-index:9999;align-items:center;justify-content:center">
-      <div class="modal-box" style="max-width:400px;width:100%;background:#fff;border-radius:16px;">
+      <div class="modal-box" style="max-width:360px;width:100%;background:#fff;border-radius:16px;">
         <div class="modal-header">
-          <h2 class="modal-title">🏙 Города — ${item.name}</h2>
+          <h2 class="modal-title">Города — ${item.name}</h2>
           <button class="modal-close" id="cityToggleClose">✕</button>
         </div>
         <div style="padding:16px">
-          ${hasCityPrices ? '<p style="font-size:12px;background:#fff7ed;color:#ea580c;padding:8px 10px;border-radius:8px;margin-bottom:12px">⚠️ У блюда заданы цены по городам. Города без цены автоматически скрыты в меню.</p>' : '<p style="font-size:12px;color:#888;margin-bottom:12px">Снимите галочку, чтобы скрыть блюдо в конкретном городе</p>'}
-          ${cities.map(city => {
-            const hasPrice = cityPrices[city.id] !== undefined;
-            const isDisabled = disabled.includes(city.id);
-            const autoHidden = hasCityPrices && !hasPrice;
-            const checked = !isDisabled && !autoHidden;
-            const priceLabel = hasPrice ? `<span style="margin-left:auto;font-size:12px;color:#27ae60;font-weight:600">${cityPrices[city.id]} ₽</span>`
-              : hasCityPrices ? `<span style="margin-left:auto;font-size:11px;color:#bbb">нет цены → скрыто</span>`
-              : `<span style="margin-left:auto;font-size:12px;color:#aaa">${item.price} ₽</span>`;
-            return `<label style="display:flex;align-items:center;gap:10px;padding:9px 0;border-bottom:1px solid #f0f0f0;cursor:${autoHidden ? 'not-allowed' : 'pointer'};opacity:${autoHidden ? '0.5' : '1'}">
-              <input type="checkbox" data-city="${city.id}" ${checked ? 'checked' : ''} ${autoHidden ? 'disabled' : ''}
+          <p style="font-size:13px;color:#888;margin-bottom:12px">Снимите галочку, чтобы скрыть позицию в этом городе</p>
+          ${cities.map(city => `
+            <label style="display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:1px solid #f0f0f0;cursor:pointer">
+              <input type="checkbox" data-city="${city.id}" ${disabled.includes(city.id) ? '' : 'checked'}
                 style="width:16px;height:16px;accent-color:var(--primary)" />
               <span style="font-size:14px">${city.name}</span>
-              ${priceLabel}
-            </label>`;
-          }).join('')}
+            </label>`).join('')}
         </div>
         <div class="modal-footer">
-          <button class="btn-secondary" id="cityToggleCancel">Отмена</button>
           <button class="btn-primary" id="cityToggleSave">Сохранить</button>
         </div>
       </div>
@@ -517,14 +556,12 @@ function openCityToggleModal(itemId) {
   document.body.appendChild(el);
 
   el.querySelector('#cityToggleClose').addEventListener('click', () => el.remove());
-  el.querySelector('#cityToggleCancel').addEventListener('click', () => el.remove());
   el.querySelector('#cityToggleSave').addEventListener('click', async () => {
-    const checked = [...el.querySelectorAll('input[data-city]:not([disabled])')];
+    const checked = [...el.querySelectorAll('input[data-city]')];
     const newDisabled = checked.filter(c => !c.checked).map(c => c.dataset.city);
     await api('PATCH', '/api/menu/items/' + itemId, { disabledCities: newDisabled });
     const i = S.menu.items.find(x => x.id === itemId);
     if (i) i.disabledCities = newDisabled;
-    refreshUI();
     el.remove();
     toast('Сохранено', 'success');
   });
@@ -546,6 +583,7 @@ function openItemModal(item) {
   document.getElementById('itemModalTitle').textContent = item ? 'Редактировать' : 'Добавить позицию';
   document.getElementById('editItemId').value           = item?.id          || '';
   document.getElementById('itemName').value             = item?.name        || '';
+  document.getElementById('itemPrice').value            = item?.price       || '';
   document.getElementById('itemWeight').value           = item?.weight      || '';
   document.getElementById('itemDescription').value      = item?.description || '';
   document.getElementById('itemComposition').value      = item?.composition  || '';
@@ -555,42 +593,13 @@ function openItemModal(item) {
   document.getElementById('itemCarbs').value            = item?.carbs   ?? '';
   document.getElementById('emojiCustom').value          = item?.emoji       || '🍽️';
   document.getElementById('itemName').classList.remove('error');
+  document.getElementById('itemPrice').classList.remove('error');
   document.getElementById('imageInput').value           = '';
 
   populateCategorySelect(item?.categoryId || S.activeCatId);
   renderEmojiGrid();
   updatePhotoPreview(itemImg(item));
-  populateCityPricesGrid(item?.cityPrices || {});
   openModal('itemModal');
-}
-
-function populateCityPricesGrid(cityPrices) {
-  const grid = document.getElementById('cityPricesGrid');
-  if (!grid) return;
-  grid.innerHTML = '';
-  const cities = addrData.filter(c => c.active !== false);
-  if (!cities.length) {
-    grid.innerHTML = '<span style="font-size:12px;color:#bbb">Нет активных городов</span>';
-    return;
-  }
-  cities.forEach(city => {
-    const val = cityPrices[city.id] !== undefined ? cityPrices[city.id] : '';
-    const wrap = document.createElement('div');
-    wrap.style.cssText = 'display:flex;flex-direction:column;gap:4px';
-    wrap.innerHTML = `
-      <label style="font-size:12px;font-weight:600;color:#555">${city.name}</label>
-      <input
-        type="number"
-        class="field-input city-price-input"
-        data-city-id="${city.id}"
-        placeholder="—"
-        min="0"
-        value="${val}"
-        style="padding:7px 10px;font-size:13px"
-      />
-    `;
-    grid.appendChild(wrap);
-  });
 }
 
 function openItemEdit(id) {
@@ -700,9 +709,14 @@ document.getElementById('itemModalCancel').addEventListener('click', () => close
 document.getElementById('itemForm').addEventListener('submit', async e => {
   e.preventDefault();
 
-  const name = document.getElementById('itemName').value.trim();
+  const name  = document.getElementById('itemName').value.trim();
+  const price = document.getElementById('itemPrice').value;
+  let valid   = true;
   document.getElementById('itemName').classList.remove('error');
-  if (!name) { document.getElementById('itemName').classList.add('error'); return; }
+  document.getElementById('itemPrice').classList.remove('error');
+  if (!name)  { document.getElementById('itemName').classList.add('error');  valid = false; }
+  if (!price) { document.getElementById('itemPrice').classList.add('error'); valid = false; }
+  if (!valid) return;
 
   const btn = document.getElementById('itemFormSubmit');
   btn.textContent = 'Сохранение...';
@@ -713,18 +727,13 @@ document.getElementById('itemForm').addEventListener('submit', async e => {
     const categoryId = document.getElementById('itemCategory').value;
     const emoji      = document.getElementById('emojiCustom').value.trim() || S.currentEmoji;
 
-    // Collect per-city prices
-    const cityPrices = {};
-    document.querySelectorAll('.city-price-input').forEach(inp => {
-      if (inp.value !== '') cityPrices[inp.dataset.cityId] = parseInt(inp.value, 10);
-    });
-
     let imageBase64 = S.editingItem?.imageBase64 || null;
     if (S.editingItem?._removeImage) imageBase64 = null;
     if (S.pendingImage !== null)     imageBase64 = S.pendingImage;
 
     const data = {
       name,
+      price:       parseInt(price, 10),
       weight:      document.getElementById('itemWeight').value.trim(),
       emoji,
       categoryId,
@@ -735,7 +744,6 @@ document.getElementById('itemForm').addEventListener('submit', async e => {
       fat:     document.getElementById('itemFat').value     ? Number(document.getElementById('itemFat').value)     : null,
       carbs:   document.getElementById('itemCarbs').value   ? Number(document.getElementById('itemCarbs').value)   : null,
       imageBase64,
-      cityPrices,
     };
 
     if (editId) {
@@ -1466,9 +1474,9 @@ async function changeOrderStatus(orderId, status) {
       headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + S.token },
       body: JSON.stringify({ status: status })
     });
-    toast('Статус обновлён', 'success');
+    showToast('Статус обновлён');
     loadOrders();
   } catch(e) {
-    toast('Ошибка обновления', 'error');
+    showToast('Ошибка обновления');
   }
 }

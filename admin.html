@@ -109,6 +109,21 @@
         </button>
       </header>
 
+      <div class="day-filter-bar" id="dayFilterBar" style="display:none">
+        <button class="day-auto-btn active" id="dayAutoBtn" title="Показывать меню текущего дня автоматически">
+          🔄 Авто
+        </button>
+        <select class="day-select" id="daySelect" disabled>
+          <option value="monday">Понедельник</option>
+          <option value="tuesday">Вторник</option>
+          <option value="wednesday">Среда</option>
+          <option value="thursday">Четверг</option>
+          <option value="friday">Пятница</option>
+          <option value="weekend">Сб — Вс</option>
+        </select>
+        <span class="day-filter-label" id="dayFilterLabel"></span>
+      </div>
+
       <div class="stats-row" id="statsRow">
         <div class="stat-card"><div class="stat-num" id="statTotal">0</div><div class="stat-label">Всего</div></div>
         <div class="stat-card"><div class="stat-num green" id="statActive">0</div><div class="stat-label">Активных</div></div>
@@ -166,10 +181,14 @@
             <input type="text" class="field-input" id="itemName" placeholder="Борщ со сметаной" required />
           </div>
           <div class="field-group">
+            <label class="field-label">Цена (₽)*</label>
+            <input type="number" class="field-input" id="itemPrice" placeholder="140" min="0" required />
+          </div>
+          <div class="field-group">
             <label class="field-label">Вес/объём</label>
             <input type="number" class="field-input" id="itemWeight" placeholder="300" min="1" />
           </div>
-          <div class="field-group">
+          <div class="field-group full">
             <label class="field-label">Категория*</label>
             <select class="field-input field-select" id="itemCategory" required></select>
           </div>
@@ -180,10 +199,6 @@
           <div class="field-group full">
             <label class="field-label">Состав</label>
             <textarea class="field-input field-textarea" id="itemComposition" placeholder="Например: картофель, морковь, лук..."></textarea>
-          </div>
-          <div class="field-group full" id="cityPricesSection">
-            <label class="field-label">Цены по городам*</label>
-            <div id="cityPricesGrid" style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;margin-top:8px"></div>
           </div>
           <div class="field-group full">
             <label class="field-label">КБЖУ (на 100г) — необязательно</label>
