@@ -524,7 +524,7 @@ a { text-decoration: none; color: inherit; }
   font-size: 14px;
   font-weight: 700;
   box-shadow: 0 6px 20px rgba(245,166,35,.5);
-  z-index: 500;
+  z-index: 5000;
   white-space: nowrap;
   transition: transform .15s, box-shadow .15s;
   animation: fabIn .3s cubic-bezier(.34,1.56,.64,1);
@@ -555,7 +555,7 @@ a { text-decoration: none; color: inherit; }
   position: fixed;
   inset: 0;
   background: rgba(0,0,0,.5);
-  z-index: 1000;
+  z-index: 9999;
   display: flex;
   align-items: flex-end;
   justify-content: center;
@@ -1049,7 +1049,7 @@ a { text-decoration: none; color: inherit; }
   position: fixed;
   inset: 0;
   background: rgba(0,0,0,.6);
-  z-index: 1100;
+  z-index: 10000;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -1269,4 +1269,22 @@ a { text-decoration: none; color: inherit; }
   border-color: var(--primary, #f5a623);
   background: #fff8ee;
   color: var(--primary, #f5a623);
+}
+
+/* ===== TOUCH FIX: prevent Telegram from eating touches ===== */
+.modal-close,
+.btn-primary,
+.btn-secondary,
+.btn-link,
+.qty-btn,
+.btn-add,
+.cart-fab,
+.modal-overlay {
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
+  cursor: pointer;
+}
+/* Ensure modal content is always above any Telegram overlay */
+.modal-overlay {
+  -webkit-overflow-scrolling: touch;
 }

@@ -5,9 +5,9 @@ const tg = window.Telegram?.WebApp;
 if (tg) {
   tg.ready();
   tg.expand();
+  try { tg.disableVerticalSwipes?.(); } catch(e) {}
+  try { tg.requestFullscreen?.();     } catch(e) {}
   tg.enableClosingConfirmation();
-  // Для новых версий Telegram (Bot API 8.0+) запрашиваем полный экран
-  try { tg.requestFullscreen?.(); } catch(e) {}
 }
 
 /* Адреса — загружаем с сервера при старте, кешируем */
@@ -740,8 +740,15 @@ document.getElementById('itemModalAdd').addEventListener('click', () => {
 });
 
 /* ===== MODAL HELPERS ===== */
-function openModal(id) { document.getElementById(id).style.display = 'flex'; document.body.style.overflow = 'hidden'; }
-function closeModal(id) { document.getElementById(id).style.display = 'none'; document.body.style.overflow = ''; }
+function openModal(id) {
+  document.getElementById(id).style.display = 'flex';
+  document.body.style.overflow = 'hidden';
+  try { tg?.disableVerticalSwipes?.(); } catch(e) {}
+}
+function closeModal(id) {
+  document.getElementById(id).style.display = 'none';
+  document.body.style.overflow = '';
+}
 
 /* ===== MODAL BINDINGS ===== */
 document.getElementById('cityBtn').addEventListener('click', () => {

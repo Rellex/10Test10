@@ -29,7 +29,15 @@ const YOOKASSA_API     = 'https://api.yookassa.ru/v3';
 app.use(cors());
 app.use(express.json({ limit: "50mb" }));
 app.use(express.urlencoded({ extended: true, limit: "50mb" }));
-app.use(express.static(__dirname));
+app.use(express.static(__dirname, {
+  setHeaders(res, filePath) {
+    if (filePath.endsWith('.js') || filePath.endsWith('.css') || filePath.endsWith('.html')) {
+      res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
+      res.setHeader('Pragma', 'no-cache');
+      res.setHeader('Expires', '0');
+    }
+  }
+}));
 
 /* ── paths ─────────────────────────────────── */
 const DATA_DIR = process.env.DATA_DIR || (IS_VERCEL ? '/tmp' : __dirname);
