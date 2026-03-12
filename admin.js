@@ -1668,6 +1668,28 @@ function bindScheduleEvents() {
     });
   });
 
+  // Export menu.json from server
+  document.getElementById('scheduleExportBtn').onclick = async function() {
+    try {
+      this.textContent = '⏳ Загружаем...';
+      this.disabled = true;
+      const menu = await api('GET', '/api/admin/export/menu');
+      const blob = new Blob([JSON.stringify(menu, null, 2)], { type: 'application/json' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = 'menu.json';
+      a.click();
+      URL.revokeObjectURL(url);
+      toast('menu.json скачан', 'success');
+    } catch(e) {
+      toast('Ошибка выгрузки: ' + e.message, 'error');
+    } finally {
+      this.textContent = '⬇️ Выгрузить menu.json';
+      this.disabled = false;
+    }
+  };
+
   // Import menu.json
   const importFileInput = document.getElementById('scheduleImportFile');
   if (importFileInput) {
