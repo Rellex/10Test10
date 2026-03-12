@@ -13,7 +13,6 @@ async function api(method, path, body) {
 function showAdminApp() {
   document.getElementById('loginScreen').style.display = 'none';
   document.getElementById('adminApp').classList.remove('hidden');
-  initDayFilter();
   loadMenu();
   if (typeof fetchAddresses === 'function') fetchAddresses();
 }
@@ -62,53 +61,16 @@ const S = {
   pendingImage: null,
   currentEmoji: '🍽️',
   confirmCallback: null,
-  dayFilter:   { auto: true, day: null },
 };
 
-/* ── Day filter helpers ── */
+/* ── Day helpers (used by schedule manager) ── */
 function getTodayDayId() {
   const d = new Date().getDay();
   if (d === 0 || d === 6) return 'weekend';
   return ['','monday','tuesday','wednesday','thursday','friday'][d];
 }
-const DAY_NAMES = {
-  monday:'Понедельник', tuesday:'Вторник', wednesday:'Среда',
-  thursday:'Четверг', friday:'Пятница', weekend:'Сб — Вс'
-};
 function getActiveDayId() {
-  return S.dayFilter.auto ? getTodayDayId() : S.dayFilter.day;
-}
-function getDayItemIds() {
-  const schedule = S.menu.weeklySchedule;
-  if (!schedule) return null;
-  const dayId = getActiveDayId();
-  const day = schedule.days.find(d => d.id === dayId);
-  return day ? day.itemIds : null;
-}
-function initDayFilter() {
-  const autoBtn = document.getElementById('dayAutoBtn');
-  const sel = document.getElementById('daySelect');
-  if (!autoBtn || !sel) return;
-
-  // Set select to today
-  S.dayFilter.day = getTodayDayId();
-  sel.value = S.dayFilter.day;
-
-  autoBtn.addEventListener('click', () => {
-    S.dayFilter.auto = !S.dayFilter.auto;
-    autoBtn.classList.toggle('active', S.dayFilter.auto);
-    sel.disabled = S.dayFilter.auto;
-    if (S.dayFilter.auto) {
-      S.dayFilter.day = getTodayDayId();
-      sel.value = S.dayFilter.day;
-    }
-    if (S.activeCatId) renderItems(S.activeCatId);
-  });
-
-  sel.addEventListener('change', () => {
-    S.dayFilter.day = sel.value;
-    if (S.activeCatId) renderItems(S.activeCatId);
-  });
+  return getTodayDayId();
 }
 
 const EMOJI_LIST = [
@@ -452,8 +414,7 @@ function renderItems(catId) {
   const cityFiltered = S.activeCity
     ? allItems.filter(i => !(i.disabledCities || []).includes(S.activeCity))
     : allItems;
-  const dayIds = getDayItemIds();
-  const items = dayIds ? cityFiltered.filter(i => dayIds.includes(i.id)) : cityFiltered;
+  const items = cityFiltered;
   const grid  = document.getElementById('itemsGrid');
   const empty = document.getElementById('emptyState');
 
