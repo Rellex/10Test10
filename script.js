@@ -109,10 +109,34 @@ function itemVisibleInCity(item) {
   return true;
 }
 
+/* Получить ID текущего дня недели для weeklySchedule */
+function getTodayScheduleId() {
+  const day = new Date().getDay(); // 0=вс,1=пн,...,6=сб
+  if (day === 0 || day === 6) return 'weekend';
+  const map = { 1: 'monday', 2: 'tuesday', 3: 'wednesday', 4: 'thursday', 5: 'friday' };
+  return map[day];
+}
+
+/* Получить список ID блюд для текущего дня (или null если расписания нет) */
+function getTodayItemIds() {
+  const schedule = dynamicMenu?.weeklySchedule;
+  if (!schedule) return null;
+  const todayId = getTodayScheduleId();
+  const day = schedule.days.find(d => d.id === todayId);
+  return day?.itemIds || null;
+}
+
+/* Блюдо входит в расписание сегодняшнего дня */
+function itemVisibleToday(item) {
+  const todayIds = getTodayItemIds();
+  if (!todayIds) return true; // нет расписания — показываем всё
+  return todayIds.includes(item.id);
+}
+
 function getItems(catId) {
   if (!dynamicMenu || menuLoadError) return [];
   return dynamicMenu.items.filter(i =>
-    i.categoryId === catId && i.active !== false && itemVisibleInCity(i)
+    i.categoryId === catId && i.active !== false && itemVisibleInCity(i) && itemVisibleToday(i)
   );
 }
 
@@ -123,7 +147,7 @@ function findItemAny(id) {
 
 function getAllItems() {
   if (!dynamicMenu || menuLoadError) return [];
-  return dynamicMenu.items.filter(i => i.active !== false && itemVisibleInCity(i));
+  return dynamicMenu.items.filter(i => i.active !== false && itemVisibleInCity(i) && itemVisibleToday(i));
 }
 
 function itemImgSrc(item) {
