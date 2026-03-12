@@ -141,7 +141,10 @@ function getItems(catId) {
 }
 
 function findItemAny(id) {
-  if (dynamicMenu) return dynamicMenu.items.find(i => i.id === id) || null;
+  if (dynamicMenu) {
+    if (dynamicMenu._halfItems && dynamicMenu._halfItems[id]) return dynamicMenu._halfItems[id];
+    return dynamicMenu.items.find(i => i.id === id) || null;
+  }
   return null;
 }
 
@@ -596,7 +599,7 @@ function updateCheckoutSummary() {
 
 /* ===== ITEM MODAL (user view) ===== */
 function openItemModal(item) {
-  state.itemModal = { item, qty: state.cart[item.id] || 1 };
+  state.itemModal = { item, qty: state.cart[item.id] || 1, half: false };
   const src = itemImgSrc(item);
   const emojiEl = document.getElementById('itemModalEmoji');
   emojiEl.innerHTML = src
@@ -624,28 +627,80 @@ function openItemModal(item) {
       ].filter(Boolean).join('');
     }
   }
-  document.getElementById('itemModalPrice').textContent  = fmt(getItemPrice(item));
-  document.getElementById('itemModalQty').textContent    = state.itemModal.qty;
+
+  // Полпорции
+  const halfWrap = document.getElementById('halfPortionWrap');
+  const hasHalf = !!(item.halfPrice && getHalfItemPrice(item));
+  halfWrap.style.display = hasHalf ? 'flex' : 'none';
+  if (hasHalf) {
+    document.getElementById('halfBtnFull').classList.add('active');
+    document.getElementById('halfBtnHalf').classList.remove('active');
+    state.itemModal.half = false;
+    // Обновляем вес при переключении
+    document.getElementById('halfBtnFull').onclick = () => {
+      state.itemModal.half = false;
+      document.getElementById('halfBtnFull').classList.add('active');
+      document.getElementById('halfBtnHalf').classList.remove('active');
+      document.getElementById('itemModalWeight').textContent = item.weight ? item.weight + 'г' : '';
+      updateModalPrice();
+    };
+    document.getElementById('halfBtnHalf').onclick = () => {
+      state.itemModal.half = true;
+      document.getElementById('halfBtnHalf').classList.add('active');
+      document.getElementById('halfBtnFull').classList.remove('active');
+      document.getElementById('itemModalWeight').textContent = item.halfWeight ? item.halfWeight + 'г' : '';
+      updateModalPrice();
+    };
+  }
+
+  updateModalPrice();
+  document.getElementById('itemModalQty').textContent = state.itemModal.qty;
   openModal('itemModal');
   tg?.HapticFeedback?.impactOccurred('light');
+}
+
+function getHalfItemPrice(item) {
+  const city = state.city;
+  if (city && item.halfPriceCities) return item.halfPriceCities[city] ?? item.halfPrice ?? 0;
+  return item.halfPrice ?? 0;
+}
+
+function getCurrentItemPrice() {
+  const { item, half } = state.itemModal;
+  if (!item) return 0;
+  if (half && item.halfPrice) return getHalfItemPrice(item);
+  return getItemPrice(item);
+}
+
+function updateModalPrice() {
+  document.getElementById('itemModalPrice').textContent = fmt(getCurrentItemPrice() * state.itemModal.qty);
 }
 
 document.getElementById('itemModalMinus').addEventListener('click', () => {
   if (state.itemModal.qty > 1) {
     state.itemModal.qty--;
-    document.getElementById('itemModalQty').textContent   = state.itemModal.qty;
-    document.getElementById('itemModalPrice').textContent = fmt(getItemPrice(state.itemModal.item) * state.itemModal.qty);
+    document.getElementById('itemModalQty').textContent = state.itemModal.qty;
+    updateModalPrice();
   }
 });
 
 document.getElementById('itemModalPlus').addEventListener('click', () => {
   state.itemModal.qty++;
-  document.getElementById('itemModalQty').textContent   = state.itemModal.qty;
-  document.getElementById('itemModalPrice').textContent = fmt(getItemPrice(state.itemModal.item) * state.itemModal.qty);
+  document.getElementById('itemModalQty').textContent = state.itemModal.qty;
+  updateModalPrice();
 });
 
 document.getElementById('itemModalAdd').addEventListener('click', () => {
-  setCartQty(state.itemModal.item.id, state.itemModal.qty);
+  const { item, qty, half } = state.itemModal;
+  // Если полпорции — добавляем как отдельный "вариант" с суффиксом id
+  const cartId = half ? item.id + '__half' : item.id;
+  const cartItem = half
+    ? { ...item, id: cartId, name: item.name + ' (½)', price: getHalfItemPrice(item), weight: item.halfWeight || '', cityPrices: item.halfPriceCities || {[state.city]: getHalfItemPrice(item)} }
+    : item;
+  // Кладём в корзину напрямую
+  if (!dynamicMenu._halfItems) dynamicMenu._halfItems = {};
+  if (half) dynamicMenu._halfItems[cartId] = cartItem;
+  setCartQty(cartId, qty);
   closeModal('itemModal');
   tg?.HapticFeedback?.notificationOccurred('success');
 });
