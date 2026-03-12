@@ -456,6 +456,8 @@ a { text-decoration: none; color: inherit; }
   width: 34px;
   height: 34px;
   border-radius: 50%;
+  border: none;
+  cursor: pointer;
   background: linear-gradient(135deg, var(--sun), var(--orange));
   color: var(--white);
   font-size: 22px;
@@ -466,6 +468,10 @@ a { text-decoration: none; color: inherit; }
   box-shadow: 0 2px 8px rgba(245,166,35,.4);
   transition: transform .1s;
   flex-shrink: 0;
+  -webkit-tap-highlight-color: transparent;
+  touch-action: manipulation;
+  position: relative;
+  z-index: 2;
 }
 .btn-add:active { transform: scale(.88); }
 

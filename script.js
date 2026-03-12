@@ -110,11 +110,35 @@ function itemVisibleInCity(item) {
 }
 
 /* Получить ID текущего дня недели для weeklySchedule */
+var _cachedTodayDay = null;
+var _cachedTodayDate = null;
+
 function getTodayScheduleId() {
-  const day = new Date().getDay(); // 0=вс,1=пн,...,6=сб
-  if (day === 0 || day === 6) return 'weekend';
-  const map = { 1: 'monday', 2: 'tuesday', 3: 'wednesday', 4: 'thursday', 5: 'friday' };
-  return map[day];
+  const now = new Date();
+  const dateStr = now.toDateString();
+  // Сбрасываем кеш если наступил новый день
+  if (_cachedTodayDate !== dateStr) {
+    _cachedTodayDate = dateStr;
+    const day = now.getDay(); // 0=вс,1=пн,...,6=сб
+    if (day === 0 || day === 6) _cachedTodayDay = 'weekend';
+    else _cachedTodayDay = { 1:'monday', 2:'tuesday', 3:'wednesday', 4:'thursday', 5:'friday' }[day];
+    // Запланировать перерендер меню в полночь
+    scheduleMidnightRefresh();
+  }
+  return _cachedTodayDay;
+}
+
+var _midnightTimer = null;
+function scheduleMidnightRefresh() {
+  if (_midnightTimer) clearTimeout(_midnightTimer);
+  const now = new Date();
+  const midnight = new Date(now.getFullYear(), now.getMonth(), now.getDate() + 1, 0, 0, 5);
+  const msUntilMidnight = midnight - now;
+  _midnightTimer = setTimeout(() => {
+    _cachedTodayDay = null;
+    _cachedTodayDate = null;
+    rerenderMenuAfterUpdate();
+  }, msUntilMidnight);
 }
 
 /* Получить список ID блюд для текущего дня (или null если расписания нет) */
@@ -238,7 +262,14 @@ function getCitiesFromCache() {
 function renderCityList() {
   const list = document.getElementById('cityList');
   list.innerHTML = '';
-  getCitiesFromCache().filter(city => city.active !== false).forEach(city => {
+  // Если кеш пустой — подгрузить и перерендерить
+  if (!_addressesCache) {
+    list.innerHTML = '<li class="city-item" style="color:#aaa;pointer-events:none">Загрузка...</li>';
+    loadAddressesCache().then(() => renderCityList());
+    return;
+  }
+  const cities = getCitiesFromCache().filter(city => city.active !== false);
+  cities.forEach(city => {
     const li = document.createElement('li');
     li.className = 'city-item' + (state.city === city.id ? ' selected' : '');
     li.innerHTML = `<span class="city-item-icon">📍</span><span>${city.name}</span>`;
@@ -1682,6 +1713,7 @@ function connectLiveUpdates() {
       if (event === 'menu') {
         dynamicMenu = payload;
         saveMenuCache(dynamicMenu);
+        _cachedTodayDay = null; // invalidate day cache
         rerenderMenuAfterUpdate();
       }
       if (event === 'addresses') {
