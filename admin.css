@@ -281,6 +281,8 @@ input, select, textarea { font-family: inherit; }
   box-shadow: var(--shadow-sm);
 }
 
+.topbar-title { flex: 1; min-width: 0; }
+
 .topbar-menu-btn {
   display: none; font-size: 20px; color: var(--text-sub);
   padding: 6px; border-radius: 8px; transition: background .1s;
@@ -554,7 +556,9 @@ input, select, textarea { font-family: inherit; }
   .sidebar { position: fixed; top: 0; left: 0; bottom: 0; transform: translateX(-100%); }
   .sidebar.open { transform: translateX(0); }
   .sidebar-overlay { display: block; }
-  .topbar-menu-btn { display: flex; }
+  .topbar-title { flex: 1; min-width: 0; }
+
+.topbar-menu-btn { display: flex; }
   .topbar { padding: 0 16px; }
   .btn-add-item span:not(.btn-add-item-icon) { display: none; }
   .btn-add-item { padding: 9px 14px; }
@@ -815,24 +819,21 @@ input, select, textarea { font-family: inherit; }
   color: #fff;
 }
 
-/* ===== DAY FILTER BAR ===== */
-.day-filter-bar {
+/* ===== DAY FILTER IN TOPBAR ===== */
+.topbar-day-filter {
   display: flex;
   align-items: center;
-  gap: 10px;
-  padding: 8px 20px;
-  background: #fff8ee;
-  border-bottom: 1px solid #ffe0b2;
-  flex-wrap: wrap;
+  gap: 8px;
+  margin-left: auto;
 }
 .day-auto-btn {
-  padding: 6px 14px;
-  border-radius: 20px;
+  padding: 6px 12px;
+  border-radius: 16px;
   border: 2px solid #e0e0e0;
   background: #fff;
-  font-size: 13px;
-  font-weight: 600;
-  color: #888;
+  font-size: 12px;
+  font-weight: 700;
+  color: #aaa;
   cursor: pointer;
   transition: all .15s;
   white-space: nowrap;
@@ -843,27 +844,19 @@ input, select, textarea { font-family: inherit; }
   color: #fff;
 }
 .day-select {
-  padding: 6px 12px;
-  border-radius: 20px;
-  border: 2px solid #e0e0e0;
-  font-size: 13px;
-  font-weight: 600;
-  color: #333;
+  padding: 6px 10px;
+  border-radius: 16px;
+  border: 2px solid #f5a623;
+  font-size: 12px;
+  font-weight: 700;
+  color: #f5a623;
   background: #fff;
   cursor: pointer;
   outline: none;
-  transition: border-color .15s;
-}
-.day-select:not(:disabled) {
-  border-color: #f5a623;
-  color: #f5a623;
+  transition: all .15s;
 }
 .day-select:disabled {
-  opacity: 0.45;
+  border-color: #e0e0e0;
+  color: #aaa;
   cursor: not-allowed;
-}
-.day-filter-label {
-  font-size: 13px;
-  color: #f5a623;
-  font-weight: 600;
 }

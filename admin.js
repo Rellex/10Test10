@@ -13,6 +13,7 @@ async function api(method, path, body) {
 function showAdminApp() {
   document.getElementById('loginScreen').style.display = 'none';
   document.getElementById('adminApp').classList.remove('hidden');
+  initDayFilter();
   loadMenu();
   if (typeof fetchAddresses === 'function') fetchAddresses();
 }
@@ -85,44 +86,29 @@ function getDayItemIds() {
   return day ? day.itemIds : null;
 }
 function initDayFilter() {
-  const bar = document.getElementById('dayFilterBar');
   const autoBtn = document.getElementById('dayAutoBtn');
   const sel = document.getElementById('daySelect');
-  const label = document.getElementById('dayFilterLabel');
-  if (!bar) return;
-
-  // Show bar only if schedule exists
-  if (!S.menu.weeklySchedule) { bar.style.display = 'none'; return; }
-  bar.style.display = 'flex';
+  if (!autoBtn || !sel) return;
 
   // Set select to today
   S.dayFilter.day = getTodayDayId();
   sel.value = S.dayFilter.day;
-  updateDayLabel();
 
   autoBtn.addEventListener('click', () => {
     S.dayFilter.auto = !S.dayFilter.auto;
     autoBtn.classList.toggle('active', S.dayFilter.auto);
     sel.disabled = S.dayFilter.auto;
-    if (S.dayFilter.auto) S.dayFilter.day = getTodayDayId();
-    sel.value = S.dayFilter.day;
-    updateDayLabel();
+    if (S.dayFilter.auto) {
+      S.dayFilter.day = getTodayDayId();
+      sel.value = S.dayFilter.day;
+    }
     if (S.activeCatId) renderItems(S.activeCatId);
   });
 
   sel.addEventListener('change', () => {
     S.dayFilter.day = sel.value;
-    updateDayLabel();
     if (S.activeCatId) renderItems(S.activeCatId);
   });
-}
-function updateDayLabel() {
-  const label = document.getElementById('dayFilterLabel');
-  if (!label) return;
-  const dayId = getActiveDayId();
-  const name = DAY_NAMES[dayId] || '';
-  const ids = getDayItemIds();
-  label.textContent = ids ? `${name} — ${ids.length} блюд` : name;
 }
 
 const EMOJI_LIST = [

@@ -103,26 +103,22 @@
       <header class="topbar">
         <button class="topbar-menu-btn" id="sidebarToggle">☰</button>
         <div class="topbar-title" id="topbarTitle">Выберите категорию</div>
+        <div class="topbar-day-filter" id="dayFilterBar">
+          <button class="day-auto-btn active" id="dayAutoBtn" title="Авто — показывает меню текущего дня">🔄 Авто</button>
+          <select class="day-select" id="daySelect" disabled>
+            <option value="monday">Понедельник</option>
+            <option value="tuesday">Вторник</option>
+            <option value="wednesday">Среда</option>
+            <option value="thursday">Четверг</option>
+            <option value="friday">Пятница</option>
+            <option value="weekend">Сб — Вс</option>
+          </select>
+        </div>
         <button class="btn-add-item" id="addItemBtn">
           <span class="btn-add-item-icon">+</span>
           <span>Добавить позицию</span>
         </button>
       </header>
-
-      <div class="day-filter-bar" id="dayFilterBar" style="display:none">
-        <button class="day-auto-btn active" id="dayAutoBtn" title="Показывать меню текущего дня автоматически">
-          🔄 Авто
-        </button>
-        <select class="day-select" id="daySelect" disabled>
-          <option value="monday">Понедельник</option>
-          <option value="tuesday">Вторник</option>
-          <option value="wednesday">Среда</option>
-          <option value="thursday">Четверг</option>
-          <option value="friday">Пятница</option>
-          <option value="weekend">Сб — Вс</option>
-        </select>
-        <span class="day-filter-label" id="dayFilterLabel"></span>
-      </div>
 
       <div class="stats-row" id="statsRow">
         <div class="stat-card"><div class="stat-num" id="statTotal">0</div><div class="stat-label">Всего</div></div>
