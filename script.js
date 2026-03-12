@@ -4,7 +4,10 @@ var zoneCheckTimer     = null;
 const tg = window.Telegram?.WebApp;
 if (tg) {
   tg.ready();
+  tg.expand();
   tg.enableClosingConfirmation();
+  // Для новых версий Telegram (Bot API 8.0+) запрашиваем полный экран
+  try { tg.requestFullscreen?.(); } catch(e) {}
 }
 
 /* Адреса — загружаем с сервера при старте, кешируем */
