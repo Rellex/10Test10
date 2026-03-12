@@ -104,6 +104,7 @@ function loadMenuCache() {
     if (!raw) return null;
     const parsed = JSON.parse(raw);
     if (!parsed || !Array.isArray(parsed.categories) || !Array.isArray(parsed.items)) return null;
+    // weeklySchedule может отсутствовать в старом кэше — это нормально
     return parsed;
   } catch {
     return null;
@@ -274,11 +275,14 @@ async function loadMenu() {
   } catch (e) {
     const cached = loadMenuCache();
     if (cached) {
-      S.menu = cached;
+      S.menu.categories     = cached.categories     || [];
+      S.menu.items          = cached.items          || [];
+      S.menu.weeklySchedule = cached.weeklySchedule || null;
       renderCityTabs();
       renderSidebar();
       if (!S.activeCatId && S.menu.categories.length) S.activeCatId = S.menu.categories[0].id;
       if (S.activeCatId) renderItems(S.activeCatId);
+      updateScheduleBtnIndicator();
     }
     toast('Ошибка загрузки: ' + e.message, 'error');
   }
@@ -1664,6 +1668,41 @@ function bindScheduleEvents() {
     });
   });
 
+  // Import menu.json
+  const importFileInput = document.getElementById('scheduleImportFile');
+  if (importFileInput) {
+    importFileInput.onchange = async function() {
+      const file = this.files[0];
+      if (!file) return;
+      try {
+        const text = await file.text();
+        const data = JSON.parse(text);
+        if (!data.weeklySchedule || !Array.isArray(data.weeklySchedule.days)) {
+          toast('В файле нет weeklySchedule', 'error'); return;
+        }
+        // Save full menu to server
+        const saveBtn = document.getElementById('scheduleModalSave');
+        saveBtn.disabled = true;
+        saveBtn.textContent = 'Загружаем...';
+        await api('POST', '/api/admin/import/menu', data);
+        // Update local state
+        S.menu.categories     = data.categories || S.menu.categories;
+        S.menu.items          = data.items       || S.menu.items;
+        S.menu.weeklySchedule = data.weeklySchedule;
+        saveMenuCache();
+        // Reinit draft from new data
+        initScheduleDraft();
+        renderScheduleModal();
+        saveBtn.disabled = false;
+        saveBtn.textContent = '💾 Сохранить';
+        toast(`Загружено: ${data.items?.length || 0} позиций, расписание активно`, 'success');
+        this.value = '';
+      } catch(e) {
+        toast('Ошибка чтения файла: ' + e.message, 'error');
+      }
+    };
+  }
+
   // Copy schedule btn
   document.getElementById('copyScheduleBtn').onclick = showCopyDayDialog;
 
@@ -1756,11 +1795,14 @@ const _loadMenuPatched = async function() {
   } catch (e) {
     const cached = loadMenuCache();
     if (cached) {
-      S.menu = cached;
+      S.menu.categories     = cached.categories     || [];
+      S.menu.items          = cached.items          || [];
+      S.menu.weeklySchedule = cached.weeklySchedule || null;
       renderCityTabs();
       renderSidebar();
       if (!S.activeCatId && S.menu.categories.length) S.activeCatId = S.menu.categories[0].id;
       if (S.activeCatId) renderItems(S.activeCatId);
+      updateScheduleBtnIndicator();
     }
     toast('Ошибка загрузки: ' + e.message, 'error');
   }
