@@ -367,8 +367,9 @@ function logout() {
 async function loadMenu() {
   try {
     const menu = await api('GET', '/api/menu');
-    S.menu.categories = menu.categories || [];
-    S.menu.items      = menu.items      || [];
+    S.menu.categories     = menu.categories     || [];
+    S.menu.items          = menu.items          || [];
+    S.menu.weeklySchedule = menu.weeklySchedule || S.menu.weeklySchedule || null;
     saveMenuCache();
     renderCityTabs();
     renderSidebar();
@@ -421,7 +422,7 @@ async function uploadInitialMenu() {
 function renderCityTabs() {
   const wrap = document.getElementById('cityTabs');
   if (!wrap) return;
-  const cities = (addrData.length ? addrData : []).filter(c => c.active !== false);
+  const cities = (Array.isArray(addrData) ? addrData : []).filter(c => c.active !== false);
   if (!S.activeCity && cities.length) S.activeCity = cities[0].id;
   wrap.innerHTML = '';
   cities.forEach(city => {
@@ -965,6 +966,24 @@ async function deleteCategory(id) {
 }
 
 /* ══════════════════════════════════════════════
+   SIDEBAR MOBILE
+══════════════════════════════════════════════ */
+const sidebarOverlay = document.createElement('div');
+sidebarOverlay.className = 'sidebar-overlay';
+document.body.appendChild(sidebarOverlay);
+
+document.getElementById('sidebarToggle').addEventListener('click', () => {
+  document.getElementById('sidebar').classList.toggle('open');
+  sidebarOverlay.style.display =
+    document.getElementById('sidebar').classList.contains('open') ? 'block' : 'none';
+});
+sidebarOverlay.addEventListener('click', closeSidebarMobile);
+function closeSidebarMobile() {
+  document.getElementById('sidebar').classList.remove('open');
+  sidebarOverlay.style.display = 'none';
+}
+
+/* ══════════════════════════════════════════════
    SCHEDULE MANAGEMENT
 ══════════════════════════════════════════════ */
 const SCHEDULE_DAYS = [
@@ -979,83 +998,78 @@ const SCHEDULE_DAYS = [
 // Рабочая копия расписания пока модал открыт
 let _schedDraft = null;
 
-document.getElementById('scheduleBtn').addEventListener('click', openScheduleModal);
-document.getElementById('scheduleModalClose').addEventListener('click',  () => closeModal('scheduleModal'));
-document.getElementById('scheduleModalCancel').addEventListener('click', () => closeModal('scheduleModal'));
+document.addEventListener('DOMContentLoaded', function initScheduleListeners() {
+  const btn = document.getElementById('scheduleBtn');
+  if (btn) btn.addEventListener('click', openScheduleModal);
 
-document.getElementById('scheduleModalSave').addEventListener('click', async () => {
-  // Собираем itemIds из чекбоксов для каждого дня
-  _schedDraft.days = SCHEDULE_DAYS.map(d => {
-    const body = document.getElementById('sched-day-' + d.id);
-    if (!body) return { id: d.id, itemIds: [] };
-    const checked = [...body.querySelectorAll('input[type=checkbox][data-item-id]:checked')];
-    return { id: d.id, itemIds: checked.map(c => c.dataset.itemId) };
-  });
-  _schedDraft.enabled = document.getElementById('scheduleEnabled').checked;
+  document.getElementById('scheduleModalClose')?.addEventListener('click',  () => closeModal('scheduleModal'));
+  document.getElementById('scheduleModalCancel')?.addEventListener('click', () => closeModal('scheduleModal'));
 
-  try {
-    const updated = await api('POST', '/api/admin/import/menu', {
-      ...S.menu,
-      weeklySchedule: _schedDraft,
+  document.getElementById('scheduleModalSave')?.addEventListener('click', async () => {
+    _schedDraft.days = SCHEDULE_DAYS.map(d => {
+      const body = document.getElementById('sched-day-' + d.id);
+      if (!body) return { id: d.id, itemIds: [] };
+      const checked = [...body.querySelectorAll('input[type=checkbox][data-item-id]:checked')];
+      return { id: d.id, itemIds: checked.map(c => c.dataset.itemId) };
     });
-    S.menu.weeklySchedule = _schedDraft;
-    saveMenuCache();
-    refreshUI();
-    closeModal('scheduleModal');
-    toast('Расписание сохранено ✓', 'success');
-  } catch (e) {
-    toast('Ошибка сохранения: ' + e.message, 'error');
-  }
-});
-
-// Экспорт menu.json
-document.getElementById('scheduleExportBtn').addEventListener('click', () => {
-  const blob = new Blob([JSON.stringify(S.menu, null, 2)], { type: 'application/json' });
-  const a = document.createElement('a');
-  a.href = URL.createObjectURL(blob);
-  a.download = 'menu.json';
-  a.click();
-});
-
-// Импорт menu.json
-document.getElementById('scheduleImportFile').addEventListener('change', async e => {
-  const file = e.target.files[0];
-  if (!file) return;
-  try {
-    const text = await file.text();
-    const data = JSON.parse(text);
-    if (!data.categories || !data.items) { toast('Неверный формат файла', 'error'); return; }
-    await api('POST', '/api/admin/import/menu', data);
-    S.menu = data;
-    saveMenuCache();
-    refreshUI();
-    closeModal('scheduleModal');
-    toast('Меню импортировано ✓', 'success');
-  } catch (e) {
-    toast('Ошибка импорта: ' + e.message, 'error');
-  }
-  e.target.value = '';
-});
-
-// Скопировать первый день на все остальные
-document.getElementById('copyScheduleBtn').addEventListener('click', () => {
-  const firstBody = document.getElementById('sched-day-monday');
-  if (!firstBody) return;
-  const firstIds = new Set(
-    [...firstBody.querySelectorAll('input[data-item-id]:checked')].map(c => c.dataset.itemId)
-  );
-  SCHEDULE_DAYS.forEach(d => {
-    const body = document.getElementById('sched-day-' + d.id);
-    if (!body) return;
-    body.querySelectorAll('input[data-item-id]').forEach(cb => {
-      cb.checked = firstIds.has(cb.dataset.itemId);
-    });
-    // обновляем счётчик
-    const section = body.closest('.sched-day-section');
-    const countEl = section?.querySelector('.sched-day-count');
-    if (countEl) countEl.textContent = firstIds.size + ' / ' + body.querySelectorAll('input[data-item-id]').length;
+    _schedDraft.enabled = document.getElementById('scheduleEnabled').checked;
+    try {
+      await api('POST', '/api/admin/import/menu', { ...S.menu, weeklySchedule: _schedDraft });
+      S.menu.weeklySchedule = _schedDraft;
+      saveMenuCache();
+      refreshUI();
+      closeModal('scheduleModal');
+      toast('Расписание сохранено ✓', 'success');
+    } catch (e) {
+      toast('Ошибка сохранения: ' + e.message, 'error');
+    }
   });
-  toast('Понедельник скопирован на всю неделю', 'success');
+
+  document.getElementById('scheduleExportBtn')?.addEventListener('click', () => {
+    const blob = new Blob([JSON.stringify(S.menu, null, 2)], { type: 'application/json' });
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = 'menu.json';
+    a.click();
+  });
+
+  document.getElementById('scheduleImportFile')?.addEventListener('change', async e => {
+    const file = e.target.files[0];
+    if (!file) return;
+    try {
+      const text = await file.text();
+      const data = JSON.parse(text);
+      if (!data.categories || !data.items) { toast('Неверный формат файла', 'error'); return; }
+      await api('POST', '/api/admin/import/menu', data);
+      S.menu = data;
+      saveMenuCache();
+      refreshUI();
+      closeModal('scheduleModal');
+      toast('Меню импортировано ✓', 'success');
+    } catch (e) {
+      toast('Ошибка импорта: ' + e.message, 'error');
+    }
+    e.target.value = '';
+  });
+
+  document.getElementById('copyScheduleBtn')?.addEventListener('click', () => {
+    const firstBody = document.getElementById('sched-day-monday');
+    if (!firstBody) return;
+    const firstIds = new Set(
+      [...firstBody.querySelectorAll('input[data-item-id]:checked')].map(c => c.dataset.itemId)
+    );
+    SCHEDULE_DAYS.forEach(d => {
+      const body = document.getElementById('sched-day-' + d.id);
+      if (!body) return;
+      body.querySelectorAll('input[data-item-id]').forEach(cb => {
+        cb.checked = firstIds.has(cb.dataset.itemId);
+      });
+      const section = body.closest('.sched-day-section');
+      const countEl = section?.querySelector('.sched-day-count');
+      if (countEl) countEl.textContent = firstIds.size + ' / ' + body.querySelectorAll('input[data-item-id]').length;
+    });
+    toast('Понедельник скопирован на всю неделю', 'success');
+  });
 });
 
 function openScheduleModal() {
@@ -1165,24 +1179,6 @@ function renderScheduleDays() {
     wrap.appendChild(section);
     updateCount();
   });
-}
-
-/* ══════════════════════════════════════════════
-   SIDEBAR MOBILE
-══════════════════════════════════════════════ */
-const sidebarOverlay = document.createElement('div');
-sidebarOverlay.className = 'sidebar-overlay';
-document.body.appendChild(sidebarOverlay);
-
-document.getElementById('sidebarToggle').addEventListener('click', () => {
-  document.getElementById('sidebar').classList.toggle('open');
-  sidebarOverlay.style.display =
-    document.getElementById('sidebar').classList.contains('open') ? 'block' : 'none';
-});
-sidebarOverlay.addEventListener('click', closeSidebarMobile);
-function closeSidebarMobile() {
-  document.getElementById('sidebar').classList.remove('open');
-  sidebarOverlay.style.display = 'none';
 }
 
 /* ══════════════════════════════════════════════
