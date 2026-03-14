@@ -1459,16 +1459,24 @@ async function handleCheckoutSubmit(e) {
     delivery: getDeliveryPrice(getSubtotal()),
     discount: state.promoDiscount,
     total:    getTotal(),
-    items:    Object.entries(state.cart).map(([id, qty]) => {
-      const item = findItemAny(id);
-      if (!item) return null; // пропускаем неизвестные позиции
-      const promoRec   = state.promoItemPrices?.[id];
-      const promoPrice = promoRec !== undefined ? (typeof promoRec === 'object' ? promoRec.price : promoRec) : undefined;
-      // Для контейнера берём цену напрямую из item.price если cityPrices нет
-      const basePrice  = item.cityPrices ? getItemPrice(item) : (item.price || 0);
-      const price = (promoPrice !== undefined) ? promoPrice : basePrice;
-      return { id, name: item.name, price, qty, promoPrice: promoPrice !== undefined ? promoPrice : null };
-    }).filter(Boolean),
+    items:    (() => {
+      const result = [];
+      for (const [id, qty] of Object.entries(state.cart)) {
+        // Контейнер — добавляем напрямую, не зависим от findItemAny
+        if (id === CONTAINER_ITEM_ID) {
+          result.push({ id, name: 'Контейнер', price: 9, qty, promoPrice: null });
+          continue;
+        }
+        const item = findItemAny(id);
+        if (!item) continue;
+        const promoRec   = state.promoItemPrices?.[id];
+        const promoPrice = promoRec !== undefined ? (typeof promoRec === 'object' ? promoRec.price : promoRec) : undefined;
+        const basePrice  = item.cityPrices ? getItemPrice(item) : (item.price || 0);
+        const price = (promoPrice !== undefined) ? promoPrice : basePrice;
+        result.push({ id, name: item.name, price, qty, promoPrice: promoPrice !== undefined ? promoPrice : null });
+      }
+      return result;
+    })(),
   };
 
   try {
