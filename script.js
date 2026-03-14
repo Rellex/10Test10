@@ -498,8 +498,32 @@ function recalcDeliveryZoneCost() {
   }
 }
 
+/* ── Категории требующие контейнера ── */
+const CONTAINER_ITEM_ID   = 'su6';
+const CONTAINER_CAT_IDS   = new Set(['salads', 'hot', 'garnish', 'sweet']);
+
+function needsContainer(itemId) {
+  const item = findItemAny(itemId);
+  return item && CONTAINER_CAT_IDS.has(item.categoryId);
+}
+
+// Пересчитать количество контейнеров = сумма блюд из нужных категорий
+function syncContainers() {
+  let count = 0;
+  for (const [id, qty] of Object.entries(state.cart)) {
+    if (id === CONTAINER_ITEM_ID) continue;
+    if (needsContainer(id)) count += qty;
+  }
+  if (count > 0) {
+    state.cart[CONTAINER_ITEM_ID] = count;
+  } else {
+    delete state.cart[CONTAINER_ITEM_ID];
+  }
+}
+
 function addToCart(id) {
   state.cart[id] = (state.cart[id] || 0) + 1;
+  if (needsContainer(id)) syncContainers();
   saveCart(); recalcDeliveryZoneCost(); updateCardActions(id); updateCartFab(); updateCartSheet();
   tg?.HapticFeedback?.impactOccurred('light');
 }
@@ -507,12 +531,14 @@ function addToCart(id) {
 function decFromCart(id) {
   if (!state.cart[id]) return;
   if (--state.cart[id] === 0) delete state.cart[id];
+  if (needsContainer(id)) syncContainers();
   saveCart(); recalcDeliveryZoneCost(); updateCardActions(id); updateCartFab(); updateCartSheet();
   tg?.HapticFeedback?.impactOccurred('light');
 }
 
 function setCartQty(id, qty) {
   if (qty <= 0) { delete state.cart[id]; } else { state.cart[id] = qty; }
+  if (needsContainer(id)) syncContainers();
   saveCart(); recalcDeliveryZoneCost(); updateCardActions(id); updateCartFab(); updateCartSheet();
 }
 
@@ -564,6 +590,8 @@ function updateCartSheet() {
     if (!item) continue;
     // Блюда по промокоду не показываем в корзине
     if (state.promoItemPrices && state.promoItemPrices[id] !== undefined) continue;
+    // Контейнер не показываем отдельной строкой
+    if (id === CONTAINER_ITEM_ID) continue;
     const src = itemImgSrc(item);
     const row = document.createElement('div');
     row.className = 'cart-item';
@@ -591,8 +619,27 @@ function updateCartSummary() {
   const sub      = getSubtotal();          // сумма без скидки
   const delivery = getDeliveryPrice(sub);  // доставка считается от суммы БЕЗ скидки
 
-  // 1. Сумма заказа (без скидки)
+  // 1. Сумма заказа (без скидки, включая контейнеры)
   document.getElementById('subtotalVal').textContent = fmt(sub);
+
+  // 1a. Контейнеры — показываем сколько и сколько стоит
+  const contQty = state.cart[CONTAINER_ITEM_ID] || 0;
+  let contRow = document.getElementById('containerRow');
+  if (contQty > 0) {
+    const contItem = findItemAny(CONTAINER_ITEM_ID);
+    const contPrice = contItem ? getItemPrice(contItem) : 9;
+    if (!contRow) {
+      contRow = document.createElement('div');
+      contRow.className = 'cart-row container-row';
+      contRow.id = 'containerRow';
+      const subtotalEl = document.getElementById('subtotalVal').closest('.cart-row');
+      subtotalEl.insertAdjacentElement('afterend', contRow);
+    }
+    contRow.innerHTML = `<span>📦 Контейнеры ×${contQty}</span><span>${fmt(contPrice * contQty)}</span>`;
+    contRow.style.display = 'flex';
+  } else if (contRow) {
+    contRow.style.display = 'none';
+  }
 
   // 2. Скидка по промокоду
   const promoRow = document.getElementById('promoRow');
@@ -641,6 +688,18 @@ function updateCheckoutSummary() {
   const delivery = getDeliveryPrice(sub);
   // 1. Сумма заказа
   document.getElementById('checkoutSubtotal').textContent = fmt(sub);
+  // 1a. Контейнеры
+  const contQty = state.cart[CONTAINER_ITEM_ID] || 0;
+  const contRow = document.getElementById('checkoutContainerRow');
+  if (contRow) {
+    if (contQty > 0) {
+      const contItem  = findItemAny(CONTAINER_ITEM_ID);
+      const contPrice = contItem ? getItemPrice(contItem) : 9;
+      document.getElementById('checkoutContainerLabel').textContent = `📦 Контейнеры ×${contQty}`;
+      document.getElementById('checkoutContainerVal').textContent   = fmt(contPrice * contQty);
+      contRow.style.display = 'flex';
+    } else { contRow.style.display = 'none'; }
+  }
   // 2. Скидка
   const pr = document.getElementById('checkoutPromoRow');
   if (state.promoDiscount > 0) {
@@ -1633,6 +1692,10 @@ async function init() {
   }
 
   await Promise.all([loadMenuFromAPI(), loadAddressesCache()]);
+
+  // Синхронизируем контейнеры при старте (корзина могла загрузиться без них)
+  syncContainers();
+  saveCart();
 
   if (state.city) {
     const cityObj = getCitiesFromCache().find(c => c.id === state.city && c.active !== false);
