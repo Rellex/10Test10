@@ -1251,10 +1251,11 @@ app.get('/admin', (_, res) => res.sendFile(path.join(__dirname, 'admin.html')));
    KITCHEN PANEL  — только toggle доступности
    Отдельный PIN, без доступа к редактированию
 ══════════════════════════════════════════════ */
-const KITCHEN_PIN   = process.env.KITCHEN_PIN || '1234';
+const KITCHEN_PIN   = process.env.KITCHEN_PIN || '0818';
 const kitchenTokens = new Set();
 
-// Хранилище: itemId → true (есть) | false (убрано поваром)
+// Хранилище: itemId → { available: false, date: 'YYYY-MM-DD' }
+// Запись актуальна только если date === сегодня, иначе блюдо считается доступным
 let kitchenAvailability  = {};
 const KITCHEN_AV_FILE    = path.join(DATA_DIR, 'kitchen_availability.json');
 try {
@@ -1264,6 +1265,25 @@ try {
 
 function saveKitchenAvailability() {
   try { fs.writeFileSync(KITCHEN_AV_FILE, JSON.stringify(kitchenAvailability, null, 2)); } catch(e) {}
+}
+
+// Получить сегодняшнюю дату в формате YYYY-MM-DD (Moscow/Novosibirsk — UTC+7)
+function getTodayDate() {
+  return new Date(Date.now() + 7 * 60 * 60 * 1000)
+    .toISOString().slice(0, 10);
+}
+
+// Вернуть объект availability только с актуальными на сегодня записями
+// Если дата записи !== сегодня — блюдо считается доступным (не включаем в ответ)
+function getTodayAvailability() {
+  const today = getTodayDate();
+  const result = {};
+  for (const [id, rec] of Object.entries(kitchenAvailability)) {
+    if (rec && rec.date === today && rec.available === false) {
+      result[id] = false;
+    }
+  }
+  return result;
 }
 
 function kitchenAuth(req, res, next) {
@@ -1285,8 +1305,8 @@ app.post('/api/kitchen/login', (req, res) => {
 
 app.get('/api/kitchen/check', kitchenAuth, (_, res) => res.json({ ok: true }));
 
-// Текущая доступность всех блюд (публично — нужна клиенту для отображения)
-app.get('/api/kitchen/availability', (_, res) => res.json(kitchenAvailability));
+// Текущая доступность — только сегодняшние отключения
+app.get('/api/kitchen/availability', (_, res) => res.json(getTodayAvailability()));
 
 // Переключить доступность блюда (только повара)
 app.patch('/api/kitchen/availability/:itemId', kitchenAuth, (req, res) => {
@@ -1297,9 +1317,19 @@ app.patch('/api/kitchen/availability/:itemId', kitchenAuth, (req, res) => {
   const menu = readMenu();
   const item = menu.items.find(i => i.id === itemId);
   if (!item) return res.status(404).json({ error: 'Блюдо не найдено' });
-  kitchenAvailability[itemId] = available;
+
+  const today = getTodayDate();
+  if (available) {
+    // Восстановить — удаляем запись
+    delete kitchenAvailability[itemId];
+  } else {
+    // Убрать — сохраняем с сегодняшней датой
+    kitchenAvailability[itemId] = { available: false, date: today };
+  }
   saveKitchenAvailability();
-  broadcast('kitchen_availability', { itemId, available });
+
+  const todayAv = getTodayAvailability();
+  broadcast('kitchen_availability', { itemId, available, date: today });
   res.json({ ok: true, itemId, available });
 });
 

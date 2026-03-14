@@ -311,7 +311,7 @@
     <div class="top-bar-logo">🍳</div>
     <div>
       <div class="top-bar-title">Кухня</div>
-      <div class="top-bar-sub">Солнечный день</div>
+      <div class="top-bar-sub">Солнечный день · сбрасывается в полночь</div>
     </div>
     <div class="top-bar-right">
       <span class="stats-pill green" id="statAvail">0 в меню</span>
@@ -538,7 +538,7 @@ function createCard(item) {
   card.innerHTML = `
     <div class="item-media">
       ${mediaPart}
-      <span class="item-status-badge">${avail ? '✓ Есть' : '✕ Нет'}</span>
+      <span class="item-status-badge">${avail ? '✓ Есть' : '✕ Нет сегодня'}</span>
     </div>
     <div class="item-body">
       <div class="item-name">${item.name}</div>
@@ -547,8 +547,8 @@ function createCard(item) {
         <span class="item-weight">${item.weight || ''}</span>
       </div>
       <div class="item-toggle-row">
-        <button class="toggle-btn set-available"  data-id="${item.id}" ${avail  ? 'disabled' : ''}>✓ Есть</button>
-        <button class="toggle-btn set-unavailable" data-id="${item.id}" ${!avail ? 'disabled' : ''}>✕ Нет</button>
+        <button class="toggle-btn set-available"   data-id="${item.id}" ${avail  ? 'disabled' : ''}>✓ Вернуть</button>
+        <button class="toggle-btn set-unavailable" data-id="${item.id}" ${!avail ? 'disabled' : ''}>✕ Убрать сегодня</button>
       </div>
     </div>`;
 
@@ -578,7 +578,7 @@ async function setAvailability(itemId, available) {
       },
       body: JSON.stringify({ available }),
     });
-    toast(available ? '✓ Блюдо снова в меню' : '✕ Блюдо убрано из меню', available ? 'success' : 'default');
+    toast(available ? '✓ Блюдо возвращено в меню' : '✕ Убрано до конца дня', available ? 'success' : 'default');
   } catch (e) {
     // Откат при ошибке
     availability[itemId] = prev;
@@ -614,6 +614,28 @@ if (kitchenToken) {
     .then(r => { if (r.ok) showApp(); else { kitchenToken = null; sessionStorage.removeItem('kitchenToken'); } })
     .catch(() => {});
 }
+
+/* ── MIDNIGHT RESET — перезагружаем availability в начале нового дня ── */
+function scheduleMidnightReset() {
+  const now      = new Date();
+  const midnight = new Date(now.getFullYear(), now.getMonth(), now.getDate() + 1, 0, 0, 10);
+  const ms       = midnight - now;
+  setTimeout(async () => {
+    // Новый день — убранные вчера блюда сервер уже не вернёт, перезагружаем
+    if (menuData) {
+      const avRes = await fetch('/api/kitchen/availability').catch(() => null);
+      if (avRes?.ok) {
+        availability = await avRes.json();
+        renderCatNav();
+        renderItems();
+        updateStats();
+        toast('Новый день — меню обновлено', 'success');
+      }
+    }
+    scheduleMidnightReset(); // планируем следующую полночь
+  }, ms);
+}
+scheduleMidnightReset();
 </script>
 </body>
 </html>
