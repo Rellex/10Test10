@@ -720,7 +720,7 @@ document.getElementById('itemForm').addEventListener('submit', async e => {
     const data = {
       name,
       price:       parseInt(price, 10),
-      weight:      document.getElementById('itemWeight').value.trim(),
+      weight:      (() => { const w = document.getElementById('itemWeight').value.trim(); return w && !/г$|мл$|л$|ml$|g$/.test(w) ? w + 'г' : w; })(),
       emoji,
       categoryId,
       description: (editId ? (S.menu.items.find(i => i.id === editId)?.description || '') : ''),

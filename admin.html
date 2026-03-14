@@ -118,7 +118,6 @@
           <span class="btn-add-item-icon">+</span>
           <span>Добавить позицию</span>
         </button>
-        <span id="adminLiveBadge" style="font-size:12px;font-weight:600;margin-left:8px;white-space:nowrap">🔴 Offline</span>
       </header>
 
       <div class="stats-row" id="statsRow">
@@ -183,11 +182,15 @@
           </div>
           <div class="field-group">
             <label class="field-label">Вес/объём</label>
-            <input type="number" class="field-input" id="itemWeight" placeholder="300" min="1" />
+            <input type="text" class="field-input" id="itemWeight" placeholder="200г" />
           </div>
           <div class="field-group full">
             <label class="field-label">Категория*</label>
             <select class="field-input field-select" id="itemCategory" required></select>
+          </div>
+          <div class="field-group full">
+            <label class="field-label">Описание</label>
+            <textarea class="field-input field-textarea" id="itemDescription" placeholder="Необязательно..."></textarea>
           </div>
           <div class="field-group full">
             <label class="field-label">Состав</label>
