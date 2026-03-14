@@ -1113,6 +1113,7 @@ document.getElementById('tabDelivery').addEventListener('click', () => {
   document.getElementById('deliverySection').style.display = 'block';
   document.getElementById('pickupSection').style.display   = 'none';
   document.getElementById('checkoutDeliveryRow').style.display = 'flex';
+  revalidatePromo();
   updateCheckoutSummary(); updateCartSummary();
 });
 
@@ -1123,6 +1124,7 @@ document.getElementById('tabPickup').addEventListener('click', () => {
   document.getElementById('tabDelivery').classList.remove('active');
   document.getElementById('deliverySection').style.display = 'none';
   document.getElementById('pickupSection').style.display   = 'block';
+  revalidatePromo();
   updateCheckoutSummary(); updateCartSummary();
 });
 
@@ -1204,6 +1206,30 @@ function renderPaymentOptions() {
 }
 
 /* ===== PROMO ===== */
+
+// Перепроверяем промокод при смене режима доставки/самовывоза
+async function revalidatePromo() {
+  if (!state.promo) return;
+  const statusEl = document.getElementById('promoStatus');
+  try {
+    const res  = await fetch('/api/promo/apply', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ code: state.promo, subtotal: getSubtotal(), mode: state.deliveryMode || 'delivery' }),
+    });
+    if (!res.ok) {
+      const data = await res.json();
+      // Промокод не действует для нового режима — сбрасываем
+      state.promo = null; state.promoDiscount = 0; state.promoItemPrices = {};
+      if (statusEl) {
+        statusEl.className   = 'promo-status error';
+        statusEl.textContent = data.error || '❌ Промокод не действует для выбранного способа получения';
+      }
+      updateCheckoutSummary();
+    }
+    // Если ок — ничего не меняем, скидка уже посчитана
+  } catch(e) {}
+}
 document.getElementById('applyPromoBtn').addEventListener('click', applyPromo);
 document.getElementById('promoInput').addEventListener('keydown', e => { if (e.key === 'Enter') applyPromo(); });
 
