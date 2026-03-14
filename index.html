@@ -4,7 +4,7 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, minimum-scale=1.0, maximum-scale=1.0, user-scalable=no" />
   <title>Солнечный день — Доставка</title>
-  <link rel="stylesheet" href="style.css?v=1773332625" />
+  <link rel="stylesheet" href="style.css" />
   <script src="https://telegram.org/js/telegram-web-app.js"></script>
 </head>
 <body>
@@ -333,11 +333,16 @@
       <div class="support-body">
         <div class="support-city" id="supportCityName" style="display:none"></div>
         <a class="support-phone" id="supportPhone" href="#"></a>
+        <div class="support-feedback-wrap">
+          <textarea class="support-feedback-input" id="feedbackText" placeholder="Напишите ваш вопрос или отзыв..." rows="3"></textarea>
+          <button class="btn-primary" id="feedbackSendBtn">Отправить</button>
+        </div>
+        <div class="support-feedback-ok" id="feedbackOk" style="display:none">✅ Сообщение отправлено!</div>
       </div>
     </div>
   </div>
 
   <script src="data.js"></script>
-  <script src="script.js?v=1773332625"></script>
+  <script src="script.js"></script>
 </body>
 </html>
