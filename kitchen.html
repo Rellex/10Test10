@@ -277,6 +277,18 @@
     @keyframes toastIn { from { opacity:0; transform:translateY(10px); } to { opacity:1; transform:translateY(0); } }
     @keyframes toastOut { to { opacity:0; transform:translateY(10px); } }
 
+    /* ── SCHEDULE BANNER ── */
+    .schedule-banner {
+      background: #FFF8ED; border: 1.5px solid #FFD580;
+      border-radius: 10px; padding: 10px 16px;
+      font-size: 13px; color: #92500A;
+      margin-bottom: 16px;
+    }
+    .schedule-banner.empty {
+      background: #FEF2F2; border-color: #FECACA; color: #991B1B;
+    }
+    .schedule-banner b { font-weight: 800; }
+
     /* ── RESPONSIVE ── */
     @media (max-width: 480px) {
       .items-grid { grid-template-columns: repeat(2, 1fr); gap: 8px; }
@@ -420,7 +432,29 @@ async function showApp() {
   await loadMenu();
 }
 
-/* ── LOAD MENU ── */
+/* ── SCHEDULE HELPERS ── */
+function getTodayDayId() {
+  // UTC+7 (Новосибирск/Москва +4 — берём серверное время через offset)
+  const d = new Date().getDay(); // 0=вс
+  if (d === 0 || d === 6) return 'weekend';
+  return ['','monday','tuesday','wednesday','thursday','friday'][d];
+}
+
+// Возвращает Set id блюд сегодня, или null если расписание выключено/не задано
+function getTodayScheduleIds() {
+  const sched = menuData?.weeklySchedule;
+  if (!sched || !sched.enabled) return null;
+  const dayId  = getTodayDayId();
+  const day    = (sched.days || []).find(d => d.id === dayId);
+  if (!day || !day.itemIds || !day.itemIds.length) return new Set(); // расписание есть, но день пустой
+  return new Set(day.itemIds);
+}
+
+// Человекочитаемое название сегодня
+const DAY_NAMES_RU = {
+  monday:'Понедельник', tuesday:'Вторник', wednesday:'Среда',
+  thursday:'Четверг', friday:'Пятница', weekend:'Суббота — Воскресенье'
+};
 async function loadMenu() {
   document.getElementById('mainWrap').innerHTML = `
     <div class="loading-wrap"><div class="spinner"></div><span>Загружаем меню...</span></div>`;
@@ -445,19 +479,25 @@ async function loadMenu() {
 function renderCatNav() {
   const nav = document.getElementById('catNav');
   nav.innerHTML = '';
-  const cats = (menuData.categories || []).filter(c => c.active !== false);
+  const schedIds = getTodayScheduleIds();
+  const cats = (menuData.categories || []).filter(c => {
+    if (c.active === false) return false;
+    // Скрываем категорию если в ней нет ни одного блюда сегодня
+    return getItemsByCat(c.id).length > 0;
+  });
   if (!cats.length) return;
-  if (!activeCatId) activeCatId = cats[0].id;
+  if (!activeCatId || activeCatId === '__all') activeCatId = '__all';
 
   // Кнопка «Все»
   const allBtn = document.createElement('button');
-  allBtn.className = 'cat-btn' + (!activeCatId || activeCatId === '__all' ? ' active' : '');
+  allBtn.className = 'cat-btn' + (activeCatId === '__all' ? ' active' : '');
   allBtn.innerHTML = 'Все <span class="cat-count">' + countAvailableAll() + '</span>';
   allBtn.addEventListener('click', () => { activeCatId = '__all'; renderCatNav(); renderItems(); });
   nav.appendChild(allBtn);
 
   cats.forEach(cat => {
     const items = getItemsByCat(cat.id);
+    if (!items.length) return;
     const avail = items.filter(i => isAvailable(i)).length;
     const btn   = document.createElement('button');
     btn.className = 'cat-btn' + (activeCatId === cat.id ? ' active' : '');
@@ -468,12 +508,28 @@ function renderCatNav() {
 }
 
 function getItemsByCat(catId) {
-  return (menuData.items || []).filter(i => i.categoryId === catId && i.active !== false);
+  const schedIds = getTodayScheduleIds();
+  return (menuData.items || []).filter(i => {
+    if (i.categoryId !== catId) return false;
+    if (i.active === false) return false;
+    if (schedIds !== null && !schedIds.has(i.id)) return false; // не в расписании сегодня
+    return true;
+  });
+}
+
+// Все блюда сегодня (по расписанию)
+function getTodayItems() {
+  const schedIds = getTodayScheduleIds();
+  return (menuData.items || []).filter(i => {
+    if (i.active === false) return false;
+    if (schedIds !== null && !schedIds.has(i.id)) return false;
+    return true;
+  });
 }
 
 function countAvailableAll() {
-  return (menuData.items || []).filter(i => i.active !== false && isAvailable(i)).length
-    + ' / ' + (menuData.items || []).filter(i => i.active !== false).length;
+  const items = getTodayItems();
+  return items.filter(i => isAvailable(i)).length + ' / ' + items.length;
 }
 
 /* ── AVAILABILITY ── */
@@ -487,23 +543,50 @@ function isAvailable(item) {
 /* ── RENDER ITEMS ── */
 function renderItems() {
   const wrap = document.getElementById('mainWrap');
-  const cats = (menuData.categories || []).filter(c => c.active !== false);
   wrap.innerHTML = '';
+
+  const schedIds  = getTodayScheduleIds();
+  const todayName = DAY_NAMES_RU[getTodayDayId()] || '';
+
+  // Баннер расписания
+  if (schedIds !== null) {
+    const banner = document.createElement('div');
+    banner.className = 'schedule-banner';
+    if (schedIds.size === 0) {
+      banner.innerHTML = `📅 Расписание включено, но на <b>${todayName}</b> блюда не заданы`;
+      banner.classList.add('empty');
+    } else {
+      banner.innerHTML = `📅 Показаны блюда по расписанию на <b>${todayName}</b> · ${schedIds.size} позиций`;
+    }
+    wrap.appendChild(banner);
+  }
+
+  const cats = (menuData.categories || []).filter(c => c.active !== false);
 
   if (activeCatId && activeCatId !== '__all') {
     const cat   = cats.find(c => c.id === activeCatId);
     const items = getItemsByCat(activeCatId);
     if (!items.length) {
-      wrap.innerHTML = '<div class="loading-wrap">Нет блюд в этой категории</div>';
+      wrap.innerHTML += '<div class="loading-wrap">Нет блюд в расписании на сегодня</div>';
       return;
     }
     appendSection(wrap, cat?.name || '', items);
   } else {
+    let hasAny = false;
     cats.forEach(cat => {
       const items = getItemsByCat(cat.id);
       if (!items.length) return;
+      hasAny = true;
       appendSection(wrap, cat.name, items);
     });
+    if (!hasAny) {
+      const msg = document.createElement('div');
+      msg.className = 'loading-wrap';
+      msg.textContent = schedIds !== null
+        ? `На ${todayName} в расписании нет блюд`
+        : 'Меню пустое';
+      wrap.appendChild(msg);
+    }
   }
 }
 
@@ -602,8 +685,8 @@ function updateCard(itemId) {
 }
 
 function updateStats() {
-  const all    = (menuData?.items || []).filter(i => i.active !== false);
-  const avail  = all.filter(i => isAvailable(i)).length;
+  const all   = getTodayItems();
+  const avail = all.filter(i => isAvailable(i)).length;
   document.getElementById('statAvail').textContent   = avail + ' в меню';
   document.getElementById('statUnavail').textContent = (all.length - avail) + ' нет';
 }
