@@ -1287,7 +1287,7 @@ app.get('/api/admin/promos', auth, (_, res) => res.json(readPromos()));
 
 // Создать промокод
 app.post('/api/admin/promos', auth, (req, res) => {
-  const { code, type, discount, label, maxUses, expiresAt, itemPrices, minOrderAmount } = req.body;
+  const { code, type, discount, label, maxUses, expiresAt, itemPrices, delivery, pickup } = req.body;
   if (!code || !type) return res.status(400).json({ error: 'code и type обязательны' });
   const list = readPromos();
   if (list.find(p => p.code === code.toUpperCase()))
@@ -1301,10 +1301,11 @@ app.post('/api/admin/promos', auth, (req, res) => {
     maxUses:        maxUses   || null,
     usedCount:      0,
     expiresAt:      expiresAt || null,
-    minOrderAmount: minOrderAmount || null,
-    itemPrices:     itemPrices || {},
-    active:         true,
-    createdAt:      new Date().toISOString(),
+    delivery:  delivery  || { enabled: true,  minOrderAmount: null, maxUses: null },
+    pickup:    pickup    || { enabled: false, minOrderAmount: null, maxUses: null },
+    itemPrices: itemPrices || {},
+    active:    true,
+    createdAt: new Date().toISOString(),
   };
   list.push(promo);
   writePromos(list);
@@ -1317,7 +1318,7 @@ app.put('/api/admin/promos/:id', auth, (req, res) => {
   const list  = readPromos();
   const promo = list.find(p => p.id === req.params.id);
   if (!promo) return res.status(404).json({ error: 'Не найден' });
-  const { code, type, discount, label, maxUses, expiresAt, itemPrices, active, minOrderAmount } = req.body;
+  const { code, type, discount, label, maxUses, expiresAt, itemPrices, active, delivery, pickup } = req.body;
   if (code      !== undefined) promo.code           = code.trim().toUpperCase();
   if (type      !== undefined) promo.type           = type;
   if (discount  !== undefined) promo.discount       = discount;
@@ -1326,7 +1327,8 @@ app.put('/api/admin/promos/:id', auth, (req, res) => {
   if (expiresAt !== undefined) promo.expiresAt      = expiresAt;
   if (itemPrices!== undefined) promo.itemPrices     = itemPrices;
   if (active    !== undefined) promo.active         = active;
-  if (minOrderAmount !== undefined) promo.minOrderAmount = minOrderAmount;
+  if (delivery   !== undefined) promo.delivery  = delivery;
+  if (pickup     !== undefined) promo.pickup    = pickup;
   writePromos(list);
   broadcast('promos', readPromos());
   res.json(promo);
@@ -1361,7 +1363,10 @@ app.post('/api/promo/apply', (req, res) => {
     return res.status(410).json({ error: '❌ Промокод исчерпан' });
 
   // Проверка условий для конкретного режима получения
-  const modeCfg = mode === 'pickup' ? (promo.pickup || {}) : (promo.delivery || { enabled: true });
+  // delivery по умолчанию enabled:true, pickup по умолчанию enabled:false
+  const modeCfg = mode === 'pickup'
+    ? (promo.pickup   || { enabled: false })
+    : (promo.delivery || { enabled: true  });
 
   // Промокод не работает для этого режима
   if (modeCfg.enabled === false)
@@ -1371,13 +1376,14 @@ app.post('/api/promo/apply', (req, res) => {
         : '❌ Промокод не действует при доставке'
     });
 
-  // Проверка мин. суммы для режима
-  if (modeCfg.minOrderAmount && (subtotal || 0) < modeCfg.minOrderAmount)
-    return res.status(400).json({ error: `❌ Промокод доступен от ${modeCfg.minOrderAmount} ₽` });
+  // Проверка мин. суммы для режима (null или 0 = без ограничения)
+  const modeMin = modeCfg.minOrderAmount || 0;
+  if (modeMin > 0 && (subtotal || 0) < modeMin)
+    return res.status(400).json({ error: `❌ Промокод доступен от ${modeMin} ₽` });
 
   // Проверка лимита использований для режима
   const modeUsed = mode === 'pickup' ? (promo.pickupUsedCount || 0) : (promo.deliveryUsedCount || 0);
-  if (modeCfg.maxUses !== null && modeCfg.maxUses !== undefined && modeUsed >= modeCfg.maxUses)
+  if (modeCfg.maxUses != null && modeUsed >= modeCfg.maxUses)
     return res.status(410).json({ error: '❌ Лимит использований для этого способа получения исчерпан' });
 
   // Считаем скидку
