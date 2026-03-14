@@ -13,8 +13,10 @@ async function api(method, path, body) {
 function showAdminApp() {
   document.getElementById('loginScreen').style.display = 'none';
   document.getElementById('adminApp').classList.remove('hidden');
+  initDayFilter();
   loadMenu();
   if (typeof fetchAddresses === 'function') fetchAddresses();
+  connectAdminLive();
 }
 
 /* ══════════════════════════════════════════════
@@ -61,16 +63,53 @@ const S = {
   pendingImage: null,
   currentEmoji: '🍽️',
   confirmCallback: null,
+  dayFilter:   { auto: true, day: null },
 };
 
-/* ── Day helpers (used by schedule manager) ── */
+/* ── Day filter helpers ── */
 function getTodayDayId() {
   const d = new Date().getDay();
   if (d === 0 || d === 6) return 'weekend';
   return ['','monday','tuesday','wednesday','thursday','friday'][d];
 }
+const DAY_NAMES = {
+  monday:'Понедельник', tuesday:'Вторник', wednesday:'Среда',
+  thursday:'Четверг', friday:'Пятница', weekend:'Сб — Вс'
+};
 function getActiveDayId() {
-  return getTodayDayId();
+  return S.dayFilter.auto ? getTodayDayId() : S.dayFilter.day;
+}
+function getDayItemIds() {
+  const schedule = S.menu.weeklySchedule;
+  if (!schedule) return null;
+  const dayId = getActiveDayId();
+  const day = schedule.days.find(d => d.id === dayId);
+  return day ? day.itemIds : null;
+}
+function initDayFilter() {
+  const autoBtn = document.getElementById('dayAutoBtn');
+  const sel = document.getElementById('daySelect');
+  if (!autoBtn || !sel) return;
+
+  // Set select to today
+  S.dayFilter.day = getTodayDayId();
+  sel.value = S.dayFilter.day;
+
+  autoBtn.addEventListener('click', () => {
+    S.dayFilter.auto = !S.dayFilter.auto;
+    autoBtn.classList.toggle('active', S.dayFilter.auto);
+    sel.disabled = S.dayFilter.auto;
+    if (S.dayFilter.auto) {
+      S.dayFilter.day = getTodayDayId();
+      sel.value = S.dayFilter.day;
+    }
+    if (S.activeCatId) renderItems(S.activeCatId);
+  });
+
+  sel.addEventListener('change', () => {
+    S.dayFilter.day = sel.value;
+    if (S.activeCatId) renderItems(S.activeCatId);
+  });
 }
 
 const EMOJI_LIST = [
@@ -104,7 +143,6 @@ function loadMenuCache() {
     if (!raw) return null;
     const parsed = JSON.parse(raw);
     if (!parsed || !Array.isArray(parsed.categories) || !Array.isArray(parsed.items)) return null;
-    // weeklySchedule может отсутствовать в старом кэше — это нормально
     return parsed;
   } catch {
     return null;
@@ -263,26 +301,21 @@ function logout() {
 async function loadMenu() {
   try {
     const menu = await api('GET', '/api/menu');
-    S.menu.categories    = menu.categories    || [];
-    S.menu.items         = menu.items         || [];
-    S.menu.weeklySchedule = menu.weeklySchedule || null;
+    S.menu.categories = menu.categories || [];
+    S.menu.items      = menu.items      || [];
     saveMenuCache();
     renderCityTabs();
     renderSidebar();
     if (S.activeCatId) renderItems(S.activeCatId);
     if (S.menu.categories.length === 0) showInitPrompt();
-    updateScheduleBtnIndicator();
   } catch (e) {
     const cached = loadMenuCache();
     if (cached) {
-      S.menu.categories     = cached.categories     || [];
-      S.menu.items          = cached.items          || [];
-      S.menu.weeklySchedule = cached.weeklySchedule || null;
+      S.menu = cached;
       renderCityTabs();
       renderSidebar();
       if (!S.activeCatId && S.menu.categories.length) S.activeCatId = S.menu.categories[0].id;
       if (S.activeCatId) renderItems(S.activeCatId);
-      updateScheduleBtnIndicator();
     }
     toast('Ошибка загрузки: ' + e.message, 'error');
   }
@@ -418,7 +451,8 @@ function renderItems(catId) {
   const cityFiltered = S.activeCity
     ? allItems.filter(i => !(i.disabledCities || []).includes(S.activeCity))
     : allItems;
-  const items = cityFiltered;
+  const dayIds = getDayItemIds();
+  const items = dayIds ? cityFiltered.filter(i => dayIds.includes(i.id)) : cityFiltered;
   const grid  = document.getElementById('itemsGrid');
   const empty = document.getElementById('emptyState');
 
@@ -538,7 +572,6 @@ function openItemModal(item) {
   document.getElementById('itemName').value             = item?.name        || '';
   document.getElementById('itemPrice').value            = item?.price       || '';
   document.getElementById('itemWeight').value           = item?.weight      || '';
-  document.getElementById('itemDescription').value      = item?.description || '';
   document.getElementById('itemComposition').value      = item?.composition  || '';
   document.getElementById('itemKcal').value             = item?.kcal    ?? '';
   document.getElementById('itemProtein').value          = item?.protein ?? '';
@@ -690,7 +723,7 @@ document.getElementById('itemForm').addEventListener('submit', async e => {
       weight:      document.getElementById('itemWeight').value.trim(),
       emoji,
       categoryId,
-      description: document.getElementById('itemDescription').value.trim(),
+      description: (editId ? (S.menu.items.find(i => i.id === editId)?.description || '') : ''),
       composition: document.getElementById('itemComposition').value.trim(),
       kcal:    document.getElementById('itemKcal').value    ? Number(document.getElementById('itemKcal').value)    : null,
       protein: document.getElementById('itemProtein').value ? Number(document.getElementById('itemProtein').value) : null,
@@ -1435,414 +1468,75 @@ async function changeOrderStatus(orderId, status) {
 }
 
 /* ══════════════════════════════════════════════
-   SCHEDULE MANAGER
-   Управляет menu.weeklySchedule — объектом вида:
-   {
-     enabled: true,
-     days: [
-       { id: 'monday',    itemIds: ['item1', 'item2', ...] },
-       { id: 'tuesday',   itemIds: [...] },
-       ...
-       { id: 'weekend',   itemIds: [...] }
-     ]
-   }
-   Если enabled=false или weeklySchedule отсутствует —
-   клиент показывает всё меню (script.js: getTodayItemIds→null).
+   LIVE SYNC — WebSocket
 ══════════════════════════════════════════════ */
+let _adminWs = null;
+let _adminWsReconnectTimer = null;
+let _adminWsEditingItemId = null; // id блюда открытого в модале — не перерисовываем
 
-const SCHEDULE_DAYS = [
-  { id: 'monday',    name: 'Понедельник' },
-  { id: 'tuesday',   name: 'Вторник'     },
-  { id: 'wednesday', name: 'Среда'       },
-  { id: 'thursday',  name: 'Четверг'     },
-  { id: 'friday',    name: 'Пятница'     },
-  { id: 'weekend',   name: 'Сб — Вс'     },
-];
+function connectAdminLive() {
+  if (_adminWs && (_adminWs.readyState === WebSocket.OPEN || _adminWs.readyState === WebSocket.CONNECTING)) return;
+  const proto = location.protocol === 'https:' ? 'wss' : 'ws';
+  _adminWs = new WebSocket(proto + '://' + location.host);
 
-/* Текущий черновик расписания в модале */
-let scheduleDraft = null;
-
-function getScheduleFromMenu() {
-  return S.menu.weeklySchedule || null;
-}
-
-/* Инициализация черновика при открытии модала */
-function initScheduleDraft() {
-  const existing = getScheduleFromMenu();
-  scheduleDraft = {
-    enabled: !!(existing && existing.enabled),
-    days: SCHEDULE_DAYS.map(d => {
-      const found = existing && existing.days && existing.days.find(x => x.id === d.id);
-      return {
-        id: d.id,
-        itemIds: found ? [...found.itemIds] : getAllItemIds(),
-      };
-    }),
-  };
-}
-
-function getAllItemIds() {
-  return S.menu.items.filter(i => i.active !== false).map(i => i.id);
-}
-
-/* Открыть модал расписания */
-function openScheduleModal() {
-  initScheduleDraft();
-  renderScheduleModal();
-  document.getElementById('scheduleModal').classList.remove('hidden');
-}
-
-function closeScheduleModal() {
-  document.getElementById('scheduleModal').classList.add('hidden');
-  scheduleDraft = null;
-}
-
-/* Рендер содержимого модала */
-function renderScheduleModal() {
-  document.getElementById('scheduleEnabled').checked = scheduleDraft.enabled;
-  const wrap = document.getElementById('scheduleDaysWrap');
-  wrap.innerHTML = '';
-
-  const allItems = S.menu.items.filter(i => i.active !== false);
-  const categories = S.menu.categories;
-
-  SCHEDULE_DAYS.forEach((dayDef, dayIdx) => {
-    const dayData = scheduleDraft.days[dayIdx];
-    const isToday = getTodayDayId() === dayDef.id;
-
-    const dayBlock = document.createElement('div');
-    dayBlock.className = 'schedule-day-block';
-    dayBlock.id = 'sched-day-' + dayDef.id;
-
-    const checkedCount = dayData.itemIds.length;
-    const totalCount = allItems.length;
-
-    dayBlock.innerHTML = `
-      <div class="schedule-day-header" data-day="${dayDef.id}">
-        <span class="schedule-day-name">${isToday ? '📍 ' : ''}${dayDef.name}</span>
-        <span class="schedule-day-count" id="sched-count-${dayDef.id}">${checkedCount}/${totalCount} блюд</span>
-        <div class="schedule-day-actions">
-          <button class="btn-sm btn-secondary sched-select-all" data-day="${dayDef.id}" title="Выбрать все">Все</button>
-          <button class="btn-sm btn-secondary sched-clear-all" data-day="${dayDef.id}" title="Убрать все">Нет</button>
-          <button class="btn-sm sched-toggle-expand schedule-expand-btn" data-day="${dayDef.id}">▾</button>
-        </div>
-      </div>
-      <div class="schedule-items-list" id="sched-items-${dayDef.id}" style="display:none">
-        ${categories.map(cat => {
-          const catItems = allItems.filter(i => i.categoryId === cat.id);
-          if (!catItems.length) return '';
-          return `<div class="sched-cat-group">
-            <div class="sched-cat-label">
-              <label class="sched-cat-checkbox-label">
-                <input type="checkbox" class="sched-cat-check" data-day="${dayDef.id}" data-cat="${cat.id}"
-                  ${catItems.every(i => dayData.itemIds.includes(i.id)) ? 'checked' : ''}
-                  ${catItems.some(i => dayData.itemIds.includes(i.id)) && !catItems.every(i => dayData.itemIds.includes(i.id)) ? 'data-indeterminate="1"' : ''}
-                />
-                <span>${cat.name}</span>
-              </label>
-            </div>
-            ${catItems.map(item => `
-              <label class="sched-item-label">
-                <input type="checkbox" class="sched-item-check" data-day="${dayDef.id}" data-id="${item.id}"
-                  ${dayData.itemIds.includes(item.id) ? 'checked' : ''}
-                />
-                <span class="sched-item-emoji">${item.emoji || '🍽️'}</span>
-                <span class="sched-item-name">${item.name}</span>
-                <span class="sched-item-price">${item.price || 0} ₽</span>
-              </label>
-            `).join('')}
-          </div>`;
-        }).join('')}
-      </div>
-    `;
-    wrap.appendChild(dayBlock);
-
-    // Fix indeterminate checkboxes
-    dayBlock.querySelectorAll('[data-indeterminate="1"]').forEach(cb => {
-      cb.indeterminate = true;
-    });
-  });
-
-  bindScheduleEvents();
-  updateScheduleEnabledUI();
-}
-
-function updateScheduleEnabledUI() {
-  const enabled = document.getElementById('scheduleEnabled').checked;
-  const wrap = document.getElementById('scheduleDaysWrap');
-  wrap.style.opacity = enabled ? '1' : '0.45';
-  wrap.style.pointerEvents = enabled ? '' : 'none';
-}
-
-function updateDayCount(dayId) {
-  const dayIdx = SCHEDULE_DAYS.findIndex(d => d.id === dayId);
-  if (dayIdx < 0) return;
-  const dayData = scheduleDraft.days[dayIdx];
-  const total = S.menu.items.filter(i => i.active !== false).length;
-  const el = document.getElementById('sched-count-' + dayId);
-  if (el) el.textContent = dayData.itemIds.length + '/' + total + ' блюд';
-}
-
-function bindScheduleEvents() {
-  // Toggle enabled
-  document.getElementById('scheduleEnabled').onchange = function() {
-    scheduleDraft.enabled = this.checked;
-    updateScheduleEnabledUI();
+  _adminWs.onopen = () => {
+    console.log('[Admin WS] connected');
+    clearTimeout(_adminWsReconnectTimer);
+    showLiveBadge(true);
   };
 
-  // Expand/collapse day
-  document.querySelectorAll('.sched-toggle-expand').forEach(btn => {
-    btn.addEventListener('click', () => {
-      const dayId = btn.dataset.day;
-      const list = document.getElementById('sched-items-' + dayId);
-      const expanded = list.style.display !== 'none';
-      list.style.display = expanded ? 'none' : 'block';
-      btn.textContent = expanded ? '▾' : '▴';
-    });
-  });
-
-  // Select all for day
-  document.querySelectorAll('.sched-select-all').forEach(btn => {
-    btn.addEventListener('click', () => {
-      const dayId = btn.dataset.day;
-      const dayIdx = SCHEDULE_DAYS.findIndex(d => d.id === dayId);
-      scheduleDraft.days[dayIdx].itemIds = getAllItemIds();
-      // Re-check all checkboxes for this day
-      document.querySelectorAll(`[data-day="${dayId}"].sched-item-check`).forEach(cb => cb.checked = true);
-      document.querySelectorAll(`[data-day="${dayId}"].sched-cat-check`).forEach(cb => { cb.checked = true; cb.indeterminate = false; });
-      updateDayCount(dayId);
-    });
-  });
-
-  // Clear all for day
-  document.querySelectorAll('.sched-clear-all').forEach(btn => {
-    btn.addEventListener('click', () => {
-      const dayId = btn.dataset.day;
-      const dayIdx = SCHEDULE_DAYS.findIndex(d => d.id === dayId);
-      scheduleDraft.days[dayIdx].itemIds = [];
-      document.querySelectorAll(`[data-day="${dayId}"].sched-item-check`).forEach(cb => cb.checked = false);
-      document.querySelectorAll(`[data-day="${dayId}"].sched-cat-check`).forEach(cb => { cb.checked = false; cb.indeterminate = false; });
-      updateDayCount(dayId);
-    });
-  });
-
-  // Individual item checkbox
-  document.querySelectorAll('.sched-item-check').forEach(cb => {
-    cb.addEventListener('change', () => {
-      const dayId = cb.dataset.day;
-      const itemId = cb.dataset.id;
-      const dayIdx = SCHEDULE_DAYS.findIndex(d => d.id === dayId);
-      if (cb.checked) {
-        if (!scheduleDraft.days[dayIdx].itemIds.includes(itemId))
-          scheduleDraft.days[dayIdx].itemIds.push(itemId);
-      } else {
-        scheduleDraft.days[dayIdx].itemIds = scheduleDraft.days[dayIdx].itemIds.filter(id => id !== itemId);
-      }
-      updateDayCount(dayId);
-      // Update category checkbox state
-      updateCatCheckState(dayId, cb.closest('.sched-cat-group')?.querySelector('.sched-cat-check'));
-    });
-  });
-
-  // Category checkbox (select/deselect whole category)
-  document.querySelectorAll('.sched-cat-check').forEach(cb => {
-    cb.addEventListener('change', () => {
-      const dayId = cb.dataset.day;
-      const catId = cb.dataset.cat;
-      const dayIdx = SCHEDULE_DAYS.findIndex(d => d.id === dayId);
-      const catItemIds = S.menu.items.filter(i => i.categoryId === catId && i.active !== false).map(i => i.id);
-      cb.indeterminate = false;
-      if (cb.checked) {
-        catItemIds.forEach(id => {
-          if (!scheduleDraft.days[dayIdx].itemIds.includes(id))
-            scheduleDraft.days[dayIdx].itemIds.push(id);
-        });
-      } else {
-        scheduleDraft.days[dayIdx].itemIds = scheduleDraft.days[dayIdx].itemIds.filter(id => !catItemIds.includes(id));
-      }
-      // Update individual item checkboxes
-      document.querySelectorAll(`[data-day="${dayId}"].sched-item-check`).forEach(itemCb => {
-        if (catItemIds.includes(itemCb.dataset.id)) itemCb.checked = cb.checked;
-      });
-      updateDayCount(dayId);
-    });
-  });
-
-  // Export menu.json from server
-  document.getElementById('scheduleExportBtn').onclick = async function() {
+  _adminWs.onmessage = (e) => {
     try {
-      this.textContent = '⏳ Загружаем...';
-      this.disabled = true;
-      const menu = await api('GET', '/api/admin/export/menu');
-      const blob = new Blob([JSON.stringify(menu, null, 2)], { type: 'application/json' });
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = 'menu.json';
-      a.click();
-      URL.revokeObjectURL(url);
-      toast('menu.json скачан', 'success');
-    } catch(e) {
-      toast('Ошибка выгрузки: ' + e.message, 'error');
-    } finally {
-      this.textContent = '⬇️ Выгрузить menu.json';
-      this.disabled = false;
-    }
+      const msg = JSON.parse(e.data);
+      if (msg.event === 'menu') {
+        const incoming = msg.data;
+        if (!incoming || !incoming.items) return;
+
+        // Если другой админ изменил меню — обновляем локальный стейт и UI
+        // но не закрываем открытый модал редактирования
+        const prevItems = S.menu.items.map(i => i.id);
+        S.menu.categories = incoming.categories || S.menu.categories;
+        S.menu.items      = incoming.items;
+        if (incoming.weeklySchedule) S.menu.weeklySchedule = incoming.weeklySchedule;
+        saveMenuCache();
+        renderSidebar();
+        if (S.activeCatId) renderItems(S.activeCatId);
+
+        // Показываем тост только если изменение пришло «снаружи»
+        // (не от нашего собственного сохранения — наше идёт через refreshUI)
+        showLiveToast('🔄 Меню обновлено другим администратором');
+      }
+    } catch(err) {}
   };
 
-  // Import menu.json
-  const importFileInput = document.getElementById('scheduleImportFile');
-  if (importFileInput) {
-    importFileInput.onchange = async function() {
-      const file = this.files[0];
-      if (!file) return;
-      try {
-        const text = await file.text();
-        const data = JSON.parse(text);
-        if (!data.weeklySchedule || !Array.isArray(data.weeklySchedule.days)) {
-          toast('В файле нет weeklySchedule', 'error'); return;
-        }
-        // Save full menu to server
-        const saveBtn = document.getElementById('scheduleModalSave');
-        saveBtn.disabled = true;
-        saveBtn.textContent = 'Загружаем...';
-        await api('POST', '/api/admin/import/menu', data);
-        // Update local state
-        S.menu.categories     = data.categories || S.menu.categories;
-        S.menu.items          = data.items       || S.menu.items;
-        S.menu.weeklySchedule = data.weeklySchedule;
-        saveMenuCache();
-        // Reinit draft from new data
-        initScheduleDraft();
-        renderScheduleModal();
-        saveBtn.disabled = false;
-        saveBtn.textContent = '💾 Сохранить';
-        toast(`Загружено: ${data.items?.length || 0} позиций, расписание активно`, 'success');
-        this.value = '';
-      } catch(e) {
-        toast('Ошибка чтения файла: ' + e.message, 'error');
-      }
-    };
+  _adminWs.onclose = () => {
+    showLiveBadge(false);
+    _adminWsReconnectTimer = setTimeout(connectAdminLive, 3000);
+  };
+  _adminWs.onerror = () => { _adminWs.close(); };
+}
+
+function showLiveBadge(connected) {
+  let badge = document.getElementById('adminLiveBadge');
+  if (!badge) return;
+  badge.textContent  = connected ? '🟢 Live' : '🔴 Offline';
+  badge.style.color  = connected ? '#27ae60' : '#e74c3c';
+}
+
+let _liveToastTimer = null;
+function showLiveToast(msg) {
+  // Не показываем если это наше собственное изменение (обновление пришло сразу после нашего save)
+  let el = document.getElementById('adminLiveToast');
+  if (!el) {
+    el = document.createElement('div');
+    el.id = 'adminLiveToast';
+    el.style.cssText = 'position:fixed;bottom:80px;left:50%;transform:translateX(-50%);background:#323232;color:#fff;padding:10px 20px;border-radius:24px;font-size:13px;z-index:9999;opacity:0;transition:opacity .3s;pointer-events:none;white-space:nowrap';
+    document.body.appendChild(el);
   }
-
-  // Copy schedule btn
-  document.getElementById('copyScheduleBtn').onclick = showCopyDayDialog;
-
-  // Close & save
-  document.getElementById('scheduleModalClose').onclick = closeScheduleModal;
-  document.getElementById('scheduleModalCancel').onclick = closeScheduleModal;
-  document.getElementById('scheduleModalSave').onclick = saveSchedule;
+  el.textContent = msg;
+  el.style.opacity = '1';
+  clearTimeout(_liveToastTimer);
+  _liveToastTimer = setTimeout(() => { el.style.opacity = '0'; }, 3000);
 }
 
-function updateCatCheckState(dayId, catCb) {
-  if (!catCb) return;
-  const catId = catCb.dataset.cat;
-  const dayIdx = SCHEDULE_DAYS.findIndex(d => d.id === dayId);
-  const catItemIds = S.menu.items.filter(i => i.categoryId === catId && i.active !== false).map(i => i.id);
-  const checked = catItemIds.filter(id => scheduleDraft.days[dayIdx].itemIds.includes(id));
-  if (checked.length === 0) { catCb.checked = false; catCb.indeterminate = false; }
-  else if (checked.length === catItemIds.length) { catCb.checked = true; catCb.indeterminate = false; }
-  else { catCb.checked = false; catCb.indeterminate = true; }
-}
-
-/* Copy one day's selection to all other days */
-function showCopyDayDialog() {
-  const sourceDayId = getActiveDayId();
-  const dayName = SCHEDULE_DAYS.find(d => d.id === sourceDayId)?.name || sourceDayId;
-  showConfirm(
-    `Скопировать список блюд «${dayName}» на все остальные дни?`,
-    () => {
-      const srcIdx = SCHEDULE_DAYS.findIndex(d => d.id === sourceDayId);
-      const srcItemIds = [...scheduleDraft.days[srcIdx].itemIds];
-      scheduleDraft.days.forEach((day, idx) => {
-        if (idx !== srcIdx) day.itemIds = [...srcItemIds];
-      });
-      renderScheduleModal();
-      toast('Скопировано на все дни', 'success');
-    }
-  );
-}
-
-async function saveSchedule() {
-  const btn = document.getElementById('scheduleModalSave');
-  btn.disabled = true;
-  btn.textContent = 'Сохраняем...';
-  try {
-    const menu = { ...S.menu };
-
-    if (!scheduleDraft.enabled) {
-      // Выключено — удаляем weeklySchedule из меню
-      delete menu.weeklySchedule;
-    } else {
-      menu.weeklySchedule = {
-        enabled: true,
-        days: scheduleDraft.days.map(d => ({ id: d.id, itemIds: [...d.itemIds] })),
-      };
-    }
-
-    // Сохраняем через API import (полный replace меню)
-    await api('POST', '/api/admin/import/menu', { categories: menu.categories, items: menu.items, weeklySchedule: menu.weeklySchedule });
-
-    S.menu = menu;
-    closeScheduleModal();
-    toast('Расписание сохранено! Клиенты увидят изменения.', 'success');
-
-    // Обновить фильтр в топбаре
-    if (S.activeCatId) renderItems(S.activeCatId);
-  } catch(e) {
-    toast('Ошибка сохранения: ' + e.message, 'error');
-  } finally {
-    btn.disabled = false;
-    btn.textContent = '💾 Сохранить';
-  }
-}
-
-/* Привязка кнопки в топбаре */
-document.getElementById('scheduleBtn')?.addEventListener('click', openScheduleModal);
-
-/* Исправление: loadMenu теперь также сохраняет weeklySchedule в S.menu */
-const _origLoadMenu = typeof loadMenu !== 'undefined' ? loadMenu : null;
-// Патч loadMenu чтобы weeklySchedule не терялся
-const _loadMenuPatched = async function() {
-  try {
-    const menu = await api('GET', '/api/menu');
-    S.menu.categories = menu.categories || [];
-    S.menu.items      = menu.items      || [];
-    S.menu.weeklySchedule = menu.weeklySchedule || null;
-    saveMenuCache();
-    renderCityTabs();
-    renderSidebar();
-    if (S.activeCatId) renderItems(S.activeCatId);
-    if (S.menu.categories.length === 0) showInitPrompt();
-  } catch (e) {
-    const cached = loadMenuCache();
-    if (cached) {
-      S.menu.categories     = cached.categories     || [];
-      S.menu.items          = cached.items          || [];
-      S.menu.weeklySchedule = cached.weeklySchedule || null;
-      renderCityTabs();
-      renderSidebar();
-      if (!S.activeCatId && S.menu.categories.length) S.activeCatId = S.menu.categories[0].id;
-      if (S.activeCatId) renderItems(S.activeCatId);
-      updateScheduleBtnIndicator();
-    }
-    toast('Ошибка загрузки: ' + e.message, 'error');
-  }
-};
-
-/* Также патчим import/export — сохраняем weeklySchedule */
-const _origImportMenu = typeof importMenu !== 'undefined' ? importMenu : null;
-
-/* Индикатор расписания в топбаре: подсвечиваем кнопку если расписание активно */
-function updateScheduleBtnIndicator() {
-  const btn = document.getElementById('scheduleBtn');
-  if (!btn) return;
-  const active = !!(S.menu.weeklySchedule && S.menu.weeklySchedule.enabled);
-  btn.classList.toggle('schedule-active', active);
-  btn.title = active
-    ? 'Расписание АКТИВНО — нажмите для редактирования'
-    : 'Расписание выключено — нажмите для настройки';
-}
-
-/* Обновляем индикатор после загрузки меню */
-const _origRenderSidebar = renderSidebar;
+// Live sync запускается из showAdminApp() после логина

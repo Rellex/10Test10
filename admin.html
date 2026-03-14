@@ -103,12 +103,22 @@
       <header class="topbar">
         <button class="topbar-menu-btn" id="sidebarToggle">☰</button>
         <div class="topbar-title" id="topbarTitle">Выберите категорию</div>
-
-        <button class="btn-schedule" id="scheduleBtn" title="Настроить расписание по дням недели">📅 Расписание</button>
+        <div class="topbar-day-filter" id="dayFilterBar">
+          <button class="day-auto-btn active" id="dayAutoBtn" title="Авто — показывает меню текущего дня">🔄 Авто</button>
+          <select class="day-select" id="daySelect" disabled>
+            <option value="monday">Понедельник</option>
+            <option value="tuesday">Вторник</option>
+            <option value="wednesday">Среда</option>
+            <option value="thursday">Четверг</option>
+            <option value="friday">Пятница</option>
+            <option value="weekend">Сб — Вс</option>
+          </select>
+        </div>
         <button class="btn-add-item" id="addItemBtn">
           <span class="btn-add-item-icon">+</span>
           <span>Добавить позицию</span>
         </button>
+        <span id="adminLiveBadge" style="font-size:12px;font-weight:600;margin-left:8px;white-space:nowrap">🔴 Offline</span>
       </header>
 
       <div class="stats-row" id="statsRow">
@@ -178,10 +188,6 @@
           <div class="field-group full">
             <label class="field-label">Категория*</label>
             <select class="field-input field-select" id="itemCategory" required></select>
-          </div>
-          <div class="field-group full">
-            <label class="field-label">Описание</label>
-            <textarea class="field-input field-textarea" id="itemDescription" placeholder="Необязательно..."></textarea>
           </div>
           <div class="field-group full">
             <label class="field-label">Состав</label>
@@ -291,43 +297,6 @@
           <button type="submit" class="btn-primary">Сохранить</button>
         </div>
       </form>
-    </div>
-  </div>
-
-  <!-- ===== SCHEDULE MODAL ===== -->
-  <div class="modal-overlay hidden" id="scheduleModal">
-    <div class="modal modal-schedule" id="scheduleModalBox">
-      <div class="modal-header">
-        <h2 class="modal-title">📅 Расписание меню по дням</h2>
-        <button class="modal-close" id="scheduleModalClose">✕</button>
-      </div>
-      <div class="modal-body schedule-modal-body">
-        <p class="schedule-hint">
-          Включите расписание и отметьте, какие блюда доступны в каждый день недели.<br>
-          Если расписание <strong>выключено</strong> — клиенты видят всё меню каждый день.
-        </p>
-        <div class="schedule-toggle-row">
-          <label class="schedule-master-toggle">
-            <input type="checkbox" id="scheduleEnabled" />
-            <span class="toggle-slider"></span>
-            <span class="toggle-label">Расписание активно</span>
-          </label>
-          <label class="btn-secondary btn-sm sched-import-label" title="Загрузить готовый menu.json с расписанием">
-            📂 Загрузить menu.json
-            <input type="file" id="scheduleImportFile" accept=".json" style="display:none" />
-          </label>
-          <button class="btn-secondary btn-sm" id="scheduleExportBtn" title="Скачать текущее меню с сервера как menu.json">⬇️ Выгрузить menu.json</button>
-          <button class="btn-secondary btn-sm" id="copyScheduleBtn" title="Скопировать настройки одного дня на все остальные">Скопировать день на все</button>
-        </div>
-
-        <div class="schedule-days-wrap" id="scheduleDaysWrap">
-          <!-- days rendered by JS -->
-        </div>
-      </div>
-      <div class="modal-footer">
-        <button class="btn-secondary" id="scheduleModalCancel">Отмена</button>
-        <button class="btn-primary" id="scheduleModalSave">💾 Сохранить</button>
-      </div>
     </div>
   </div>
 
