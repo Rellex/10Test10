@@ -13,7 +13,6 @@ async function api(method, path, body) {
 function showAdminApp() {
   document.getElementById('loginScreen').style.display = 'none';
   document.getElementById('adminApp').classList.remove('hidden');
-  initDayFilter();
   loadMenu();
   if (typeof fetchAddresses === 'function') fetchAddresses();
   connectAdminLive();
