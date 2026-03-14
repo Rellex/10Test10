@@ -780,14 +780,17 @@ async function clientBotApi(method, body) {
 }
 
 async function tgApi(method, body) {
-  if (!BOT_TOKEN) return null;
+  if (!BOT_TOKEN) { console.log('tgApi: no BOT_TOKEN'); return null; }
   try {
+    console.log('tgApi:', method, JSON.stringify(body).slice(0, 120));
     const r = await fetch(`https://api.telegram.org/bot${BOT_TOKEN}/${method}`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(body),
     });
-    return await r.json();
+    const result = await r.json();
+    if (!result.ok) console.log('tgApi error:', JSON.stringify(result));
+    return result;
   } catch(e) {
     console.error('TG API error:', e.message);
     return null;
@@ -898,9 +901,9 @@ async function notifyNewOrder(order) {
   const cityId   = (order.cityId || order.city || '').toLowerCase();
   const cityName = (order.cityName || '').toLowerCase();
   const isVyborg = cityId.includes('vyborg') || cityName.includes('выборг');
-  const isSpb    = cityId.includes('spb')    || cityName.includes('петербург') || cityName.includes('петербург');
+  const isSpb    = cityId.includes('spb')    || cityName.includes('петербург');
 
-  console.log('notifyNewOrder:', { cityId, cityName, isVyborg, isSpb, hasBotToken: !!BOT_TOKEN, chatId: VYBORG_CHAT_ID });
+  console.log('notifyNewOrder:', { cityId, cityName, isVyborg, isSpb, BOT_TOKEN: BOT_TOKEN?.slice(0,15), VYBORG_CHAT_ID });
 
   let botFn = null, chatId = null;
   if (isVyborg && BOT_TOKEN && VYBORG_CHAT_ID) {
@@ -913,9 +916,11 @@ async function notifyNewOrder(order) {
     return;
   }
 
+  console.log('notifyNewOrder: sending to chat', chatId);
   const text = buildOrderMessage(order);
   const keyboard = buildStatusKeyboard(order.id, order.status, order.mode);
   const res = await botFn('sendMessage', { chat_id: chatId, text, parse_mode: 'Markdown', reply_markup: keyboard });
+  console.log('notifyNewOrder: tg response ok=', res?.ok, 'err=', res?.description);
   if (res?.ok && res.result?.message_id) {
     const orders = readOrders();
     const o = orders.find(x => x.id === order.id);
