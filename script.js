@@ -1102,11 +1102,6 @@ document.getElementById('clearCartBtn').addEventListener('click', () => {
 
 document.getElementById('goToCheckoutBtn').addEventListener('click', () => {
   if (!getCartCount()) return;
-  if (state.deliveryMode !== 'pickup' && getSubtotal() < 500) {
-    showToast('Минимальная сумма заказа для доставки — 500 ₽');
-    tg?.HapticFeedback?.notificationOccurred('error');
-    return;
-  }
   closeModal('cartOverlay');
   recalcDeliveryZoneCost();
   renderPickupSelect(); renderDeliveryCitySelect(); renderPaymentOptions(); updateCheckoutSummary();
@@ -1404,6 +1399,12 @@ function validateCheckoutForm() {
     }
     const pickupAddr = document.getElementById('pickupAddress');
     if (pickupAddr && !pickupAddr.value) { pickupAddr.classList.add('error'); valid = false; }
+  }
+  // Проверка минимальной суммы для доставки
+  if (state.deliveryMode === 'delivery' && getSubtotal() < 500) {
+    const statusEl = document.getElementById('deliveryZoneStatus');
+    if (statusEl) { statusEl.textContent = 'Минимальная сумма заказа для доставки — 500 ₽'; statusEl.className = 'delivery-zone-status error'; }
+    valid = false;
   }
   // Проверка зоны доставки для городов с зонами
   if (state.deliveryMode === 'delivery' && cityHasZones(state.city)) {
