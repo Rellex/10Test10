@@ -6,7 +6,12 @@ if (tg) {
   tg.ready();
   tg.expand();
   try { tg.disableVerticalSwipes?.(); } catch(e) {}
-  try { tg.requestFullscreen?.();     } catch(e) {}
+  // requestFullscreen только на мобильных — на десктопе выглядит плохо
+  const isMobile = /android|iphone|ipad|ipod/i.test(navigator.userAgent) ||
+                   tg.platform === 'android' || tg.platform === 'ios';
+  if (isMobile) {
+    try { tg.requestFullscreen?.(); } catch(e) {}
+  }
   tg.enableClosingConfirmation();
 }
 
