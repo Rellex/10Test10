@@ -986,9 +986,9 @@ document.getElementById('scheduleModalCancel').addEventListener('click', () => c
 document.getElementById('scheduleModalSave').addEventListener('click', async () => {
   // Собираем itemIds из чекбоксов для каждого дня
   _schedDraft.days = SCHEDULE_DAYS.map(d => {
-    const wrap = document.getElementById('sched-day-' + d.id);
-    if (!wrap) return { id: d.id, itemIds: [] };
-    const checked = [...wrap.querySelectorAll('input[type=checkbox][data-item-id]:checked')];
+    const body = document.getElementById('sched-day-' + d.id);
+    if (!body) return { id: d.id, itemIds: [] };
+    const checked = [...body.querySelectorAll('input[type=checkbox][data-item-id]:checked')];
     return { id: d.id, itemIds: checked.map(c => c.dataset.itemId) };
   });
   _schedDraft.enabled = document.getElementById('scheduleEnabled').checked;
@@ -1039,19 +1039,23 @@ document.getElementById('scheduleImportFile').addEventListener('change', async e
 
 // Скопировать первый день на все остальные
 document.getElementById('copyScheduleBtn').addEventListener('click', () => {
-  const firstWrap = document.getElementById('sched-day-monday');
-  if (!firstWrap) return;
+  const firstBody = document.getElementById('sched-day-monday');
+  if (!firstBody) return;
   const firstIds = new Set(
-    [...firstWrap.querySelectorAll('input[data-item-id]:checked')].map(c => c.dataset.itemId)
+    [...firstBody.querySelectorAll('input[data-item-id]:checked')].map(c => c.dataset.itemId)
   );
   SCHEDULE_DAYS.forEach(d => {
-    const wrap = document.getElementById('sched-day-' + d.id);
-    if (!wrap) return;
-    wrap.querySelectorAll('input[data-item-id]').forEach(cb => {
+    const body = document.getElementById('sched-day-' + d.id);
+    if (!body) return;
+    body.querySelectorAll('input[data-item-id]').forEach(cb => {
       cb.checked = firstIds.has(cb.dataset.itemId);
     });
+    // обновляем счётчик
+    const section = body.closest('.sched-day-section');
+    const countEl = section?.querySelector('.sched-day-count');
+    if (countEl) countEl.textContent = firstIds.size + ' / ' + body.querySelectorAll('input[data-item-id]').length;
   });
-  toast('День скопирован на всю неделю', 'success');
+  toast('Понедельник скопирован на всю неделю', 'success');
 });
 
 function openScheduleModal() {
@@ -1069,37 +1073,68 @@ function renderScheduleDays() {
   if (!wrap) return;
 
   const allItems = S.menu.items.filter(i => i.active !== false);
+  const todayId  = getTodayDayId();
 
   wrap.innerHTML = '';
-  SCHEDULE_DAYS.forEach(d => {
-    const dayData = (_schedDraft.days || []).find(x => x.id === d.id) || { id: d.id, itemIds: [] };
+  SCHEDULE_DAYS.forEach((d, idx) => {
+    const dayData   = (_schedDraft.days || []).find(x => x.id === d.id) || { id: d.id, itemIds: [] };
     const checkedIds = new Set(dayData.itemIds || []);
+    const isToday   = d.id === todayId;
+    const isOpen    = isToday || idx === 0; // сегодня и первый день открыты по умолчанию
 
     const section = document.createElement('div');
-    section.className = 'sched-day-section';
+    section.className = 'sched-day-section' + (isOpen ? ' open' : '');
 
-    // Заголовок с кнопками «Все» / «Сбросить»
+    // Подсчёт выбранных для бейджа
+    const totalActive = allItems.length;
+    const countEl = document.createElement('span');
+    countEl.className = 'sched-day-count';
+
+    const updateCount = () => {
+      const checked = section.querySelectorAll('input[data-item-id]:checked').length;
+      countEl.textContent = checked + ' / ' + totalActive;
+    };
+
+    // Заголовок-кнопка
     const header = document.createElement('div');
     header.className = 'sched-day-header';
     header.innerHTML = `
-      <span class="sched-day-title">${d.name}</span>
-      <div class="sched-day-btns">
-        <button type="button" class="btn-sched-all">Все</button>
-        <button type="button" class="btn-sched-none">Сбросить</button>
+      <div class="sched-day-left">
+        <span class="sched-day-arrow">▶</span>
+        <span class="sched-day-title">${d.name}</span>
+        ${isToday ? '<span class="sched-today-badge">сегодня</span>' : ''}
+      </div>
+      <div class="sched-day-right">
+        <span class="sched-day-count"></span>
+        <div class="sched-day-btns">
+          <button type="button" class="btn-sched-all">Все</button>
+          <button type="button" class="btn-sched-none">Сбросить</button>
+        </div>
       </div>`;
-    header.querySelector('.btn-sched-all').addEventListener('click', () => {
+
+    // Заменяем span count на живой элемент
+    header.querySelector('.sched-day-count').replaceWith(countEl);
+
+    header.querySelector('.sched-day-left').addEventListener('click', () => {
+      section.classList.toggle('open');
+    });
+
+    header.querySelector('.btn-sched-all').addEventListener('click', e => {
+      e.stopPropagation();
       section.querySelectorAll('input[data-item-id]').forEach(cb => cb.checked = true);
+      updateCount();
     });
-    header.querySelector('.btn-sched-none').addEventListener('click', () => {
+    header.querySelector('.btn-sched-none').addEventListener('click', e => {
+      e.stopPropagation();
       section.querySelectorAll('input[data-item-id]').forEach(cb => cb.checked = false);
+      updateCount();
     });
 
-    // Список блюд, сгруппированных по категории
-    const itemList = document.createElement('div');
-    itemList.className = 'sched-item-list';
-    itemList.id = 'sched-day-' + d.id;
+    // Тело — список блюд
+    const body = document.createElement('div');
+    body.className = 'sched-day-body';
+    body.id = 'sched-day-' + d.id;
 
-    // Группируем по категориям
     S.menu.categories.filter(c => c.active !== false).forEach(cat => {
       const catItems = allItems.filter(i => i.categoryId === cat.id);
       if (!catItems.length) return;
@@ -1107,7 +1142,7 @@ function renderScheduleDays() {
       const catLabel = document.createElement('div');
       catLabel.className = 'sched-cat-label';
       catLabel.textContent = cat.name;
-      itemList.appendChild(catLabel);
+      body.appendChild(catLabel);
 
       catItems.forEach(item => {
         const row = document.createElement('label');
@@ -1116,17 +1151,19 @@ function renderScheduleDays() {
         cb.type = 'checkbox';
         cb.dataset.itemId = item.id;
         cb.checked = checkedIds.has(item.id);
+        cb.addEventListener('change', updateCount);
         const name = document.createElement('span');
         name.textContent = (item.emoji || '') + ' ' + item.name;
         row.appendChild(cb);
         row.appendChild(name);
-        itemList.appendChild(row);
+        body.appendChild(row);
       });
     });
 
     section.appendChild(header);
-    section.appendChild(itemList);
+    section.appendChild(body);
     wrap.appendChild(section);
+    updateCount();
   });
 }
 
