@@ -685,7 +685,8 @@ function openItemModal(item) {
 
 function openItemEdit(id) {
   const item = S.menu.items.find(i => i.id === id);
-  if (item) openItemModal(item);
+  if (!item) { toast('Блюдо не найдено, попробуйте перезагрузить меню', 'error'); return; }
+  openItemModal(item);
 }
 
 function populateCategorySelect(selectedId) {
