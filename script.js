@@ -1102,6 +1102,11 @@ document.getElementById('clearCartBtn').addEventListener('click', () => {
 
 document.getElementById('goToCheckoutBtn').addEventListener('click', () => {
   if (!getCartCount()) return;
+  if (state.deliveryMode !== 'pickup' && getSubtotal() < 500) {
+    showToast('Минимальная сумма заказа для доставки — 500 ₽');
+    tg?.HapticFeedback?.notificationOccurred('error');
+    return;
+  }
   closeModal('cartOverlay');
   recalcDeliveryZoneCost();
   renderPickupSelect(); renderDeliveryCitySelect(); renderPaymentOptions(); updateCheckoutSummary();
