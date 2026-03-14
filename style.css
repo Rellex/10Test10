@@ -1140,9 +1140,10 @@ a { text-decoration: none; color: inherit; }
   font-size: 18px;
 }
 .support-feedback-title {
-  font-size: 14px;
-  font-weight: 600;
+  font-size: 16px;
+  font-weight: 700;
   color: var(--text);
+  margin-top: 8px;
 }
 .support-feedback-wrap {
   display: flex;
