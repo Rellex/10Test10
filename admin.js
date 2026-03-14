@@ -1,4 +1,4 @@
-let authToken = sessionStorage.getItem('adminToken') || null;
+let authToken = localStorage.getItem('adminToken') || null;
 
 async function api(method, path, body) {
   const opts = { method, headers: { 'Content-Type': 'application/json' } };
@@ -267,7 +267,7 @@ document.getElementById('loginForm').addEventListener('submit', async e => {
     const data = await res.json();
     if (!data.token) throw new Error(data.error || 'Неверный пароль');
     authToken = data.token;
-    sessionStorage.setItem('adminToken', authToken);
+    localStorage.setItem('adminToken', authToken);
     showAdminApp();
   } catch (ex) {
     err.textContent = ex.message;
@@ -352,7 +352,7 @@ document.getElementById('exportMenuBtn')?.addEventListener('click', async () => 
 function logout() {
   if (authToken) fetch('/api/admin/logout', { method: 'POST', headers: { 'Authorization': 'Bearer ' + authToken } }).catch(() => {});
   authToken = null;
-  sessionStorage.removeItem('adminToken');
+  localStorage.removeItem('adminToken');
   document.getElementById('loginScreen').style.display = 'flex';
   document.getElementById('adminApp').classList.add('hidden');
   document.getElementById('loginPassword').value = '';
@@ -661,21 +661,34 @@ function openItemModal(item) {
   S.pendingImage = null;
   S.currentEmoji = item?.emoji || '🍽️';
 
-  document.getElementById('itemModalTitle').textContent = item ? 'Редактировать' : 'Добавить позицию';
-  document.getElementById('editItemId').value           = item?.id          || '';
-  document.getElementById('itemName').value             = item?.name        || '';
-  document.getElementById('itemPrice').value            = item?.price       || '';
-  document.getElementById('itemWeight').value           = item?.weight      || '';
-  document.getElementById('itemDescription').value      = item?.description || '';
-  document.getElementById('itemComposition').value      = item?.composition  || '';
-  document.getElementById('itemKcal').value             = item?.kcal    ?? '';
-  document.getElementById('itemProtein').value          = item?.protein ?? '';
-  document.getElementById('itemFat').value              = item?.fat     ?? '';
-  document.getElementById('itemCarbs').value            = item?.carbs   ?? '';
-  document.getElementById('emojiCustom').value          = item?.emoji       || '🍽️';
-  document.getElementById('itemName').classList.remove('error');
-  document.getElementById('itemPrice').classList.remove('error');
-  document.getElementById('imageInput').value           = '';
+  // Безопасная установка значения — не падает если элемент не найден
+  function setVal(id, val) {
+    const el = document.getElementById(id);
+    if (el) el.value = val ?? '';
+  }
+  function removeClass(id, cls) {
+    const el = document.getElementById(id);
+    if (el) el.classList.remove(cls);
+  }
+
+  const titleEl = document.getElementById('itemModalTitle');
+  if (titleEl) titleEl.textContent = item ? 'Редактировать' : 'Добавить позицию';
+
+  setVal('editItemId',      item?.id);
+  setVal('itemName',        item?.name);
+  setVal('itemPrice',       item?.price);
+  setVal('itemWeight',      item?.weight);
+  setVal('itemDescription', item?.description);
+  setVal('itemComposition', item?.composition);
+  setVal('itemKcal',        item?.kcal);
+  setVal('itemProtein',     item?.protein);
+  setVal('itemFat',         item?.fat);
+  setVal('itemCarbs',       item?.carbs);
+  setVal('emojiCustom',     item?.emoji || '🍽️');
+  setVal('imageInput',      '');
+
+  removeClass('itemName',  'error');
+  removeClass('itemPrice', 'error');
 
   populateCategorySelect(item?.categoryId || S.activeCatId);
   renderEmojiGrid();
@@ -1046,7 +1059,7 @@ const INITIAL_ITEMS = [
 (async function initAdmin() {
   if (authToken) {
     try { await api('GET', '/api/admin/check'); showAdminApp(); }
-    catch(e) { authToken = null; sessionStorage.removeItem('adminToken'); }
+    catch(e) { authToken = null; localStorage.removeItem('adminToken'); }
   }
 })();
 
