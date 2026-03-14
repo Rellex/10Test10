@@ -103,6 +103,7 @@
       <header class="topbar">
         <button class="topbar-menu-btn" id="sidebarToggle">☰</button>
         <div class="topbar-title" id="topbarTitle">Выберите категорию</div>
+        <button class="btn-schedule" id="scheduleBtn" title="Настроить расписание по дням">📅 Расписание</button>
         <button class="btn-add-item" id="addItemBtn">
           <span class="btn-add-item-icon">+</span>
           <span>Добавить позицию</span>
@@ -299,5 +300,36 @@
       document.getElementById('initBanner').style.display = 'none';
     });
   </script>
+<!-- ===== SCHEDULE MODAL ===== -->
+<div class="modal-overlay hidden" id="scheduleModal">
+  <div class="modal schedule-modal">
+    <div class="modal-header">
+      <div class="modal-title">📅 Расписание меню по дням</div>
+      <button class="modal-close" id="scheduleModalClose">✕</button>
+    </div>
+    <div class="schedule-modal-body">
+      <p class="schedule-hint">Включите расписание и отметьте, какие блюда доступны в каждый день недели.<br>Если расписание <b>выключено</b> — клиенты видят всё меню каждый день.</p>
+      <div class="schedule-toggle-row">
+        <label class="toggle-label">
+          <input type="checkbox" id="scheduleEnabled" class="toggle-input" />
+          <span class="toggle-slider"></span>
+          <span class="toggle-text">Расписание активно</span>
+        </label>
+        <label class="btn-secondary btn-sm sched-import-label" title="Загрузить готовый menu.json с расписанием">
+          📂 Загрузить menu.json
+          <input type="file" id="scheduleImportFile" accept=".json" style="display:none" />
+        </label>
+        <button class="btn-secondary btn-sm" id="scheduleExportBtn">⬇️ Выгрузить menu.json</button>
+        <button class="btn-secondary btn-sm" id="copyScheduleBtn">Скопировать день на все</button>
+      </div>
+      <div id="scheduleDaysWrap"></div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn-secondary" id="scheduleModalCancel">Отмена</button>
+      <button class="btn-primary" id="scheduleModalSave">💾 Сохранить</button>
+    </div>
+  </div>
+</div>
+
 </body>
 </html>

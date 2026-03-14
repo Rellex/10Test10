@@ -861,222 +861,132 @@ input, select, textarea { font-family: inherit; }
   cursor: not-allowed;
 }
 
-/* ══════════════════════════════════════════════
-   SCHEDULE BUTTON & MODAL
-══════════════════════════════════════════════ */
+/* ===== SCHEDULE BUTTON ===== */
 .btn-schedule {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  padding: 7px 14px;
+  padding: 8px 14px;
+  border-radius: 20px;
+  border: 2px solid #f5a623;
   background: #fff;
-  border: 1.5px solid #e0e0e0;
-  border-radius: 8px;
+  color: #f5a623;
   font-size: 13px;
-  font-weight: 500;
-  color: #555;
+  font-weight: 700;
   cursor: pointer;
-  transition: border-color .15s, color .15s, background .15s;
+  transition: all .15s;
   white-space: nowrap;
 }
-.btn-schedule:hover {
-  border-color: #f5a623;
-  color: #f5a623;
-  background: #fffaf0;
-}
+.btn-schedule:hover { background: #fff8ee; }
 .btn-schedule.schedule-active {
-  border-color: #27ae60;
-  color: #27ae60;
-  background: #f0faf4;
-}
-.btn-schedule.schedule-active::after {
-  content: ' ✓';
-  font-size: 12px;
+  background: linear-gradient(135deg,#27ae60,#2ecc71);
+  border-color: transparent;
+  color: #fff;
 }
 
-/* Modal sizing */
-.modal-schedule {
-  width: 760px;
-  max-width: 96vw;
-  max-height: 88vh;
+/* ===== SCHEDULE MODAL ===== */
+.schedule-modal {
+  width: 100%;
+  max-width: 620px;
+  max-height: 85vh;
+  border-radius: 16px;
   display: flex;
   flex-direction: column;
+  overflow: hidden;
 }
 .schedule-modal-body {
   flex: 1;
   overflow-y: auto;
   padding: 16px 20px;
 }
-
 .schedule-hint {
   font-size: 13px;
-  color: #777;
-  margin: 0 0 16px;
+  color: #888;
+  margin: 0 0 14px;
   line-height: 1.5;
 }
-
 .schedule-toggle-row {
   display: flex;
   align-items: center;
-  gap: 16px;
-  margin-bottom: 20px;
-  padding-bottom: 16px;
-  border-bottom: 1px solid #f0f0f0;
+  gap: 10px;
   flex-wrap: wrap;
+  margin-bottom: 16px;
+  padding-bottom: 14px;
+  border-bottom: 1px solid #eee;
 }
-
-/* Toggle switch */
-.schedule-master-toggle {
+.toggle-label {
   display: flex;
   align-items: center;
-  gap: 10px;
+  gap: 8px;
   cursor: pointer;
   font-size: 14px;
   font-weight: 600;
-  color: #333;
 }
-.schedule-master-toggle input { display: none; }
+.toggle-input { display: none; }
 .toggle-slider {
-  position: relative;
-  width: 44px;
-  height: 24px;
+  width: 42px; height: 24px;
   background: #ddd;
   border-radius: 12px;
+  position: relative;
   transition: background .2s;
   flex-shrink: 0;
 }
 .toggle-slider::after {
   content: '';
   position: absolute;
-  left: 3px;
-  top: 3px;
-  width: 18px;
-  height: 18px;
+  width: 18px; height: 18px;
   background: #fff;
   border-radius: 50%;
+  top: 3px; left: 3px;
   transition: transform .2s;
   box-shadow: 0 1px 3px rgba(0,0,0,.2);
 }
-.schedule-master-toggle input:checked + .toggle-slider {
-  background: #27ae60;
-}
-.schedule-master-toggle input:checked + .toggle-slider::after {
-  transform: translateX(20px);
-}
-
-.btn-sm {
-  padding: 5px 10px;
-  font-size: 12px;
-  border-radius: 6px;
-  border: 1px solid #ddd;
-  background: #fff;
+.toggle-input:checked + .toggle-slider { background: #f5a623; }
+.toggle-input:checked + .toggle-slider::after { transform: translateX(18px); }
+.sched-import-label {
   cursor: pointer;
-  transition: background .15s;
+  display: inline-flex;
+  align-items: center;
 }
-.btn-sm:hover { background: #f5f5f5; }
 
 /* Day blocks */
-.schedule-days-wrap {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-  transition: opacity .2s;
-}
-
 .schedule-day-block {
-  border: 1.5px solid #eee;
+  border: 1px solid #eee;
   border-radius: 10px;
+  margin-bottom: 8px;
   overflow: hidden;
 }
-
 .schedule-day-header {
   display: flex;
   align-items: center;
-  gap: 10px;
   padding: 10px 14px;
   background: #fafafa;
-  cursor: default;
+  gap: 8px;
 }
+.schedule-day-name { font-weight: 700; font-size: 14px; flex: 1; }
+.schedule-day-count { font-size: 12px; color: #888; }
+.schedule-day-actions { display: flex; gap: 6px; align-items: center; }
+.schedule-items-list { padding: 8px 14px 12px; }
 
-.schedule-day-name {
-  font-weight: 600;
-  font-size: 14px;
-  color: #333;
-  flex: 1;
-}
-.schedule-day-count {
-  font-size: 12px;
-  color: #888;
-  white-space: nowrap;
-}
-.schedule-day-actions {
-  display: flex;
-  gap: 4px;
-}
-.schedule-expand-btn {
-  background: #f0f0f0;
-  border-color: transparent;
-  font-size: 14px;
-  min-width: 28px;
-}
-
-/* Items list inside day */
-.schedule-items-list {
-  background: #fff;
-  border-top: 1px solid #eee;
-  padding: 10px 14px;
-  max-height: 320px;
-  overflow-y: auto;
-}
-
-.sched-cat-group {
-  margin-bottom: 10px;
-}
-
+/* Category & item rows */
+.sched-cat-group { margin-bottom: 8px; }
 .sched-cat-label {
-  padding: 4px 0;
-  border-bottom: 1px solid #f5f5f5;
-  margin-bottom: 4px;
-}
-
-.sched-cat-checkbox-label {
   display: flex;
   align-items: center;
   gap: 8px;
+  padding: 4px 0;
+  font-size: 13px;
   cursor: pointer;
-  font-size: 12px;
-  font-weight: 700;
-  text-transform: uppercase;
-  letter-spacing: .5px;
-  color: #888;
+  border-bottom: 1px solid #f0f0f0;
+  margin-bottom: 4px;
 }
-.sched-cat-checkbox-label input { accent-color: #f5a623; }
-
 .sched-item-label {
   display: flex;
   align-items: center;
   gap: 8px;
-  padding: 3px 0 3px 16px;
-  cursor: pointer;
+  padding: 3px 6px;
   font-size: 13px;
-  border-radius: 4px;
+  cursor: pointer;
+  border-radius: 6px;
   transition: background .1s;
 }
-.sched-item-label:hover { background: #fffaf0; }
-.sched-item-label input { accent-color: #f5a623; flex-shrink: 0; }
-.sched-item-emoji { font-size: 16px; flex-shrink: 0; }
-.sched-item-name { flex: 1; color: #333; }
-.sched-item-price { font-size: 12px; color: #aaa; white-space: nowrap; }
-
-/* Import menu.json label-button */
-.sched-import-label {
-  display: inline-flex;
-  align-items: center;
-  gap: 5px;
-  cursor: pointer;
-}
-.sched-import-label:hover {
-  background: #f0f8ff;
-  border-color: #2980b9;
-  color: #2980b9;
-}
+.sched-item-label:hover { background: #f9f9f9; }
+.sched-item-name { flex: 1; }
+.sched-item-price { color: #f5a623; font-weight: 600; font-size: 12px; }
