@@ -819,12 +819,22 @@ async function setWebhook() {
 }
 
 function buildOrderMessage(order) {
-  const st    = ORDER_STATUSES.find(s => s.id === order.status) || { label: order.status };
-  const items = (order.items || []).map(i => {
-    const lineTotal  = i.price * i.qty;
-    const promoMark  = (i.promoPrice !== null && i.promoPrice !== undefined) ? ' 🎟' : '';
+  const st = ORDER_STATUSES.find(s => s.id === order.status) || { label: order.status };
+  const CONTAINER_ID  = 'su6';
+  const allItems      = order.items || [];
+  const containerItem = allItems.find(i => i.id === CONTAINER_ID);
+  const regularItems  = allItems.filter(i => i.id !== CONTAINER_ID);
+
+  const items = regularItems.map(i => {
+    const lineTotal = i.price * i.qty;
+    const promoMark = (i.promoPrice !== null && i.promoPrice !== undefined) ? ' 🎟' : '';
     return `  • ${i.name} ×${i.qty} — ${lineTotal} ₽${promoMark}`;
   }).join('\n');
+
+  const containerLine = containerItem
+    ? `\n  📦 Контейнеры ×${containerItem.qty} — ${containerItem.price * containerItem.qty} ₽`
+    : '';
+
   const date = new Date(order.createdAt).toLocaleString('ru', { timeZone: 'Asia/Novosibirsk' });
   const promoLine    = order.promo ? `\n🎟 Промокод: *${order.promo}*` + (order.discount ? ` (−${order.discount} ₽)` : '') : '';
   const subtotalLine = order.subtotal ? `\n💵 Сумма: ${order.subtotal} ₽` : '';
@@ -840,7 +850,7 @@ function buildOrderMessage(order) {
     `\n` +
     `🚚 ${order.mode === 'delivery' ? 'Доставка' : 'Самовывоз'}\n` +
     `💳 ${order.payment === 'qr' ? 'QR-код' : order.payment === 'card' ? 'Банковская карта' : order.payment === 'cash' ? 'Наличные' : order.payment === 'card_on_delivery' ? 'Карта при получении' : 'QR-код'}\n\n` +
-    `${items}\n` +
+    `${items}${containerLine}\n` +
     promoLine + subtotalLine + deliveryLine +
     `\n💰 Итого: *${order.total} ₽*\n` +
     `🍽️ Статус: ${st.label}` +
