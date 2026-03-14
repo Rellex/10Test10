@@ -538,10 +538,20 @@ function renderItems(catId) {
   document.getElementById('statActive').textContent  = activeCount;
   document.getElementById('statHidden').textContent  = cityFiltered.length - activeCount;
 
+  // Сортировка: активные сегодня → не в расписании → скрытые
+  const sorted = [...cityFiltered].sort((a, b) => {
+    const scoreOf = item => {
+      if (!item.active) return 2;                          // скрыто
+      if (schedIds && !schedIds.has(item.id)) return 1;   // не сегодня
+      return 0;                                            // активно
+    };
+    return scoreOf(a) - scoreOf(b);
+  });
+
   grid.innerHTML = '';
-  if (!cityFiltered.length) { empty.classList.remove('hidden'); return; }
+  if (!sorted.length) { empty.classList.remove('hidden'); return; }
   empty.classList.add('hidden');
-  cityFiltered.forEach(item => grid.appendChild(createItemCard(item, schedIds)));
+  sorted.forEach(item => grid.appendChild(createItemCard(item, schedIds)));
 }
 
 function createItemCard(item, schedIds) {
@@ -952,6 +962,172 @@ async function deleteCategory(id) {
     toast('Ошибка: ' + explainError(e), 'error');
     await loadMenu(); // reload on error
   }
+}
+
+/* ══════════════════════════════════════════════
+   SCHEDULE MANAGEMENT
+══════════════════════════════════════════════ */
+const SCHEDULE_DAYS = [
+  { id: 'monday',    name: 'Понедельник' },
+  { id: 'tuesday',   name: 'Вторник'     },
+  { id: 'wednesday', name: 'Среда'       },
+  { id: 'thursday',  name: 'Четверг'     },
+  { id: 'friday',    name: 'Пятница'     },
+  { id: 'weekend',   name: 'Сб — Вс'    },
+];
+
+// Рабочая копия расписания пока модал открыт
+let _schedDraft = null;
+
+document.getElementById('scheduleBtn').addEventListener('click', openScheduleModal);
+document.getElementById('scheduleModalClose').addEventListener('click',  () => closeModal('scheduleModal'));
+document.getElementById('scheduleModalCancel').addEventListener('click', () => closeModal('scheduleModal'));
+
+document.getElementById('scheduleModalSave').addEventListener('click', async () => {
+  // Собираем itemIds из чекбоксов для каждого дня
+  _schedDraft.days = SCHEDULE_DAYS.map(d => {
+    const wrap = document.getElementById('sched-day-' + d.id);
+    if (!wrap) return { id: d.id, itemIds: [] };
+    const checked = [...wrap.querySelectorAll('input[type=checkbox][data-item-id]:checked')];
+    return { id: d.id, itemIds: checked.map(c => c.dataset.itemId) };
+  });
+  _schedDraft.enabled = document.getElementById('scheduleEnabled').checked;
+
+  try {
+    const updated = await api('POST', '/api/admin/import/menu', {
+      ...S.menu,
+      weeklySchedule: _schedDraft,
+    });
+    S.menu.weeklySchedule = _schedDraft;
+    saveMenuCache();
+    refreshUI();
+    closeModal('scheduleModal');
+    toast('Расписание сохранено ✓', 'success');
+  } catch (e) {
+    toast('Ошибка сохранения: ' + e.message, 'error');
+  }
+});
+
+// Экспорт menu.json
+document.getElementById('scheduleExportBtn').addEventListener('click', () => {
+  const blob = new Blob([JSON.stringify(S.menu, null, 2)], { type: 'application/json' });
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = 'menu.json';
+  a.click();
+});
+
+// Импорт menu.json
+document.getElementById('scheduleImportFile').addEventListener('change', async e => {
+  const file = e.target.files[0];
+  if (!file) return;
+  try {
+    const text = await file.text();
+    const data = JSON.parse(text);
+    if (!data.categories || !data.items) { toast('Неверный формат файла', 'error'); return; }
+    await api('POST', '/api/admin/import/menu', data);
+    S.menu = data;
+    saveMenuCache();
+    refreshUI();
+    closeModal('scheduleModal');
+    toast('Меню импортировано ✓', 'success');
+  } catch (e) {
+    toast('Ошибка импорта: ' + e.message, 'error');
+  }
+  e.target.value = '';
+});
+
+// Скопировать первый день на все остальные
+document.getElementById('copyScheduleBtn').addEventListener('click', () => {
+  const firstWrap = document.getElementById('sched-day-monday');
+  if (!firstWrap) return;
+  const firstIds = new Set(
+    [...firstWrap.querySelectorAll('input[data-item-id]:checked')].map(c => c.dataset.itemId)
+  );
+  SCHEDULE_DAYS.forEach(d => {
+    const wrap = document.getElementById('sched-day-' + d.id);
+    if (!wrap) return;
+    wrap.querySelectorAll('input[data-item-id]').forEach(cb => {
+      cb.checked = firstIds.has(cb.dataset.itemId);
+    });
+  });
+  toast('День скопирован на всю неделю', 'success');
+});
+
+function openScheduleModal() {
+  const sched = S.menu.weeklySchedule || { enabled: false, days: [] };
+  // Делаем глубокую копию чтобы не мутировать S.menu при отмене
+  _schedDraft = JSON.parse(JSON.stringify(sched));
+
+  document.getElementById('scheduleEnabled').checked = !!_schedDraft.enabled;
+  renderScheduleDays();
+  openModal('scheduleModal');
+}
+
+function renderScheduleDays() {
+  const wrap = document.getElementById('scheduleDaysWrap');
+  if (!wrap) return;
+
+  const allItems = S.menu.items.filter(i => i.active !== false);
+
+  wrap.innerHTML = '';
+  SCHEDULE_DAYS.forEach(d => {
+    const dayData = (_schedDraft.days || []).find(x => x.id === d.id) || { id: d.id, itemIds: [] };
+    const checkedIds = new Set(dayData.itemIds || []);
+
+    const section = document.createElement('div');
+    section.className = 'sched-day-section';
+
+    // Заголовок с кнопками «Все» / «Сбросить»
+    const header = document.createElement('div');
+    header.className = 'sched-day-header';
+    header.innerHTML = `
+      <span class="sched-day-title">${d.name}</span>
+      <div class="sched-day-btns">
+        <button type="button" class="btn-sched-all">Все</button>
+        <button type="button" class="btn-sched-none">Сбросить</button>
+      </div>`;
+    header.querySelector('.btn-sched-all').addEventListener('click', () => {
+      section.querySelectorAll('input[data-item-id]').forEach(cb => cb.checked = true);
+    });
+    header.querySelector('.btn-sched-none').addEventListener('click', () => {
+      section.querySelectorAll('input[data-item-id]').forEach(cb => cb.checked = false);
+    });
+
+    // Список блюд, сгруппированных по категории
+    const itemList = document.createElement('div');
+    itemList.className = 'sched-item-list';
+    itemList.id = 'sched-day-' + d.id;
+
+    // Группируем по категориям
+    S.menu.categories.filter(c => c.active !== false).forEach(cat => {
+      const catItems = allItems.filter(i => i.categoryId === cat.id);
+      if (!catItems.length) return;
+
+      const catLabel = document.createElement('div');
+      catLabel.className = 'sched-cat-label';
+      catLabel.textContent = cat.name;
+      itemList.appendChild(catLabel);
+
+      catItems.forEach(item => {
+        const row = document.createElement('label');
+        row.className = 'sched-item-row';
+        const cb = document.createElement('input');
+        cb.type = 'checkbox';
+        cb.dataset.itemId = item.id;
+        cb.checked = checkedIds.has(item.id);
+        const name = document.createElement('span');
+        name.textContent = (item.emoji || '') + ' ' + item.name;
+        row.appendChild(cb);
+        row.appendChild(name);
+        itemList.appendChild(row);
+      });
+    });
+
+    section.appendChild(header);
+    section.appendChild(itemList);
+    wrap.appendChild(section);
+  });
 }
 
 /* ══════════════════════════════════════════════
