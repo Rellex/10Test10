@@ -1051,10 +1051,10 @@ app.post('/api/client-bot/webhook', async (req, res) => {
     const chatId = body.message.chat.id;
     await clientBotApi('sendMessage', {
       chat_id: chatId,
-      text: `☀️ Добро пожаловать в «Солнечный день»!`,
+      text: '☀️ Добро пожаловать в «Солнечный день»!\n\nЗдесь вы можете быстро оформить заказ на доставку или самовывоз. Нажмите кнопку ниже, чтобы открыть меню и выбрать блюда.\n\nЖелаем вам солнечного настроения и приятного аппетита! 🍽',
       reply_markup: {
         inline_keyboard: [[{
-          text: '🍽 Меню',
+          text: '🍽 Открыть меню',
           web_app: { url: `https://${WEBHOOK_DOMAIN}/` }
         }]]
       }
