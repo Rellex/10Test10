@@ -1434,6 +1434,9 @@ async function handleCheckoutSubmit(e) {
 
   console.log('submit fired, mode:', state.deliveryMode, 'city:', state.city);
 
+  // Синхронизируем контейнеры прямо перед отправкой заказа
+  syncContainers();
+
   const payment   = document.querySelector('input[name="payment"]:checked')?.value || 'qr';
   const orderData = {
     city:     state.city,
