@@ -157,11 +157,23 @@ function itemVisibleToday(item) {
   return todayIds.includes(item.id);
 }
 
+/* ── Kitchen availability (блюда убранные поварами на сегодня) ── */
+let _kitchenUnavailable = new Set(); // Set<itemId>
+
+function itemAvailableInKitchen(item) {
+  return !_kitchenUnavailable.has(item.id);
+}
+
 function getItems(catId) {
   if (!dynamicMenu || menuLoadError) return [];
   return dynamicMenu.items.filter(i =>
-    i.categoryId === catId && i.active !== false && itemVisibleInCity(i) && itemVisibleToday(i)
+    i.categoryId === catId && i.active !== false && itemVisibleInCity(i) && itemVisibleToday(i) && itemAvailableInKitchen(i)
   );
+}
+
+function getAllItems() {
+  if (!dynamicMenu || menuLoadError) return [];
+  return dynamicMenu.items.filter(i => i.active !== false && itemVisibleInCity(i) && itemVisibleToday(i) && itemAvailableInKitchen(i));
 }
 
 function findItemAny(id) {
@@ -170,11 +182,6 @@ function findItemAny(id) {
     return dynamicMenu.items.find(i => i.id === id) || null;
   }
   return null;
-}
-
-function getAllItems() {
-  if (!dynamicMenu || menuLoadError) return [];
-  return dynamicMenu.items.filter(i => i.active !== false && itemVisibleInCity(i) && itemVisibleToday(i));
 }
 
 function itemImgSrc(item) {
@@ -196,6 +203,10 @@ async function loadMenuFromAPI() {
     if (!res.ok) throw new Error('HTTP ' + res.status);
     const data = await res.json();
     if (!Array.isArray(data.categories) || !Array.isArray(data.items)) throw new Error('Неверный формат данных');
+    // Применяем список блюд убранных поварами
+    if (Array.isArray(data.kitchenUnavailable)) {
+      _kitchenUnavailable = new Set(data.kitchenUnavailable);
+    }
     dynamicMenu = data;
     saveMenuCache(dynamicMenu);
     setMenuLoadError(null);
@@ -1710,6 +1721,20 @@ function connectLiveUpdates() {
   ws.onmessage = ({ data }) => {
     try {
       const { event, data: payload } = JSON.parse(data);
+      if (event === 'kitchen_availability') {
+        const { itemId, available } = payload;
+        if (available === false) {
+          _kitchenUnavailable.add(itemId);
+        } else {
+          _kitchenUnavailable.delete(itemId);
+        }
+        // Убираем из корзины если блюдо пропало
+        if (!available && state.cart[itemId]) {
+          delete state.cart[itemId];
+          saveCart();
+        }
+        rerenderMenuAfterUpdate();
+      }
       if (event === 'menu') {
         dynamicMenu = payload;
         saveMenuCache(dynamicMenu);

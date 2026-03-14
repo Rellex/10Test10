@@ -241,15 +241,14 @@ function buildInitialMenu() {
 app.get('/api/menu', (req, res) => {
   const menu = readMenu();
   const city = req.query.city;
-  if (!city) return res.json(menu);
-  const filtered = {
-    ...menu,
-    items: menu.items.filter(item => {
-      const disabled = item.disabledCities || [];
-      return !disabled.includes(city);
-    })
-  };
-  res.json(filtered);
+  // Добавляем список блюд убранных поваром на сегодня
+  const kitchenUnavailable = Object.keys(getTodayAvailability());
+
+  const base = city
+    ? { ...menu, items: menu.items.filter(item => !(item.disabledCities || []).includes(city)) }
+    : menu;
+
+  res.json({ ...base, kitchenUnavailable });
 });
 
 /* ── routes: admin login ───────────────────── */
