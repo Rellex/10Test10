@@ -588,10 +588,20 @@ function updateCartSheet() {
 }
 
 function updateCartSummary() {
-  const sub      = getSubtotal();
-  const delivery = getDeliveryPrice(sub);
+  const sub      = getSubtotal();          // сумма без скидки
+  const delivery = getDeliveryPrice(sub);  // доставка считается от суммы БЕЗ скидки
+
+  // 1. Сумма заказа (без скидки)
   document.getElementById('subtotalVal').textContent = fmt(sub);
 
+  // 2. Скидка по промокоду
+  const promoRow = document.getElementById('promoRow');
+  if (state.promoDiscount > 0) {
+    promoRow.style.display = 'flex';
+    document.getElementById('promoDiscount').textContent = '−' + fmt(state.promoDiscount);
+  } else { promoRow.style.display = 'none'; }
+
+  // 3. Доставка
   const deliveryRow = document.getElementById('deliveryRow');
   if (state.deliveryMode === 'pickup') {
     deliveryRow.style.display = 'none';
@@ -600,12 +610,7 @@ function updateCartSummary() {
     document.getElementById('deliveryVal').textContent = delivery === 0 ? 'Бесплатно' : fmt(delivery);
   }
 
-  const promoRow = document.getElementById('promoRow');
-  if (state.promoDiscount > 0) {
-    promoRow.style.display = 'flex';
-    document.getElementById('promoDiscount').textContent = '−' + fmt(state.promoDiscount);
-  } else { promoRow.style.display = 'none'; }
-
+  // 4. Итого
   document.getElementById('totalVal').textContent = fmt(getTotal());
 
   const progressWrap = document.getElementById('deliveryProgressWrap');
@@ -634,23 +639,24 @@ function updateCartSummary() {
 function updateCheckoutSummary() {
   const sub      = getSubtotal();
   const delivery = getDeliveryPrice(sub);
+  // 1. Сумма заказа
   document.getElementById('checkoutSubtotal').textContent = fmt(sub);
-
+  // 2. Скидка
+  const pr = document.getElementById('checkoutPromoRow');
+  if (state.promoDiscount > 0) {
+    pr.style.display = 'flex';
+    document.getElementById('checkoutPromoDiscount').textContent = '−' + fmt(state.promoDiscount);
+  } else { pr.style.display = 'none'; }
+  // 3. Доставка
   const dr = document.getElementById('checkoutDeliveryRow');
   if (state.deliveryMode === 'pickup') { dr.style.display = 'none'; }
   else {
     dr.style.display = 'flex';
     document.getElementById('checkoutDelivery').textContent = delivery === 0 ? 'Бесплатно' : fmt(delivery);
   }
-
-  const pr = document.getElementById('checkoutPromoRow');
-  if (state.promoDiscount > 0) {
-    pr.style.display = 'flex';
-    document.getElementById('checkoutPromoDiscount').textContent = '−' + fmt(state.promoDiscount);
-  } else { pr.style.display = 'none'; }
-
+  // 4. Итого
   const total = fmt(getTotal());
-  document.getElementById('checkoutTotal').textContent    = total;
+  document.getElementById('checkoutTotal').textContent = total;
   const totalEl = document.getElementById('submitOrderTotal');
   if (totalEl) totalEl.textContent = total;
 }
