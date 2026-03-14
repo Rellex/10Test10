@@ -1,0 +1,619 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Кухня — Солнечный день</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Unbounded:wght@700;900&family=Nunito:wght@400;600;700&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --sun:        #FF8C00;
+      --sun2:       #FFB347;
+      --sun-bg:     #FFF4E0;
+      --green:      #22C55E;
+      --green-bg:   #DCFCE7;
+      --red:        #EF4444;
+      --red-bg:     #FEE2E2;
+      --text:       #1A1A1A;
+      --text-sub:   #6B7280;
+      --bg:         #F9F5F0;
+      --white:      #FFFFFF;
+      --border:     #E5E7EB;
+      --shadow:     0 2px 12px rgba(0,0,0,.08);
+      --radius:     14px;
+    }
+
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: 'Nunito', sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      min-height: 100vh;
+    }
+
+    /* ── LOGIN ── */
+    #loginScreen {
+      min-height: 100vh;
+      display: flex; align-items: center; justify-content: center;
+      background: linear-gradient(135deg, #FF8C00 0%, #FFB347 50%, #FFD580 100%);
+      padding: 20px;
+    }
+    .login-card {
+      background: var(--white);
+      border-radius: 24px;
+      padding: 40px 36px;
+      width: 100%; max-width: 380px;
+      box-shadow: 0 24px 60px rgba(0,0,0,.18);
+      text-align: center;
+    }
+    .login-logo { font-size: 52px; margin-bottom: 8px; }
+    .login-brand {
+      font-family: 'Unbounded', sans-serif;
+      font-size: 20px; font-weight: 900;
+      color: var(--sun); margin-bottom: 4px;
+    }
+    .login-sub { font-size: 13px; color: var(--text-sub); margin-bottom: 28px; }
+    .login-label { font-size: 13px; font-weight: 700; color: var(--text-sub); text-align: left; margin-bottom: 6px; display: block; }
+    .pin-wrap {
+      display: flex; gap: 10px; justify-content: center; margin-bottom: 20px;
+    }
+    .pin-digit {
+      width: 56px; height: 64px;
+      border: 2px solid var(--border); border-radius: 12px;
+      font-size: 28px; font-weight: 700; font-family: 'Unbounded', sans-serif;
+      text-align: center; outline: none; background: var(--bg);
+      transition: border-color .2s, box-shadow .2s;
+      color: var(--text);
+    }
+    .pin-digit:focus { border-color: var(--sun); box-shadow: 0 0 0 3px rgba(255,140,0,.15); }
+    .btn-login {
+      width: 100%; padding: 14px;
+      background: var(--sun); color: #fff;
+      border: none; border-radius: 12px;
+      font-family: 'Unbounded', sans-serif;
+      font-size: 14px; font-weight: 700;
+      cursor: pointer; transition: opacity .2s, transform .1s;
+    }
+    .btn-login:hover { opacity: .9; }
+    .btn-login:active { transform: scale(.98); }
+    .login-error {
+      margin-top: 12px; font-size: 13px; color: var(--red);
+      font-weight: 600; min-height: 20px;
+    }
+
+    /* ── APP ── */
+    #kitchenApp { display: none; }
+
+    .top-bar {
+      position: sticky; top: 0; z-index: 100;
+      background: var(--white);
+      border-bottom: 2px solid var(--border);
+      padding: 0 20px;
+      display: flex; align-items: center; gap: 12px;
+      height: 58px;
+      box-shadow: 0 2px 8px rgba(0,0,0,.06);
+    }
+    .top-bar-logo { font-size: 26px; }
+    .top-bar-title {
+      font-family: 'Unbounded', sans-serif;
+      font-size: 14px; font-weight: 900; color: var(--sun);
+      line-height: 1.2;
+    }
+    .top-bar-sub { font-size: 11px; color: var(--text-sub); font-weight: 600; }
+    .top-bar-right { margin-left: auto; display: flex; align-items: center; gap: 10px; }
+    .stats-pill {
+      background: var(--sun-bg); color: var(--sun);
+      border-radius: 20px; padding: 4px 12px;
+      font-size: 12px; font-weight: 700;
+    }
+    .stats-pill.green { background: var(--green-bg); color: var(--green); }
+    .btn-logout {
+      background: none; border: 1.5px solid var(--border);
+      border-radius: 8px; padding: 5px 12px;
+      font-size: 12px; font-weight: 700; color: var(--text-sub);
+      cursor: pointer; transition: all .15s;
+    }
+    .btn-logout:hover { border-color: var(--red); color: var(--red); }
+
+    /* ── CATEGORIES NAV ── */
+    .cat-nav {
+      background: var(--white);
+      border-bottom: 1px solid var(--border);
+      overflow-x: auto; white-space: nowrap;
+      padding: 10px 16px;
+      scrollbar-width: none;
+    }
+    .cat-nav::-webkit-scrollbar { display: none; }
+    .cat-btn {
+      display: inline-flex; align-items: center; gap: 6px;
+      padding: 7px 16px; border-radius: 20px;
+      border: 1.5px solid var(--border);
+      background: var(--white); color: var(--text-sub);
+      font-family: 'Nunito', sans-serif;
+      font-size: 13px; font-weight: 700;
+      cursor: pointer; transition: all .15s;
+      margin-right: 6px;
+    }
+    .cat-btn:hover { border-color: var(--sun); color: var(--sun); }
+    .cat-btn.active {
+      background: var(--sun); border-color: var(--sun);
+      color: #fff;
+    }
+    .cat-btn .cat-count {
+      background: rgba(255,255,255,.3);
+      border-radius: 10px; padding: 1px 6px; font-size: 11px;
+    }
+    .cat-btn:not(.active) .cat-count {
+      background: var(--bg); color: var(--text-sub);
+    }
+
+    /* ── MAIN ── */
+    .main-wrap { padding: 16px; max-width: 1200px; margin: 0 auto; }
+
+    .section-header {
+      display: flex; align-items: center; justify-content: space-between;
+      margin-bottom: 12px; padding: 0 2px;
+    }
+    .section-title {
+      font-family: 'Unbounded', sans-serif;
+      font-size: 15px; font-weight: 700; color: var(--text);
+    }
+    .section-hint { font-size: 12px; color: var(--text-sub); }
+
+    .items-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(190px, 1fr));
+      gap: 12px;
+      margin-bottom: 32px;
+    }
+
+    /* ── ITEM CARD ── */
+    .item-card {
+      background: var(--white);
+      border-radius: var(--radius);
+      border: 2px solid var(--border);
+      overflow: hidden;
+      transition: transform .15s, box-shadow .15s, border-color .15s, opacity .2s;
+      cursor: pointer;
+      user-select: none;
+      position: relative;
+    }
+    .item-card:hover { transform: translateY(-2px); box-shadow: var(--shadow); }
+    .item-card:active { transform: scale(.97); }
+    .item-card.available { border-color: var(--green); }
+    .item-card.unavailable { opacity: .5; border-color: var(--border); }
+
+    .item-media {
+      height: 120px;
+      display: flex; align-items: center; justify-content: center;
+      background: var(--bg);
+      font-size: 52px;
+      position: relative;
+      overflow: hidden;
+    }
+    .item-media img {
+      width: 100%; height: 100%; object-fit: cover;
+      position: absolute; inset: 0;
+    }
+    .item-status-badge {
+      position: absolute; top: 8px; right: 8px;
+      border-radius: 8px; padding: 3px 8px;
+      font-size: 11px; font-weight: 700;
+      pointer-events: none;
+    }
+    .available .item-status-badge  { background: var(--green-bg); color: var(--green); }
+    .unavailable .item-status-badge { background: #f3f4f6; color: #9CA3AF; }
+
+    .item-body { padding: 10px 12px 12px; }
+    .item-name {
+      font-size: 13px; font-weight: 700; color: var(--text);
+      line-height: 1.3; margin-bottom: 6px;
+    }
+    .item-price { font-size: 13px; font-weight: 700; color: var(--sun); }
+    .item-weight { font-size: 11px; color: var(--text-sub); }
+
+    .item-toggle-row {
+      display: flex; gap: 6px; margin-top: 8px;
+    }
+    .toggle-btn {
+      flex: 1; padding: 7px 4px;
+      border-radius: 8px; border: none;
+      font-family: 'Nunito', sans-serif;
+      font-size: 12px; font-weight: 700;
+      cursor: pointer; transition: all .15s;
+    }
+    .toggle-btn.set-available {
+      background: var(--green-bg); color: var(--green);
+    }
+    .toggle-btn.set-unavailable {
+      background: var(--red-bg); color: var(--red);
+    }
+    .toggle-btn:hover { filter: brightness(.94); }
+    .toggle-btn:disabled { opacity: .5; cursor: not-allowed; }
+
+    /* ── UNAVAILABLE OVERLAY ── */
+    .item-card.unavailable .item-media::after {
+      content: '✕';
+      position: absolute; inset: 0;
+      background: rgba(255,255,255,.55);
+      display: flex; align-items: center; justify-content: center;
+      font-size: 36px; color: var(--red); font-weight: 900;
+      backdrop-filter: blur(1px);
+    }
+
+    /* ── LOADING / EMPTY ── */
+    .loading-wrap {
+      display: flex; flex-direction: column; align-items: center;
+      justify-content: center; gap: 14px;
+      padding: 60px 20px; color: var(--text-sub);
+    }
+    .spinner {
+      width: 40px; height: 40px;
+      border: 4px solid var(--border);
+      border-top-color: var(--sun);
+      border-radius: 50%;
+      animation: spin .7s linear infinite;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    /* ── TOAST ── */
+    #toastWrap {
+      position: fixed; bottom: 20px; left: 50%;
+      transform: translateX(-50%);
+      z-index: 9999; display: flex; flex-direction: column; gap: 8px;
+      pointer-events: none;
+    }
+    .toast {
+      padding: 10px 20px; border-radius: 10px;
+      font-size: 13px; font-weight: 700;
+      background: var(--text); color: #fff;
+      animation: toastIn .25s ease;
+      white-space: nowrap;
+    }
+    .toast.success { background: var(--green); }
+    .toast.error   { background: var(--red); }
+    @keyframes toastIn { from { opacity:0; transform:translateY(10px); } to { opacity:1; transform:translateY(0); } }
+    @keyframes toastOut { to { opacity:0; transform:translateY(10px); } }
+
+    /* ── RESPONSIVE ── */
+    @media (max-width: 480px) {
+      .items-grid { grid-template-columns: repeat(2, 1fr); gap: 8px; }
+      .item-media { height: 100px; font-size: 40px; }
+      .top-bar-title { font-size: 12px; }
+    }
+  </style>
+</head>
+<body>
+
+<!-- LOGIN -->
+<div id="loginScreen">
+  <div class="login-card">
+    <div class="login-logo">☀️</div>
+    <div class="login-brand">Солнечный день</div>
+    <div class="login-sub">Панель кухни — введите PIN-код</div>
+    <label class="login-label">PIN-код</label>
+    <div class="pin-wrap">
+      <input class="pin-digit" id="p0" type="password" inputmode="numeric" maxlength="1" pattern="[0-9]" autocomplete="off" />
+      <input class="pin-digit" id="p1" type="password" inputmode="numeric" maxlength="1" pattern="[0-9]" autocomplete="off" />
+      <input class="pin-digit" id="p2" type="password" inputmode="numeric" maxlength="1" pattern="[0-9]" autocomplete="off" />
+      <input class="pin-digit" id="p3" type="password" inputmode="numeric" maxlength="1" pattern="[0-9]" autocomplete="off" />
+    </div>
+    <button class="btn-login" id="loginBtn">Войти</button>
+    <div class="login-error" id="loginError"></div>
+  </div>
+</div>
+
+<!-- APP -->
+<div id="kitchenApp">
+  <div class="top-bar">
+    <div class="top-bar-logo">🍳</div>
+    <div>
+      <div class="top-bar-title">Кухня</div>
+      <div class="top-bar-sub">Солнечный день</div>
+    </div>
+    <div class="top-bar-right">
+      <span class="stats-pill green" id="statAvail">0 в меню</span>
+      <span class="stats-pill" id="statUnavail">0 нет</span>
+      <button class="btn-logout" id="logoutBtn">Выйти</button>
+    </div>
+  </div>
+
+  <div class="cat-nav" id="catNav"></div>
+
+  <div class="main-wrap" id="mainWrap">
+    <div class="loading-wrap">
+      <div class="spinner"></div>
+      <span>Загружаем меню...</span>
+    </div>
+  </div>
+</div>
+
+<div id="toastWrap"></div>
+
+<script>
+/* ── STATE ── */
+let kitchenToken = sessionStorage.getItem('kitchenToken') || null;
+let menuData     = null;   // { categories, items }
+// Локальный оверлай доступности: itemId → true/false
+// Отражает только то что повар скрыл/открыл в текущую сессию
+let availability = {};     // itemId → true (есть) | false (нет)
+let activeCatId  = null;
+
+/* ── TOAST ── */
+function toast(msg, type = 'default') {
+  const wrap = document.getElementById('toastWrap');
+  const el   = document.createElement('div');
+  el.className   = 'toast ' + type;
+  el.textContent = msg;
+  wrap.appendChild(el);
+  setTimeout(() => {
+    el.style.animation = 'toastOut .3s ease forwards';
+    setTimeout(() => el.remove(), 300);
+  }, 2500);
+}
+
+/* ── PIN LOGIN ── */
+const pinInputs = [0,1,2,3].map(i => document.getElementById('p' + i));
+
+pinInputs.forEach((inp, i) => {
+  inp.addEventListener('input', () => {
+    inp.value = inp.value.replace(/\D/g, '').slice(-1);
+    if (inp.value && i < 3) pinInputs[i + 1].focus();
+    if (i === 3 && inp.value) doLogin();
+  });
+  inp.addEventListener('keydown', e => {
+    if (e.key === 'Backspace' && !inp.value && i > 0) {
+      pinInputs[i - 1].focus();
+      pinInputs[i - 1].value = '';
+    }
+  });
+});
+
+document.getElementById('loginBtn').addEventListener('click', doLogin);
+
+async function doLogin() {
+  const pin = pinInputs.map(i => i.value).join('');
+  if (pin.length < 4) {
+    document.getElementById('loginError').textContent = 'Введите 4 цифры';
+    return;
+  }
+  const btn = document.getElementById('loginBtn');
+  btn.textContent = '...';
+  btn.disabled = true;
+  try {
+    const res  = await fetch('/api/kitchen/login', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ pin }),
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || 'Неверный PIN');
+    kitchenToken = data.token;
+    sessionStorage.setItem('kitchenToken', kitchenToken);
+    showApp();
+  } catch (e) {
+    document.getElementById('loginError').textContent = e.message;
+    pinInputs.forEach(i => i.value = '');
+    pinInputs[0].focus();
+  } finally {
+    btn.textContent = 'Войти';
+    btn.disabled = false;
+  }
+}
+
+/* ── LOGOUT ── */
+document.getElementById('logoutBtn').addEventListener('click', () => {
+  kitchenToken = null;
+  sessionStorage.removeItem('kitchenToken');
+  document.getElementById('kitchenApp').style.display = 'none';
+  document.getElementById('loginScreen').style.display = 'flex';
+  pinInputs.forEach(i => i.value = '');
+  pinInputs[0].focus();
+});
+
+/* ── SHOW APP ── */
+async function showApp() {
+  document.getElementById('loginScreen').style.display = 'none';
+  document.getElementById('kitchenApp').style.display  = 'block';
+  await loadMenu();
+}
+
+/* ── LOAD MENU ── */
+async function loadMenu() {
+  document.getElementById('mainWrap').innerHTML = `
+    <div class="loading-wrap"><div class="spinner"></div><span>Загружаем меню...</span></div>`;
+  try {
+    const res  = await fetch('/api/menu');
+    menuData   = await res.json();
+    // Загружаем текущую доступность с сервера
+    const avRes = await fetch('/api/kitchen/availability', {
+      headers: { 'Authorization': 'Bearer ' + kitchenToken }
+    });
+    if (avRes.ok) availability = await avRes.json();
+    renderCatNav();
+    renderItems();
+    updateStats();
+  } catch (e) {
+    document.getElementById('mainWrap').innerHTML =
+      `<div class="loading-wrap" style="color:#ef4444">Ошибка загрузки меню</div>`;
+  }
+}
+
+/* ── CATEGORIES ── */
+function renderCatNav() {
+  const nav = document.getElementById('catNav');
+  nav.innerHTML = '';
+  const cats = (menuData.categories || []).filter(c => c.active !== false);
+  if (!cats.length) return;
+  if (!activeCatId) activeCatId = cats[0].id;
+
+  // Кнопка «Все»
+  const allBtn = document.createElement('button');
+  allBtn.className = 'cat-btn' + (!activeCatId || activeCatId === '__all' ? ' active' : '');
+  allBtn.innerHTML = 'Все <span class="cat-count">' + countAvailableAll() + '</span>';
+  allBtn.addEventListener('click', () => { activeCatId = '__all'; renderCatNav(); renderItems(); });
+  nav.appendChild(allBtn);
+
+  cats.forEach(cat => {
+    const items = getItemsByCat(cat.id);
+    const avail = items.filter(i => isAvailable(i)).length;
+    const btn   = document.createElement('button');
+    btn.className = 'cat-btn' + (activeCatId === cat.id ? ' active' : '');
+    btn.innerHTML = cat.name + ' <span class="cat-count">' + avail + '/' + items.length + '</span>';
+    btn.addEventListener('click', () => { activeCatId = cat.id; renderCatNav(); renderItems(); });
+    nav.appendChild(btn);
+  });
+}
+
+function getItemsByCat(catId) {
+  return (menuData.items || []).filter(i => i.categoryId === catId && i.active !== false);
+}
+
+function countAvailableAll() {
+  return (menuData.items || []).filter(i => i.active !== false && isAvailable(i)).length
+    + ' / ' + (menuData.items || []).filter(i => i.active !== false).length;
+}
+
+/* ── AVAILABILITY ── */
+function isAvailable(item) {
+  // Если в availability есть явная запись — используем её
+  if (item.id in availability) return availability[item.id];
+  // Иначе считаем что блюдо есть
+  return true;
+}
+
+/* ── RENDER ITEMS ── */
+function renderItems() {
+  const wrap = document.getElementById('mainWrap');
+  const cats = (menuData.categories || []).filter(c => c.active !== false);
+  wrap.innerHTML = '';
+
+  if (activeCatId && activeCatId !== '__all') {
+    const cat   = cats.find(c => c.id === activeCatId);
+    const items = getItemsByCat(activeCatId);
+    if (!items.length) {
+      wrap.innerHTML = '<div class="loading-wrap">Нет блюд в этой категории</div>';
+      return;
+    }
+    appendSection(wrap, cat?.name || '', items);
+  } else {
+    cats.forEach(cat => {
+      const items = getItemsByCat(cat.id);
+      if (!items.length) return;
+      appendSection(wrap, cat.name, items);
+    });
+  }
+}
+
+function appendSection(wrap, title, items) {
+  const avail   = items.filter(i => isAvailable(i)).length;
+  const header  = document.createElement('div');
+  header.className = 'section-header';
+  header.innerHTML = `
+    <span class="section-title">${title}</span>
+    <span class="section-hint">${avail} из ${items.length} доступно</span>`;
+  wrap.appendChild(header);
+
+  const grid = document.createElement('div');
+  grid.className = 'items-grid';
+  // Сортировка: сначала доступные, потом недоступные
+  const sorted = [...items].sort((a, b) => (isAvailable(b) ? 1 : 0) - (isAvailable(a) ? 1 : 0));
+  sorted.forEach(item => grid.appendChild(createCard(item)));
+  wrap.appendChild(grid);
+}
+
+function createCard(item) {
+  const avail = isAvailable(item);
+  const card  = document.createElement('div');
+  card.className = 'item-card ' + (avail ? 'available' : 'unavailable');
+  card.id = 'card-' + item.id;
+
+  const src = item.imageBase64 || item.image || null;
+  const mediaPart = src
+    ? `<img src="${src}" alt="${item.name}" loading="lazy" />`
+    : `<span>${item.emoji || '🍽️'}</span>`;
+
+  card.innerHTML = `
+    <div class="item-media">
+      ${mediaPart}
+      <span class="item-status-badge">${avail ? '✓ Есть' : '✕ Нет'}</span>
+    </div>
+    <div class="item-body">
+      <div class="item-name">${item.name}</div>
+      <div style="display:flex;justify-content:space-between;align-items:center">
+        <span class="item-price">${item.price} ₽</span>
+        <span class="item-weight">${item.weight || ''}</span>
+      </div>
+      <div class="item-toggle-row">
+        <button class="toggle-btn set-available"  data-id="${item.id}" ${avail  ? 'disabled' : ''}>✓ Есть</button>
+        <button class="toggle-btn set-unavailable" data-id="${item.id}" ${!avail ? 'disabled' : ''}>✕ Нет</button>
+      </div>
+    </div>`;
+
+  card.querySelector('.set-available').addEventListener('click',   e => { e.stopPropagation(); setAvailability(item.id, true);  });
+  card.querySelector('.set-unavailable').addEventListener('click', e => { e.stopPropagation(); setAvailability(item.id, false); });
+
+  // Тап по карточке тоже переключает
+  card.addEventListener('click', () => setAvailability(item.id, !isAvailable(item)));
+
+  return card;
+}
+
+/* ── TOGGLE AVAILABILITY ── */
+async function setAvailability(itemId, available) {
+  const prev = availability[itemId] ?? true;
+  availability[itemId] = available;
+  updateCard(itemId);
+  updateStats();
+  renderCatNav();
+
+  try {
+    await fetch('/api/kitchen/availability/' + itemId, {
+      method: 'PATCH',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': 'Bearer ' + kitchenToken,
+      },
+      body: JSON.stringify({ available }),
+    });
+    toast(available ? '✓ Блюдо снова в меню' : '✕ Блюдо убрано из меню', available ? 'success' : 'default');
+  } catch (e) {
+    // Откат при ошибке
+    availability[itemId] = prev;
+    updateCard(itemId);
+    updateStats();
+    toast('Ошибка соединения', 'error');
+  }
+}
+
+function updateCard(itemId) {
+  const item = menuData.items.find(i => i.id === itemId);
+  if (!item) return;
+  const old = document.getElementById('card-' + itemId);
+  if (!old) return;
+  const fresh = createCard(item);
+  old.replaceWith(fresh);
+  // Анимация мигания
+  fresh.style.transition = 'none';
+  fresh.style.outline = '3px solid ' + (isAvailable(item) ? 'var(--green)' : 'var(--red)');
+  setTimeout(() => { fresh.style.outline = 'none'; fresh.style.transition = ''; }, 500);
+}
+
+function updateStats() {
+  const all    = (menuData?.items || []).filter(i => i.active !== false);
+  const avail  = all.filter(i => isAvailable(i)).length;
+  document.getElementById('statAvail').textContent   = avail + ' в меню';
+  document.getElementById('statUnavail').textContent = (all.length - avail) + ' нет';
+}
+
+/* ── AUTO-CHECK SESSION ── */
+if (kitchenToken) {
+  fetch('/api/kitchen/check', { headers: { 'Authorization': 'Bearer ' + kitchenToken } })
+    .then(r => { if (r.ok) showApp(); else { kitchenToken = null; sessionStorage.removeItem('kitchenToken'); } })
+    .catch(() => {});
+}
+</script>
+</body>
+</html>

@@ -40,6 +40,7 @@ app.use(express.static(__dirname, {
 }));
 
 /* ── paths ─────────────────────────────────── */
+const IS_VERCEL   = !!process.env.VERCEL;
 const DATA_DIR = process.env.DATA_DIR || (IS_VERCEL ? '/tmp' : __dirname);
 const MENU_FILE      = path.join(DATA_DIR, 'menu.json');
 const ADDRESSES_FILE = path.join(DATA_DIR, 'addresses.json');
@@ -1245,6 +1246,62 @@ app.post('/api/admin/import/menu', auth, (req, res) => {
 
 /* ── admin panel route ─────────────────────── */
 app.get('/admin', (_, res) => res.sendFile(path.join(__dirname, 'admin.html')));
+
+/* ══════════════════════════════════════════════
+   KITCHEN PANEL  — только toggle доступности
+   Отдельный PIN, без доступа к редактированию
+══════════════════════════════════════════════ */
+const KITCHEN_PIN   = process.env.KITCHEN_PIN || '1234';
+const kitchenTokens = new Set();
+
+// Хранилище: itemId → true (есть) | false (убрано поваром)
+let kitchenAvailability  = {};
+const KITCHEN_AV_FILE    = path.join(DATA_DIR, 'kitchen_availability.json');
+try {
+  if (fs.existsSync(KITCHEN_AV_FILE))
+    kitchenAvailability = JSON.parse(fs.readFileSync(KITCHEN_AV_FILE, 'utf8'));
+} catch(e) {}
+
+function saveKitchenAvailability() {
+  try { fs.writeFileSync(KITCHEN_AV_FILE, JSON.stringify(kitchenAvailability, null, 2)); } catch(e) {}
+}
+
+function kitchenAuth(req, res, next) {
+  const header = req.headers.authorization || '';
+  const token  = header.startsWith('Bearer ') ? header.slice(7) : null;
+  if (!token || !kitchenTokens.has(token)) return res.status(401).json({ error: 'Нет доступа' });
+  next();
+}
+
+app.get('/kitchen', (_, res) => res.sendFile(path.join(__dirname, 'kitchen.html')));
+
+app.post('/api/kitchen/login', (req, res) => {
+  if (String(req.body.pin) !== String(KITCHEN_PIN))
+    return res.status(401).json({ error: 'Неверный PIN-код' });
+  const token = crypto.randomBytes(24).toString('hex');
+  kitchenTokens.add(token);
+  res.json({ token });
+});
+
+app.get('/api/kitchen/check', kitchenAuth, (_, res) => res.json({ ok: true }));
+
+// Текущая доступность всех блюд (публично — нужна клиенту для отображения)
+app.get('/api/kitchen/availability', (_, res) => res.json(kitchenAvailability));
+
+// Переключить доступность блюда (только повара)
+app.patch('/api/kitchen/availability/:itemId', kitchenAuth, (req, res) => {
+  const { itemId } = req.params;
+  const { available } = req.body;
+  if (typeof available !== 'boolean')
+    return res.status(400).json({ error: 'available должен быть boolean' });
+  const menu = readMenu();
+  const item = menu.items.find(i => i.id === itemId);
+  if (!item) return res.status(404).json({ error: 'Блюдо не найдено' });
+  kitchenAvailability[itemId] = available;
+  saveKitchenAvailability();
+  broadcast('kitchen_availability', { itemId, available });
+  res.json({ ok: true, itemId, available });
+});
 
 /* ── errors ────────────────────────────────── */
 app.use((err, _req, res, _next) => {
