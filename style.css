@@ -1139,6 +1139,11 @@ a { text-decoration: none; color: inherit; }
   content: "📞";
   font-size: 18px;
 }
+.support-feedback-title {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text);
+}
 .support-feedback-wrap {
   display: flex;
   flex-direction: column;
