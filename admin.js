@@ -719,10 +719,10 @@ document.getElementById('itemForm').addEventListener('submit', async e => {
     const data = {
       name,
       price:       parseInt(price, 10),
-      weight:      (() => { const w = document.getElementById('itemWeight').value.trim(); return w && !/г$|мл$|л$|ml$|g$/.test(w) ? w + 'г' : w; })(),
+      weight:      (() => { const w = document.getElementById('itemWeight').value.trim(); return w && !/[гмл]$|ml$|g$/.test(w) ? w + 'г' : w; })(),
       emoji,
       categoryId,
-      description: (editId ? (S.menu.items.find(i => i.id === editId)?.description || '') : ''),
+      description: editId ? (S.menu.items.find(i => i.id === editId)?.description || '') : '',
       composition: document.getElementById('itemComposition').value.trim(),
       kcal:    document.getElementById('itemKcal').value    ? Number(document.getElementById('itemKcal').value)    : null,
       protein: document.getElementById('itemProtein').value ? Number(document.getElementById('itemProtein').value) : null,
@@ -1470,8 +1470,8 @@ async function changeOrderStatus(orderId, status) {
    LIVE SYNC — WebSocket
 ══════════════════════════════════════════════ */
 let _adminWs = null;
-let _adminWsReconnectTimer = null;
-let _adminWsEditingItemId = null; // id блюда открытого в модале — не перерисовываем
+let _adminWsTimer = null;
+let _ownSaveTs = 0; // timestamp последнего нашего сохранения
 
 function connectAdminLive() {
   if (_adminWs && (_adminWs.readyState === WebSocket.OPEN || _adminWs.readyState === WebSocket.CONNECTING)) return;
@@ -1479,56 +1479,49 @@ function connectAdminLive() {
   _adminWs = new WebSocket(proto + '://' + location.host);
 
   _adminWs.onopen = () => {
-    console.log('[Admin WS] connected');
-    clearTimeout(_adminWsReconnectTimer);
-    showLiveBadge(true);
+    clearTimeout(_adminWsTimer);
+    const badge = document.getElementById('adminLiveBadge');
+    if (badge) { badge.textContent = '🟢 Live'; badge.style.color = '#27ae60'; }
   };
 
   _adminWs.onmessage = (e) => {
     try {
       const msg = JSON.parse(e.data);
-      if (msg.event === 'menu') {
-        const incoming = msg.data;
-        if (!incoming || !incoming.items) return;
-
-        // Если другой админ изменил меню — обновляем локальный стейт и UI
-        // но не закрываем открытый модал редактирования
-        const prevItems = S.menu.items.map(i => i.id);
-        S.menu.categories = incoming.categories || S.menu.categories;
-        S.menu.items      = incoming.items;
-        if (incoming.weeklySchedule) S.menu.weeklySchedule = incoming.weeklySchedule;
-        saveMenuCache();
-        renderSidebar();
-        if (S.activeCatId) renderItems(S.activeCatId);
-
-        // Показываем тост только если изменение пришло «снаружи»
-        // (не от нашего собственного сохранения — наше идёт через refreshUI)
-        showLiveToast('🔄 Меню обновлено другим администратором');
-      }
+      if (msg.event !== 'menu') return;
+      // Игнорируем если это наше собственное изменение (пришло < 2 сек после save)
+      if (Date.now() - _ownSaveTs < 2000) return;
+      const incoming = msg.data;
+      if (!incoming?.items) return;
+      S.menu.categories = incoming.categories || S.menu.categories;
+      S.menu.items = incoming.items;
+      if (incoming.weeklySchedule) S.menu.weeklySchedule = incoming.weeklySchedule;
+      saveMenuCache();
+      renderSidebar();
+      if (S.activeCatId) renderItems(S.activeCatId);
+      showLiveToast('🔄 Меню обновлено другим администратором');
     } catch(err) {}
   };
 
   _adminWs.onclose = () => {
-    showLiveBadge(false);
-    _adminWsReconnectTimer = setTimeout(connectAdminLive, 3000);
+    const badge = document.getElementById('adminLiveBadge');
+    if (badge) { badge.textContent = '🔴 Offline'; badge.style.color = '#e74c3c'; }
+    _adminWsTimer = setTimeout(connectAdminLive, 3000);
   };
-  _adminWs.onerror = () => { _adminWs.close(); };
+  _adminWs.onerror = () => _adminWs.close();
 }
 
-function showLiveBadge(connected) {
-  let badge = document.getElementById('adminLiveBadge');
-  if (!badge) return;
-  badge.textContent  = connected ? '🟢 Live' : '🔴 Offline';
-  badge.style.color  = connected ? '#27ae60' : '#e74c3c';
+// Помечаем время нашего сохранения чтобы не реагировать на свой broadcast
+const _origRefreshUI = refreshUI;
+function refreshUI() {
+  _ownSaveTs = Date.now();
+  _origRefreshUI();
 }
 
 let _liveToastTimer = null;
 function showLiveToast(msg) {
-  // Не показываем если это наше собственное изменение (обновление пришло сразу после нашего save)
   let el = document.getElementById('adminLiveToast');
   if (!el) {
-    el = document.createElement('div');
-    el.id = 'adminLiveToast';
+    el = Object.assign(document.createElement('div'), { id: 'adminLiveToast' });
     el.style.cssText = 'position:fixed;bottom:80px;left:50%;transform:translateX(-50%);background:#323232;color:#fff;padding:10px 20px;border-radius:24px;font-size:13px;z-index:9999;opacity:0;transition:opacity .3s;pointer-events:none;white-space:nowrap';
     document.body.appendChild(el);
   }
@@ -1537,5 +1530,3 @@ function showLiveToast(msg) {
   clearTimeout(_liveToastTimer);
   _liveToastTimer = setTimeout(() => { el.style.opacity = '0'; }, 3000);
 }
-
-// Live sync запускается из showAdminApp() после логина
