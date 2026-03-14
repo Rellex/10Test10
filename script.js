@@ -599,17 +599,6 @@ function updateCartSummary() {
       progressText.textContent = '🎉 Доставка бесплатная!';
       progressFill.style.width = '100%';
     }
-  } else if (progressWrap && state.deliveryMode === 'pickup') {
-    const PICKUP_MIN = 300;
-    if (sub < PICKUP_MIN) {
-      progressWrap.style.display = 'block';
-      const pct = Math.min(100, Math.round((sub / PICKUP_MIN) * 100));
-      progressFill.style.width = pct + '%';
-      const left = PICKUP_MIN - sub;
-      progressText.textContent = `Минимум для самовывоза ${fmt(PICKUP_MIN)} — добавьте ещё ${fmt(left)} 🏪`;
-    } else {
-      progressWrap.style.display = 'none';
-    }
   } else if (progressWrap) {
     progressWrap.style.display = 'none';
   }
@@ -992,12 +981,6 @@ document.getElementById('clearCartBtn').addEventListener('click', () => {
 
 document.getElementById('goToCheckoutBtn').addEventListener('click', () => {
   if (!getCartCount()) return;
-  const sub = getSubtotal();
-  const PICKUP_MIN = 300;
-  if (state.deliveryMode === 'pickup' && sub < PICKUP_MIN) {
-    showZoneError(`Минимальная сумма для самовывоза — ${fmt(PICKUP_MIN)}. Добавьте ещё ${fmt(PICKUP_MIN - sub)}.`);
-    return;
-  }
   closeModal('cartOverlay');
   recalcDeliveryZoneCost();
   renderPickupSelect(); renderDeliveryCitySelect(); renderPaymentOptions(); updateCheckoutSummary();
@@ -1235,13 +1218,6 @@ async function handleCheckoutSubmit(e) {
   if (e) e.preventDefault();
   const submitBtn = document.getElementById('submitOrderBtn');
   if (submitBtn.disabled) return; // prevent double call
-
-  // Проверка минимальной суммы для самовывоза
-  const PICKUP_MIN = 300;
-  if (state.deliveryMode === 'pickup' && getSubtotal() < PICKUP_MIN) {
-    showZoneError(`Минимальная сумма для самовывоза — ${fmt(PICKUP_MIN)}. Добавьте ещё ${fmt(PICKUP_MIN - getSubtotal())}.`);
-    return;
-  }
 
   // Сразу меняем кнопку — до любых проверок
   submitBtn.disabled = true;
