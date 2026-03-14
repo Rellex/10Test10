@@ -474,6 +474,16 @@ async function createYooPayment({ amount, description, paymentMethod, orderId, r
     });
   }
 
+  // Проверяем что сумма чека совпадает с суммой платежа
+  const receiptTotal = receiptItems.reduce((s, i) => s + i._lineTotal, 0);
+  const diff = Math.round((amount - receiptTotal) * 100) / 100;
+  if (diff !== 0 && receiptItems.length > 0) {
+    const last = receiptItems[receiptItems.length - 1];
+    const lastQty = parseFloat(last.quantity);
+    const corrected = Math.round((parseFloat(last.amount.value) * lastQty + diff) * 100) / 100;
+    last.amount.value = (corrected / lastQty).toFixed(2);
+  }
+
   // Убираем служебное поле
   receiptItems = receiptItems.map(({ _lineTotal, ...i }) => i);
 
@@ -1051,10 +1061,10 @@ app.post('/api/client-bot/webhook', async (req, res) => {
     const chatId = body.message.chat.id;
     await clientBotApi('sendMessage', {
       chat_id: chatId,
-      text: '☀️ Добро пожаловать в «Солнечный день»!\n\nЗдесь вы можете быстро оформить заказ на доставку или самовывоз. Нажмите кнопку ниже, чтобы открыть меню и выбрать блюда.\n\nЖелаем вам солнечного настроения и приятного аппетита! 🍽',
+      text: `☀️ Добро пожаловать в «Солнечный день»!`,
       reply_markup: {
         inline_keyboard: [[{
-          text: '🍽 Открыть меню',
+          text: '🍽 Меню',
           web_app: { url: `https://${WEBHOOK_DOMAIN}/` }
         }]]
       }
