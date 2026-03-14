@@ -527,7 +527,20 @@ function updateCartFab() {
 }
 
 /* ===== CART SHEET ===== */
+function recalcItemPromoDiscount() {
+  if (!state.promo || !state.promoItemPrices || !Object.keys(state.promoItemPrices).length) return;
+  let saved = 0;
+  for (const [itemId, promoPrice] of Object.entries(state.promoItemPrices)) {
+    const qty  = state.cart[itemId] || 0;
+    const item = findItemAny(itemId);
+    if (!item || !qty) continue;
+    saved += (getItemPrice(item) - promoPrice) * qty;
+  }
+  state.promoDiscount = Math.max(0, saved);
+}
+
 function updateCartSheet() {
+  recalcItemPromoDiscount(); // пересчитываем скидку при каждом обновлении корзины
   const list      = document.getElementById('cartItemsList');
   const emptyEl   = document.getElementById('cartEmpty');
   const summaryEl = document.getElementById('cartSummary');
@@ -1127,17 +1140,31 @@ async function applyPromo() {
     }
     state.promo           = data.code;
     state.promoItemPrices = data.itemPrices || {};
-    const sub = getSubtotal();
+
     if (data.type === 'item') {
-      // Считаем скидку как разницу между обычной ценой и ценой по промокоду
+      // Добавляем блюда из промокода в корзину если их там нет
+      let addedNames = [];
+      for (const [itemId, promoPrice] of Object.entries(state.promoItemPrices)) {
+        if (!state.cart[itemId]) {
+          state.cart[itemId] = 1;
+          const item = findItemAny(itemId);
+          if (item) addedNames.push(item.name);
+        }
+      }
+      saveCart();
+      recalcDeliveryZoneCost();
+      updateCartFab();
+      updateCartSheet();
+      rerenderMenuAfterUpdate(); // обновляем карточки меню
+
+      // Считаем скидку уже с учётом добавленных блюд
       let saved = 0;
       for (const [itemId, promoPrice] of Object.entries(state.promoItemPrices)) {
-        const cartEntry = state.cart[itemId];
-        if (!cartEntry) continue;
+        const qty  = state.cart[itemId] || 0;
         const item = findItemAny(itemId);
-        if (!item) continue;
+        if (!item || !qty) continue;
         const normalPrice = getItemPrice(item);
-        saved += (normalPrice - promoPrice) * cartEntry.qty;
+        saved += (normalPrice - promoPrice) * qty;
       }
       state.promoDiscount = Math.max(0, saved);
     } else {
