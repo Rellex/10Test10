@@ -710,6 +710,15 @@ function updateCartSummary() {
   } else if (progressWrap) {
     progressWrap.style.display = 'none';
   }
+
+  // Кнопка "Оформить заказ" — блокируем если сумма < 500 (только для доставки)
+  const checkoutBtn = document.getElementById('goToCheckoutBtn');
+  if (checkoutBtn) {
+    const belowMin = state.deliveryMode !== 'pickup' && sub < 500;
+    checkoutBtn.disabled = belowMin;
+    checkoutBtn.textContent = belowMin ? 'Заказ от 500 ₽' : 'Оформить заказ';
+    checkoutBtn.style.opacity = belowMin ? '0.6' : '1';
+  }
 }
 
 function updateCheckoutSummary() {
@@ -1399,12 +1408,6 @@ function validateCheckoutForm() {
     }
     const pickupAddr = document.getElementById('pickupAddress');
     if (pickupAddr && !pickupAddr.value) { pickupAddr.classList.add('error'); valid = false; }
-  }
-  // Проверка минимальной суммы для доставки
-  if (state.deliveryMode === 'delivery' && getSubtotal() < 500) {
-    const statusEl = document.getElementById('deliveryZoneStatus');
-    if (statusEl) { statusEl.textContent = 'Минимальная сумма заказа для доставки — 500 ₽'; statusEl.className = 'delivery-zone-status error'; }
-    valid = false;
   }
   // Проверка зоны доставки для городов с зонами
   if (state.deliveryMode === 'delivery' && cityHasZones(state.city)) {
