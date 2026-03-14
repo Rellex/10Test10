@@ -350,6 +350,7 @@ input, select, textarea { font-family: inherit; }
 }
 .item-card-badge.active   { background: var(--green-bg); color: var(--green); }
 .item-card-badge.inactive { background: var(--bg); color: var(--text-hint); }
+.item-card-badge.not-today { background: #fff3cd; color: #856404; }
 
 .item-card-body { padding: 10px 12px 12px; flex: 1; display: flex; flex-direction: column; }
 .item-card-name { font-size: 13px; font-weight: 600; color: var(--text); line-height: 1.35; flex: 1; margin-bottom: 6px; }

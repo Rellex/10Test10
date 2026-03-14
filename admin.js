@@ -16,6 +16,73 @@ function showAdminApp() {
   initDayFilter();
   loadMenu();
   if (typeof fetchAddresses === 'function') fetchAddresses();
+  initAdminWS();
+}
+
+/* ══════════════════════════════════════════════
+   WEBSOCKET — Live-индикатор Online/Offline
+══════════════════════════════════════════════ */
+let _adminWS         = null;
+let _adminWSTimer    = null;
+let _adminWSRetry    = 1000; // начальная задержка реконнекта (мс)
+const _adminWSMaxRetry = 30000;
+
+function setLiveBadge(online) {
+  const badge = document.getElementById('adminLiveBadge');
+  if (!badge) return;
+  if (online) {
+    badge.textContent = '🟢 Online';
+    badge.style.color = '#27ae60';
+  } else {
+    badge.textContent = '🔴 Offline';
+    badge.style.color = '#e74c3c';
+  }
+}
+
+function initAdminWS() {
+  if (_adminWS && (_adminWS.readyState === WebSocket.OPEN || _adminWS.readyState === WebSocket.CONNECTING)) return;
+
+  const proto = location.protocol === 'https:' ? 'wss:' : 'ws:';
+  const ws = new WebSocket(`${proto}//${location.host}`);
+  _adminWS = ws;
+
+  ws.addEventListener('open', () => {
+    setLiveBadge(true);
+    _adminWSRetry = 1000; // сброс задержки при успехе
+  });
+
+  ws.addEventListener('message', e => {
+    try {
+      const msg = JSON.parse(e.data);
+      // Обновляем меню при изменениях с других вкладок/устройств
+      if (msg.event === 'menu' && msg.data) {
+        S.menu = msg.data;
+        renderSidebar();
+        if (S.activeCatId) renderItems(S.activeCatId);
+      }
+      // Обновляем заказы если открыта вкладка заказов
+      if (msg.event === 'order') {
+        if (document.getElementById('ordersSection').style.display === 'block') {
+          loadOrders();
+        }
+      }
+    } catch {}
+  });
+
+  ws.addEventListener('close', () => {
+    setLiveBadge(false);
+    _adminWS = null;
+    // Авто-реконнект с экспоненциальной задержкой
+    clearTimeout(_adminWSTimer);
+    _adminWSTimer = setTimeout(() => {
+      _adminWSRetry = Math.min(_adminWSRetry * 2, _adminWSMaxRetry);
+      initAdminWS();
+    }, _adminWSRetry);
+  });
+
+  ws.addEventListener('error', () => {
+    ws.close();
+  });
 }
 
 /* ══════════════════════════════════════════════
@@ -462,8 +529,14 @@ function renderItems(catId) {
 
   document.getElementById('topbarTitle').textContent = cat ? cat.name : '';
   document.getElementById('statTotal').textContent   = cityFiltered.length;
-  document.getElementById('statActive').textContent  = cityFiltered.filter(i => i.active).length;
-  document.getElementById('statHidden').textContent  = cityFiltered.filter(i => !i.active).length;
+  // Активных = active:true И входит в расписание сегодня (или расписание выключено)
+  const activeCount = cityFiltered.filter(i => {
+    if (!i.active) return false;
+    if (!schedIds) return true;
+    return schedIds.has(i.id);
+  }).length;
+  document.getElementById('statActive').textContent  = activeCount;
+  document.getElementById('statHidden').textContent  = cityFiltered.length - activeCount;
 
   grid.innerHTML = '';
   if (!cityFiltered.length) { empty.classList.remove('hidden'); return; }
@@ -482,14 +555,24 @@ function createItemCard(item, schedIds) {
     ? `<img class="item-card-img" src="${src}" alt="${item.name}" loading="lazy" />`
     : `<span class="item-card-emoji-big">${item.emoji}</span>`;
 
-  const badgeClass = item.active ? 'active' : 'inactive';
-  const badgeText  = item.active ? 'Активно' : 'Скрыто';
+  // Три состояния бейджа:
+  // 1. item.active = false → «Скрыто» (вручную выключено)
+  // 2. item.active = true, расписание включено, блюда нет в сегодня → «Не сегодня»
+  // 3. item.active = true, в расписании (или расписание выкл) → «Активно»
+  let badgeClass, badgeText;
+  if (!item.active) {
+    badgeClass = 'inactive';
+    badgeText  = 'Скрыто';
+  } else if (schedIds && !inSched) {
+    badgeClass = 'not-today';
+    badgeText  = 'Не сегодня';
+  } else {
+    badgeClass = 'active';
+    badgeText  = 'Активно';
+  }
   const toggleText = item.active ? '🙈 Скрыть' : '👁 Показать';
-  const schedBadge = schedIds
-    ? (inSched
-        ? `<span class="item-sched-badge in-sched">✓ Сегодня</span>`
-        : `<span class="item-sched-badge not-sched">✕ Не сегодня</span>`)
-    : '';
+  // schedBadge скрываем — информация уже в основном бейдже
+  const schedBadge = '';
 
   card.innerHTML = `
     <div class="item-card-media">
