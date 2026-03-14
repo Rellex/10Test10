@@ -1143,14 +1143,24 @@ async function applyPromo() {
     } else {
       state.promoDiscount = data.discount;
     }
-    let hint = '';
-    if (data.usesLeft !== null) hint += ` · осталось ${data.usesLeft} исп.`;
+    // Формируем текст что даёт промокод
+    let benefit = '';
+    if (data.type === 'percent') {
+      benefit = `−${data.discount_pct || ''}% от суммы`;
+    } else if (data.type === 'fixed') {
+      benefit = `−${data.discount} ₽`;
+    } else if (data.type === 'item') {
+      const cnt = Object.keys(data.itemPrices || {}).length;
+      benefit = `спец. цена на ${cnt} ${cnt === 1 ? 'блюдо' : cnt < 5 ? 'блюда' : 'блюд'}`;
+    }
+    // Добавляем срок если есть
+    let expiry = '';
     if (data.expiresAt) {
       const d = new Date(data.expiresAt);
-      hint += ` · до ${d.toLocaleDateString('ru')}`;
+      expiry = ` · до ${d.toLocaleDateString('ru')}`;
     }
     statusEl.className   = 'promo-status success';
-    statusEl.textContent = '✅ ' + data.label + hint;
+    statusEl.textContent = '✅ ' + (benefit || data.label) + expiry;
     updateCheckoutSummary();
     tg?.HapticFeedback?.notificationOccurred('success');
   } catch(e) {

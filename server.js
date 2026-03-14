@@ -1368,6 +1368,7 @@ app.post('/api/promo/apply', (req, res) => {
     code:           promo.code,
     type:           promo.type,
     discount:       discountAmount,
+    discount_pct:   promo.type === 'percent' ? promo.discount : null,
     label:          promo.label,
     itemPrices:     promo.itemPrices || {},
     usesLeft:       promo.maxUses !== null ? promo.maxUses - promo.usedCount : null,
