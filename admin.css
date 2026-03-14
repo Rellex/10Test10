@@ -1092,3 +1092,11 @@ input, select, textarea { font-family: inherit; }
   width: 16px; height: 16px; accent-color: var(--sun); flex-shrink: 0;
 }
 .promo-mode-fields { transition: opacity .2s; }
+
+.promo-sel-x { color: var(--text-sub); font-size: 13px; }
+.promo-sel-qty {
+  width: 48px; padding: 4px 6px; border-radius: 6px;
+  border: 1.5px solid var(--border); font-size: 13px;
+  font-weight: 700; text-align: center; outline: none;
+}
+.promo-sel-qty:focus { border-color: var(--sun); }

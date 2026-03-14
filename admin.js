@@ -1900,7 +1900,7 @@ function renderPromoItemResults(q) {
   res.querySelectorAll('.promo-search-item').forEach(row => {
     row.addEventListener('click', () => {
       const id    = row.dataset.id;
-      if (!_selectedItemPrices[id]) _selectedItemPrices[id] = parseInt(row.dataset.price);
+      if (!_selectedItemPrices[id]) _selectedItemPrices[id] = { price: parseInt(row.dataset.price), qty: 1 };
       document.getElementById('promoItemSearch').value = '';
       renderPromoItemResults('');
       renderSelectedItemPrices();
@@ -1916,17 +1916,34 @@ function renderSelectedItemPrices() {
     const item = S.menu.items.find(i => i.id === id);
     if (!item) return '';
     const origPrice = getPromoItemPrice(item);
+    const rec = _selectedItemPrices[id];
+    const price = typeof rec === 'object' ? rec.price : rec;
+    const qty   = typeof rec === 'object' ? rec.qty   : 1;
     return `<div class="promo-sel-item" data-id="${id}">
       <span class="promo-sel-name">${item.emoji || '🍽️'} ${item.name}</span>
       <span class="promo-sel-orig">обычно ${origPrice} ₽</span>
       <span class="promo-sel-arrow">→</span>
-      <input type="number" class="promo-sel-price" data-id="${id}" value="${_selectedItemPrices[id]}" min="0" placeholder="цена" />
+      <input type="number" class="promo-sel-price" data-id="${id}" value="${price}" min="0" placeholder="цена" />
       <span class="promo-sel-rub">₽</span>
+      <span class="promo-sel-x">×</span>
+      <input type="number" class="promo-sel-qty" data-id="${id}" value="${qty}" min="1" placeholder="кол" style="width:48px" />
+      <span class="promo-sel-rub">шт</span>
       <button class="promo-sel-del" data-id="${id}">✕</button>
     </div>`;
   }).join('');
   wrap.querySelectorAll('.promo-sel-price').forEach(inp => {
-    inp.addEventListener('input', () => { _selectedItemPrices[inp.dataset.id] = parseInt(inp.value) || 0; });
+    inp.addEventListener('input', () => {
+      const rec = _selectedItemPrices[inp.dataset.id];
+      const qty = typeof rec === 'object' ? rec.qty : 1;
+      _selectedItemPrices[inp.dataset.id] = { price: parseInt(inp.value) || 0, qty };
+    });
+  });
+  wrap.querySelectorAll('.promo-sel-qty').forEach(inp => {
+    inp.addEventListener('input', () => {
+      const rec = _selectedItemPrices[inp.dataset.id];
+      const price = typeof rec === 'object' ? rec.price : (rec || 0);
+      _selectedItemPrices[inp.dataset.id] = { price, qty: parseInt(inp.value) || 1 };
+    });
   });
   wrap.querySelectorAll('.promo-sel-del').forEach(btn => {
     btn.addEventListener('click', () => { delete _selectedItemPrices[btn.dataset.id]; renderSelectedItemPrices(); });
@@ -1934,7 +1951,11 @@ function renderSelectedItemPrices() {
 }
 
 function openPromoForm(promo) {
-  _selectedItemPrices = promo?.itemPrices ? { ...promo.itemPrices } : {};
+  // Нормализуем itemPrices: поддерживаем старый формат { id: price } и новый { id: { price, qty } }
+  _selectedItemPrices = {};
+  for (const [id, val] of Object.entries(promo?.itemPrices || {})) {
+    _selectedItemPrices[id] = typeof val === 'object' ? val : { price: val, qty: 1 };
+  }
   document.getElementById('promoFormTitle').textContent = promo ? 'Редактировать промокод' : 'Новый промокод';
   document.getElementById('promoEditId').value    = promo?.id       || '';
   document.getElementById('promoCode').value      = promo?.code     || '';

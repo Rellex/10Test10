@@ -556,11 +556,13 @@ function updateCartFab() {
 function recalcItemPromoDiscount() {
   if (!state.promo || !state.promoItemPrices || !Object.keys(state.promoItemPrices).length) return;
   let saved = 0;
-  for (const [itemId, promoPrice] of Object.entries(state.promoItemPrices)) {
-    const qty  = state.cart[itemId] || 0;
+  for (const [itemId, rec] of Object.entries(state.promoItemPrices)) {
+    const promoPrice = typeof rec === 'object' ? rec.price : rec;
+    const promoQty   = typeof rec === 'object' ? (rec.qty || 1) : 1;
     const item = findItemAny(itemId);
-    if (!item || !qty) continue;
-    saved += (getItemPrice(item) - promoPrice) * qty;
+    if (!item) continue;
+    // Скидка = (обычная цена - промо цена) × промо количество
+    saved += (getItemPrice(item) - promoPrice) * promoQty;
   }
   state.promoDiscount = Math.max(0, saved);
 }
@@ -592,7 +594,8 @@ function updateCartSheet() {
     if (id === CONTAINER_ITEM_ID) continue;
 
     const isPromoItem = state.promoItemPrices && state.promoItemPrices[id] !== undefined;
-    const promoPrice  = isPromoItem ? state.promoItemPrices[id] : null;
+    const promoRec    = isPromoItem ? state.promoItemPrices[id] : null;
+    const promoPrice  = promoRec !== null ? (typeof promoRec === 'object' ? promoRec.price : promoRec) : null;
     const displayPrice = isPromoItem ? promoPrice : getItemPrice(item);
 
     const src = itemImgSrc(item);
@@ -1258,29 +1261,25 @@ async function applyPromo() {
     state.promoItemPrices = data.itemPrices || {};
 
     if (data.type === 'item') {
-      // Добавляем блюда из промокода в корзину если их там нет
-      let addedNames = [];
-      for (const [itemId, promoPrice] of Object.entries(state.promoItemPrices)) {
-        if (!state.cart[itemId]) {
-          state.cart[itemId] = 1;
-          const item = findItemAny(itemId);
-          if (item) addedNames.push(item.name);
-        }
+      // Добавляем блюда из промокода в корзину с нужным количеством
+      for (const [itemId, rec] of Object.entries(state.promoItemPrices)) {
+        const promoQty = typeof rec === 'object' ? (rec.qty || 1) : 1;
+        state.cart[itemId] = promoQty; // устанавливаем ровно промо-количество
       }
       saveCart();
       recalcDeliveryZoneCost();
       updateCartFab();
       updateCartSheet();
-      rerenderMenuAfterUpdate(); // обновляем карточки меню
+      rerenderMenuAfterUpdate();
 
-      // Считаем скидку уже с учётом добавленных блюд
+      // Считаем скидку
       let saved = 0;
-      for (const [itemId, promoPrice] of Object.entries(state.promoItemPrices)) {
-        const qty  = state.cart[itemId] || 0;
+      for (const [itemId, rec] of Object.entries(state.promoItemPrices)) {
+        const promoPrice = typeof rec === 'object' ? rec.price : rec;
+        const promoQty   = typeof rec === 'object' ? (rec.qty || 1) : 1;
         const item = findItemAny(itemId);
-        if (!item || !qty) continue;
-        const normalPrice = getItemPrice(item);
-        saved += (normalPrice - promoPrice) * qty;
+        if (!item) continue;
+        saved += (getItemPrice(item) - promoPrice) * promoQty;
       }
       state.promoDiscount = Math.max(0, saved);
     } else {
@@ -1460,7 +1459,8 @@ async function handleCheckoutSubmit(e) {
     items:    Object.entries(state.cart).map(([id, qty]) => {
       const item = findItemAny(id);
       // Если для этого блюда есть промо-цена — используем её
-      const promoPrice = state.promoItemPrices?.[id];
+      const promoRec   = state.promoItemPrices?.[id];
+      const promoPrice = promoRec !== undefined ? (typeof promoRec === 'object' ? promoRec.price : promoRec) : undefined;
       const price = (promoPrice !== undefined) ? promoPrice : getItemPrice(item);
       return { id, name: item?.name, price, qty, promoPrice: promoPrice !== undefined ? promoPrice : null };
     }),
