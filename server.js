@@ -1268,23 +1268,24 @@ app.get('/api/admin/promos', auth, (_, res) => res.json(readPromos()));
 
 // Создать промокод
 app.post('/api/admin/promos', auth, (req, res) => {
-  const { code, type, discount, label, maxUses, expiresAt, itemPrices } = req.body;
+  const { code, type, discount, label, maxUses, expiresAt, itemPrices, minOrderAmount } = req.body;
   if (!code || !type) return res.status(400).json({ error: 'code и type обязательны' });
   const list = readPromos();
   if (list.find(p => p.code === code.toUpperCase()))
     return res.status(409).json({ error: 'Промокод уже существует' });
   const promo = {
-    id:        'promo-' + Date.now(),
-    code:      code.trim().toUpperCase(),
-    type,                           // 'percent' | 'fixed' | 'item'
-    discount:  discount || 0,       // для percent/fixed
-    label:     label || code,
-    maxUses:   maxUses   || null,   // null = неограничено
-    usedCount: 0,
-    expiresAt: expiresAt || null,   // null = бессрочно, ISO string
-    itemPrices: itemPrices || {},   // { itemId: price } для type='item'
-    active:    true,
-    createdAt: new Date().toISOString(),
+    id:             'promo-' + Date.now(),
+    code:           code.trim().toUpperCase(),
+    type,
+    discount:       discount || 0,
+    label:          label || code,
+    maxUses:        maxUses   || null,
+    usedCount:      0,
+    expiresAt:      expiresAt || null,
+    minOrderAmount: minOrderAmount || null,
+    itemPrices:     itemPrices || {},
+    active:         true,
+    createdAt:      new Date().toISOString(),
   };
   list.push(promo);
   writePromos(list);
@@ -1297,15 +1298,16 @@ app.put('/api/admin/promos/:id', auth, (req, res) => {
   const list  = readPromos();
   const promo = list.find(p => p.id === req.params.id);
   if (!promo) return res.status(404).json({ error: 'Не найден' });
-  const { code, type, discount, label, maxUses, expiresAt, itemPrices, active } = req.body;
-  if (code      !== undefined) promo.code       = code.trim().toUpperCase();
-  if (type      !== undefined) promo.type       = type;
-  if (discount  !== undefined) promo.discount   = discount;
-  if (label     !== undefined) promo.label      = label;
-  if (maxUses   !== undefined) promo.maxUses    = maxUses;
-  if (expiresAt !== undefined) promo.expiresAt  = expiresAt;
-  if (itemPrices!== undefined) promo.itemPrices = itemPrices;
-  if (active    !== undefined) promo.active     = active;
+  const { code, type, discount, label, maxUses, expiresAt, itemPrices, active, minOrderAmount } = req.body;
+  if (code      !== undefined) promo.code           = code.trim().toUpperCase();
+  if (type      !== undefined) promo.type           = type;
+  if (discount  !== undefined) promo.discount       = discount;
+  if (label     !== undefined) promo.label          = label;
+  if (maxUses   !== undefined) promo.maxUses        = maxUses;
+  if (expiresAt !== undefined) promo.expiresAt      = expiresAt;
+  if (itemPrices!== undefined) promo.itemPrices     = itemPrices;
+  if (active    !== undefined) promo.active         = active;
+  if (minOrderAmount !== undefined) promo.minOrderAmount = minOrderAmount;
   writePromos(list);
   broadcast('promos', readPromos());
   res.json(promo);
@@ -1337,6 +1339,10 @@ app.post('/api/promo/apply', (req, res) => {
   // Проверка лимита использований
   if (promo.maxUses !== null && promo.usedCount >= promo.maxUses)
     return res.status(410).json({ error: '❌ Промокод исчерпан' });
+
+  // Проверка минимальной суммы заказа
+  if (promo.minOrderAmount && (subtotal || 0) < promo.minOrderAmount)
+    return res.status(400).json({ error: `❌ Промокод доступен от ${promo.minOrderAmount} ₽` });
 
   // Считаем скидку
   let discountAmount = 0;

@@ -60,6 +60,10 @@ function initAdminWS() {
         renderSidebar();
         if (S.activeCatId) renderItems(S.activeCatId);
       }
+      // Обновляем промокоды
+      if (msg.event === 'promos' && msg.data) {
+        if (typeof handlePromosWSEvent === 'function') handlePromosWSEvent(msg.data);
+      }
       // Обновляем заказы если открыта вкладка заказов
       if (msg.event === 'order') {
         if (document.getElementById('ordersSection').style.display === 'block') {
@@ -1788,28 +1792,13 @@ async function changeOrderStatus(orderId, status) {
 /* ══════════════════════════════════════════════
    PROMO CODES MANAGEMENT
 ══════════════════════════════════════════════ */
-let _promos        = [];     // текущий список с сервера
-let _promoEditMode = false;  // true = редактирование, false = создание
-let _selectedItemPrices = {}; // { itemId: price } для type='item'
-
-// Открываем модал
-document.getElementById('promosBtn').addEventListener('click', openPromosModal);
-document.getElementById('promosModalClose').addEventListener('click', () => closeModal('promosModal'));
-
-async function openPromosModal() {
-  await loadPromos();
-  renderPromosList();
-  hidePromoForm();
-  openModal('promosModal');
-}
+let _promos             = [];
+let _selectedItemPrices = {};
 
 async function loadPromos() {
-  try {
-    _promos = await api('GET', '/api/admin/promos');
-  } catch(e) { _promos = []; }
+  try { _promos = await api('GET', '/api/admin/promos'); } catch(e) { _promos = []; }
 }
 
-/* ── Список ── */
 function renderPromosList() {
   const list  = document.getElementById('promosList');
   const empty = document.getElementById('promosEmpty');
@@ -1819,15 +1808,14 @@ function renderPromosList() {
   const today = new Date(); today.setHours(0,0,0,0);
 
   list.innerHTML = _promos.map(p => {
-    const expired  = p.expiresAt && new Date(p.expiresAt) < today;
-    const exhausted= p.maxUses !== null && p.usedCount >= p.maxUses;
-    const inactive = !p.active || expired || exhausted;
+    const expired   = p.expiresAt && new Date(p.expiresAt) < today;
+    const exhausted = p.maxUses !== null && p.usedCount >= p.maxUses;
+    const inactive  = !p.active || expired || exhausted;
 
-    let statusText = '';
-    let statusCls  = 'promo-tag green';
-    if (!p.active)    { statusText = 'Выкл'; statusCls = 'promo-tag grey'; }
-    else if (expired) { statusText = 'Истёк'; statusCls = 'promo-tag red'; }
-    else if (exhausted){ statusText = 'Исчерпан'; statusCls = 'promo-tag red'; }
+    let statusText = '', statusCls = 'promo-tag green';
+    if (!p.active)     { statusText = 'Выкл';     statusCls = 'promo-tag grey'; }
+    else if (expired)  { statusText = 'Истёк';    statusCls = 'promo-tag red';  }
+    else if (exhausted){ statusText = 'Исчерпан'; statusCls = 'promo-tag red';  }
     else {
       const parts = [];
       if (p.maxUses !== null) parts.push(`осталось ${p.maxUses - p.usedCount} исп.`);
@@ -1835,6 +1823,7 @@ function renderPromosList() {
         const diff = Math.ceil((new Date(p.expiresAt) - today) / 86400000);
         parts.push(`${diff} дн.`);
       }
+      if (p.minOrderAmount) parts.push(`от ${p.minOrderAmount} ₽`);
       statusText = parts.length ? parts.join(' · ') : 'Активен';
     }
 
@@ -1846,7 +1835,7 @@ function renderPromosList() {
       descr = `${cnt} блюд по спец. цене`;
     }
 
-    return `<div class="promo-row ${inactive ? 'inactive' : ''}" data-id="${p.id}">
+    return `<div class="promo-row${inactive ? ' inactive' : ''}" data-id="${p.id}">
       <div class="promo-row-left">
         <span class="promo-code-badge">${p.code}</span>
         <span class="promo-row-label">${p.label || ''}</span>
@@ -1877,18 +1866,10 @@ function renderPromosList() {
   });
 }
 
-/* ── Форма ── */
-document.getElementById('promoAddBtn').addEventListener('click', () => openPromoForm(null));
-document.getElementById('promoFormCancel').addEventListener('click', hidePromoForm);
-
-// Тип скидки
-document.querySelectorAll('.promo-type-btn').forEach(btn => {
-  btn.addEventListener('click', () => {
-    document.querySelectorAll('.promo-type-btn').forEach(b => b.classList.remove('active'));
-    btn.classList.add('active');
-    applyPromoTypeUI(btn.dataset.type);
-  });
-});
+function getPromoItemPrice(item) {
+  if (S.activeCity && item.cityPrices) return item.cityPrices[S.activeCity] ?? item.price ?? 0;
+  return item.price ?? 0;
+}
 
 function applyPromoTypeUI(type) {
   const discWrap  = document.getElementById('promoDiscountWrap');
@@ -1903,12 +1884,6 @@ function applyPromoTypeUI(type) {
     discLabel.textContent = type === 'percent' ? 'Размер скидки (%)' : 'Скидка (₽)';
   }
 }
-
-// Поиск блюд для item-промокода
-document.getElementById('promoItemSearch').addEventListener('input', function() {
-  const q = this.value.trim().toLowerCase();
-  renderPromoItemResults(q);
-});
 
 function renderPromoItemResults(q) {
   const res = document.getElementById('promoItemResults');
@@ -1925,19 +1900,12 @@ function renderPromoItemResults(q) {
   res.querySelectorAll('.promo-search-item').forEach(row => {
     row.addEventListener('click', () => {
       const id    = row.dataset.id;
-      const name  = row.dataset.name;
-      const price = parseInt(row.dataset.price);
-      if (!_selectedItemPrices[id]) _selectedItemPrices[id] = price;
+      if (!_selectedItemPrices[id]) _selectedItemPrices[id] = parseInt(row.dataset.price);
       document.getElementById('promoItemSearch').value = '';
       renderPromoItemResults('');
       renderSelectedItemPrices();
     });
   });
-}
-
-function getPromoItemPrice(item) {
-  if (S.activeCity && item.cityPrices) return item.cityPrices[S.activeCity] ?? item.price ?? 0;
-  return item.price ?? 0;
 }
 
 function renderSelectedItemPrices() {
@@ -1952,41 +1920,32 @@ function renderSelectedItemPrices() {
       <span class="promo-sel-name">${item.emoji || '🍽️'} ${item.name}</span>
       <span class="promo-sel-orig">обычно ${origPrice} ₽</span>
       <span class="promo-sel-arrow">→</span>
-      <input type="number" class="promo-sel-price" data-id="${id}"
-        value="${_selectedItemPrices[id]}" min="0" placeholder="цена" />
+      <input type="number" class="promo-sel-price" data-id="${id}" value="${_selectedItemPrices[id]}" min="0" placeholder="цена" />
       <span class="promo-sel-rub">₽</span>
       <button class="promo-sel-del" data-id="${id}">✕</button>
     </div>`;
   }).join('');
   wrap.querySelectorAll('.promo-sel-price').forEach(inp => {
-    inp.addEventListener('input', () => {
-      _selectedItemPrices[inp.dataset.id] = parseInt(inp.value) || 0;
-    });
+    inp.addEventListener('input', () => { _selectedItemPrices[inp.dataset.id] = parseInt(inp.value) || 0; });
   });
   wrap.querySelectorAll('.promo-sel-del').forEach(btn => {
-    btn.addEventListener('click', () => {
-      delete _selectedItemPrices[btn.dataset.id];
-      renderSelectedItemPrices();
-    });
+    btn.addEventListener('click', () => { delete _selectedItemPrices[btn.dataset.id]; renderSelectedItemPrices(); });
   });
 }
 
 function openPromoForm(promo) {
-  _promoEditMode = !!promo;
   _selectedItemPrices = promo?.itemPrices ? { ...promo.itemPrices } : {};
-
   document.getElementById('promoFormTitle').textContent = promo ? 'Редактировать промокод' : 'Новый промокод';
-  document.getElementById('promoEditId').value    = promo?.id    || '';
-  document.getElementById('promoCode').value      = promo?.code  || '';
-  document.getElementById('promoLabel').value     = promo?.label || '';
-  document.getElementById('promoDiscount').value  = promo?.discount ?? '';
-  document.getElementById('promoMaxUses').value   = promo?.maxUses  ?? '';
-  document.getElementById('promoExpiresAt').value = promo?.expiresAt ? promo.expiresAt.slice(0,10) : '';
+  document.getElementById('promoEditId').value       = promo?.id           || '';
+  document.getElementById('promoCode').value         = promo?.code         || '';
+  document.getElementById('promoLabel').value        = promo?.label        || '';
+  document.getElementById('promoDiscount').value     = promo?.discount     ?? '';
+  document.getElementById('promoMaxUses').value      = promo?.maxUses      ?? '';
+  document.getElementById('promoMinOrder').value     = promo?.minOrderAmount ?? '';
+  document.getElementById('promoExpiresAt').value    = promo?.expiresAt ? promo.expiresAt.slice(0,10) : '';
 
   const type = promo?.type || 'percent';
-  document.querySelectorAll('.promo-type-btn').forEach(b => {
-    b.classList.toggle('active', b.dataset.type === type);
-  });
+  document.querySelectorAll('.promo-type-btn').forEach(b => b.classList.toggle('active', b.dataset.type === type));
   applyPromoTypeUI(type);
   renderSelectedItemPrices();
 
@@ -1999,56 +1958,62 @@ function hidePromoForm() {
   _selectedItemPrices = {};
 }
 
-document.getElementById('promoFormSave').addEventListener('click', async () => {
-  const id      = document.getElementById('promoEditId').value;
-  const code    = document.getElementById('promoCode').value.trim().toUpperCase();
-  const label   = document.getElementById('promoLabel').value.trim();
-  const type    = document.querySelector('.promo-type-btn.active')?.dataset.type || 'percent';
-  const discount= parseFloat(document.getElementById('promoDiscount').value) || 0;
-  const maxUses = document.getElementById('promoMaxUses').value
-    ? parseInt(document.getElementById('promoMaxUses').value) : null;
+async function savePromo() {
+  const id       = document.getElementById('promoEditId').value;
+  const code     = document.getElementById('promoCode').value.trim().toUpperCase();
+  const label    = document.getElementById('promoLabel').value.trim();
+  const type     = document.querySelector('.promo-type-btn.active')?.dataset.type || 'percent';
+  const discount = parseFloat(document.getElementById('promoDiscount').value) || 0;
+  const maxUses  = document.getElementById('promoMaxUses').value ? parseInt(document.getElementById('promoMaxUses').value) : null;
+  const minOrder = document.getElementById('promoMinOrder').value ? parseInt(document.getElementById('promoMinOrder').value) : null;
   const expiresRaw = document.getElementById('promoExpiresAt').value;
   const expiresAt  = expiresRaw ? new Date(expiresRaw + 'T23:59:59').toISOString() : null;
 
   if (!code) { toast('Введите код промокода', 'error'); return; }
   if (type !== 'item' && !discount) { toast('Укажите размер скидки', 'error'); return; }
-  if (type === 'item' && !Object.keys(_selectedItemPrices).length) {
-    toast('Добавьте хотя бы одно блюдо', 'error'); return;
-  }
+  if (type === 'item' && !Object.keys(_selectedItemPrices).length) { toast('Добавьте хотя бы одно блюдо', 'error'); return; }
 
-  const body = { code, label: label || code, type, discount, maxUses, expiresAt,
-    itemPrices: type === 'item' ? _selectedItemPrices : {}, active: true };
+  const body = {
+    code, label: label || code, type, discount, maxUses, expiresAt,
+    minOrderAmount: minOrder,
+    itemPrices: type === 'item' ? _selectedItemPrices : {},
+    active: true,
+  };
 
   try {
-    if (id) {
-      await api('PUT', '/api/admin/promos/' + id, body);
-      toast('Промокод обновлён ✓', 'success');
-    } else {
-      await api('POST', '/api/admin/promos', body);
-      toast('Промокод создан ✓', 'success');
-    }
-    await loadPromos();
-    renderPromosList();
-    hidePromoForm();
+    if (id) { await api('PUT', '/api/admin/promos/' + id, body); toast('Промокод обновлён ✓', 'success'); }
+    else    { await api('POST', '/api/admin/promos', body);      toast('Промокод создан ✓',   'success'); }
+    await loadPromos(); renderPromosList(); hidePromoForm();
   } catch(e) { toast('Ошибка: ' + e.message, 'error'); }
+}
+
+/* ── Все addEventListener в DOMContentLoaded ── */
+document.addEventListener('DOMContentLoaded', function initPromoListeners() {
+  document.getElementById('promosBtn')?.addEventListener('click', async () => {
+    await loadPromos(); renderPromosList(); hidePromoForm(); openModal('promosModal');
+  });
+  document.getElementById('promosModalClose')?.addEventListener('click', () => closeModal('promosModal'));
+
+  document.getElementById('promoAddBtn')?.addEventListener('click', () => openPromoForm(null));
+  document.getElementById('promoFormCancel')?.addEventListener('click', hidePromoForm);
+  document.getElementById('promoFormSave')?.addEventListener('click', savePromo);
+
+  document.getElementById('promoItemSearch')?.addEventListener('input', function() {
+    renderPromoItemResults(this.value.trim().toLowerCase());
+  });
+
+  document.querySelectorAll('.promo-type-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      document.querySelectorAll('.promo-type-btn').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      applyPromoTypeUI(btn.dataset.type);
+    });
+  });
 });
 
-// WebSocket — обновляем список если промокоды изменились с другого устройства
-const _origAdminWSMsg = _adminWS?.onmessage;
-function patchAdminWSForPromos(ws) {
-  if (!ws) return;
-  const orig = ws.onmessage;
-  ws.onmessage = e => {
-    try {
-      const msg = JSON.parse(e.data);
-      if (msg.event === 'promos') {
-        _promos = msg.data;
-        if (document.getElementById('promosModal') &&
-            !document.getElementById('promosModal').classList.contains('hidden')) {
-          renderPromosList();
-        }
-      }
-    } catch {}
-    if (orig) orig.call(ws, e);
-  };
+/* ── WS: live-обновление списка ── */
+function handlePromosWSEvent(data) {
+  _promos = data;
+  const modal = document.getElementById('promosModal');
+  if (modal && !modal.classList.contains('hidden')) renderPromosList();
 }
