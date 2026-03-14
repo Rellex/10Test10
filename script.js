@@ -1236,6 +1236,13 @@ async function handleCheckoutSubmit(e) {
   const submitBtn = document.getElementById('submitOrderBtn');
   if (submitBtn.disabled) return; // prevent double call
 
+  // Проверка минимальной суммы для самовывоза
+  const PICKUP_MIN = 300;
+  if (state.deliveryMode === 'pickup' && getSubtotal() < PICKUP_MIN) {
+    showZoneError(`Минимальная сумма для самовывоза — ${fmt(PICKUP_MIN)}. Добавьте ещё ${fmt(PICKUP_MIN - getSubtotal())}.`);
+    return;
+  }
+
   // Сразу меняем кнопку — до любых проверок
   submitBtn.disabled = true;
   submitBtn.innerHTML = '<span>⏳ Создаём платёж…</span>';
