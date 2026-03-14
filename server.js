@@ -819,38 +819,35 @@ async function setWebhook() {
 }
 
 function buildOrderMessage(order) {
-  const st = ORDER_STATUSES.find(s => s.id === order.status) || { label: order.status };
-  const items = (order.items || []).map(i => `  • ${i.name} ×${i.qty} — ${i.price * i.qty} ₽`).join('\n');
+  const st    = ORDER_STATUSES.find(s => s.id === order.status) || { label: order.status };
+  const items = (order.items || []).map(i => {
+    const lineTotal  = i.price * i.qty;
+    const promoMark  = (i.promoPrice !== null && i.promoPrice !== undefined) ? ' 🎟' : '';
+    return `  • ${i.name} ×${i.qty} — ${lineTotal} ₽${promoMark}`;
+  }).join('\n');
   const date = new Date(order.createdAt).toLocaleString('ru', { timeZone: 'Asia/Novosibirsk' });
-  return `🆕 *Новый заказ #${order.id.slice(-6)}*
-` +
-    `📅 ${date}
-` +
-    `👤 ${order.name} | 📞 ${order.phone}
-` +
+  const promoLine    = order.promo ? `\n🎟 Промокод: *${order.promo}*` + (order.discount ? ` (−${order.discount} ₽)` : '') : '';
+  const subtotalLine = order.subtotal ? `\n💵 Сумма: ${order.subtotal} ₽` : '';
+  const deliveryLine = order.delivery ? `\n🚗 Доставка: ${order.delivery} ₽` : '';
+  return `🆕 *Новый заказ #${order.id.slice(-6)}*\n` +
+    `📅 ${date}\n` +
+    `👤 ${order.name} | 📞 ${order.phone}\n` +
     `📍 ${order.cityName || ''} — ${order.address || ''}` +
     (order.entrance  ? `, подъезд ${order.entrance}` : '') +
-    (order.intercom   ? `, домофон ${order.intercom}` : '') +
-    (order.floor     ? `, этаж ${order.floor}` : '') +
-    (order.apartment ? `, кв. ${order.apartment}` : '') +
-    `
-` +
-    `🚚 ${order.mode === 'delivery' ? 'Доставка' : 'Самовывоз'}
-` +
-    `💳 ${order.payment === 'qr' ? 'QR-код' : order.payment === 'card' ? 'Банковская карта' : order.payment === 'cash' ? 'Наличные' : order.payment === 'card_on_delivery' ? 'Карта при получении' : 'QR-код'}
-
-` +
-    `${items}
-
-` +
-    `💰 Итого: *${order.total} ₽*
-` +
+    (order.intercom  ? `, домофон ${order.intercom}`  : '') +
+    (order.floor     ? `, этаж ${order.floor}`        : '') +
+    (order.apartment ? `, кв. ${order.apartment}`     : '') +
+    `\n` +
+    `🚚 ${order.mode === 'delivery' ? 'Доставка' : 'Самовывоз'}\n` +
+    `💳 ${order.payment === 'qr' ? 'QR-код' : order.payment === 'card' ? 'Банковская карта' : order.payment === 'cash' ? 'Наличные' : order.payment === 'card_on_delivery' ? 'Карта при получении' : 'QR-код'}\n\n` +
+    `${items}\n` +
+    promoLine + subtotalLine + deliveryLine +
+    `\n💰 Итого: *${order.total} ₽*\n` +
     `🍽️ Статус: ${st.label}` +
     (order.status === 'assembling' ? `\n⏳ Ожидание подтверждения сборки` : '') +
     (order.assembler ? `\n👨‍🍳 Собрал: ${order.assembler}` : '') +
     (order.comment ? `\n💬 ${order.comment}` : '');
 }
-
 function buildStatusKeyboard(orderId, currentStatus, mode) {
   const chainPickup   = ['pending', 'new', 'assembling', 'ready'];
   const chainDelivery = ['pending', 'new', 'assembling', 'ready', 'delivering'];
@@ -1254,13 +1251,25 @@ let memoryPromos  = null;
 
 function readPromos() {
   if (memoryPromos) return memoryPromos;
-  if (!fs.existsSync(PROMOS_FILE)) return [];
-  try { memoryPromos = JSON.parse(fs.readFileSync(PROMOS_FILE, 'utf8')); return memoryPromos; }
-  catch { return []; }
+  // Сначала пробуем menu.json (переживает рестарты на Railway)
+  const menu = readMenu();
+  if (Array.isArray(menu.promos)) { memoryPromos = menu.promos; return memoryPromos; }
+  // Фоллбэк — отдельный файл
+  if (fs.existsSync(PROMOS_FILE)) {
+    try { memoryPromos = JSON.parse(fs.readFileSync(PROMOS_FILE, 'utf8')); return memoryPromos; } catch {}
+  }
+  memoryPromos = [];
+  return memoryPromos;
 }
+
 function writePromos(list) {
   memoryPromos = list;
-  try { fs.writeFileSync(PROMOS_FILE, JSON.stringify(list, null, 2)); } catch(e) { console.error('Cannot write promos:', e.message); }
+  // Сохраняем в menu.json чтобы пережить рестарты
+  const menu = readMenu();
+  menu.promos = list;
+  writeMenu(menu);
+  // Дополнительно в отдельный файл
+  try { fs.writeFileSync(PROMOS_FILE, JSON.stringify(list, null, 2)); } catch(e) {}
 }
 
 // Получить список промокодов (только для админа — с полными данными)
@@ -1329,6 +1338,7 @@ app.post('/api/promo/apply', (req, res) => {
   const { code, subtotal } = req.body;
   if (!code) return res.status(400).json({ error: 'Укажите промокод' });
   const list  = readPromos();
+  console.log('[promo/apply] code:', code, 'list length:', list.length, 'codes:', list.map(p=>p.code));
   const promo = list.find(p => p.code === code.trim().toUpperCase() && p.active !== false);
   if (!promo) return res.status(404).json({ error: '❌ Неверный промокод' });
 

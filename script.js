@@ -1299,13 +1299,17 @@ async function handleCheckoutSubmit(e) {
     tgChatId: tg?.initDataUnsafe?.user?.id || null,
     payment,
     promo:    state.promo,
+    promoType: state.promoItemPrices && Object.keys(state.promoItemPrices).length ? 'item' : null,
     subtotal: getSubtotal(),
     delivery: getDeliveryPrice(getSubtotal()),
     discount: state.promoDiscount,
     total:    getTotal(),
     items:    Object.entries(state.cart).map(([id, qty]) => {
       const item = findItemAny(id);
-      return { id, name: item?.name, price: getItemPrice(item), qty };
+      // Если для этого блюда есть промо-цена — используем её
+      const promoPrice = state.promoItemPrices?.[id];
+      const price = (promoPrice !== undefined) ? promoPrice : getItemPrice(item);
+      return { id, name: item?.name, price, qty, promoPrice: promoPrice !== undefined ? promoPrice : null };
     }),
   };
 
