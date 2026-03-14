@@ -22,8 +22,8 @@ function broadcast(event, data) {
 wss.on('connection', ws => {
   ws.on('error', () => {});
 });
-const YOOKASSA_SHOP_ID = process.env.YOOKASSA_SHOP_ID || '1297471';
-const YOOKASSA_SECRET  = process.env.YOOKASSA_SECRET  || 'live_HruyIJAB-UGfH7BrsNNu7fI2iyX_7cclcgOIk__2JGs';
+const YOOKASSA_SHOP_ID = process.env.YOOKASSA_SHOP_ID || '1299395';
+const YOOKASSA_SECRET  = process.env.YOOKASSA_SECRET  || 'test_x5pj7hP0iK68lZlcI0bUL00Kb7QhljgyviZQLCBZt4A';
 const YOOKASSA_API     = 'https://api.yookassa.ru/v3';
 
 app.use(cors());
@@ -46,13 +46,13 @@ const MENU_FILE      = path.join(DATA_DIR, 'menu.json');
 const ADDRESSES_FILE = path.join(DATA_DIR, 'addresses.json');
 const ORDERS_FILE    = path.join(DATA_DIR, 'orders.json');
 const UPLOADS_DIR    = path.join(DATA_DIR, 'uploads');
-const ADMIN_PASSWORD  = process.env.ADMIN_PASSWORD  || 'admin123';
-const YANDEX_GEO_KEY  = process.env.YANDEX_GEO_KEY  || '';
-const BOT_TOKEN        = process.env.BOT_TOKEN        || '8602156854:AAE1-cdqeKGBk538Rghj_ZIBl6jXjqa0JH0';
+const ADMIN_PASSWORD  = process.env.ADMIN_PASSWORD  || 'Sunny12422Days';
+const YANDEX_GEO_KEY  = process.env.YANDEX_GEO_KEY  || '6a6f05c9-682d-4ab5-b229-87c0614e842b';
+const BOT_TOKEN        = process.env.BOT_TOKEN        || '7621767388:AAEsY2d5jC1_cbbp5VJOTDog-sD6gGONN_4';
 const CLIENT_BOT_TOKEN = process.env.CLIENT_BOT_TOKEN || '8614340391:AAGpEyHQ949K6WGBu-2CCafnSOK6-ofGbBM';
 const SPB_BOT_TOKEN    = process.env.SPB_BOT_TOKEN    || '8631935230:AAGYvjxYXepGH7wlnub-cULI-zqaM520F0E';
 const VYBORG_CHAT_ID   = process.env.TG_CHAT_ID       || '-1001884949760';
-const WEBHOOK_DOMAIN  = process.env.WEBHOOK_DOMAIN   || '10test10-production.up.railway.app';
+const WEBHOOK_DOMAIN   = process.env.WEBHOOK_DOMAIN   || '10test10-production.up.railway.app';
 
 /* ── delivery zones ────────────────────────── */
 const DELIVERY_ZONES = {
