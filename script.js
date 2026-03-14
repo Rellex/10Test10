@@ -562,6 +562,8 @@ function updateCartSheet() {
   for (const [id, qty] of Object.entries(state.cart)) {
     const item = findItemAny(id);
     if (!item) continue;
+    // Блюда по промокоду не показываем в корзине
+    if (state.promoItemPrices && state.promoItemPrices[id] !== undefined) continue;
     const src = itemImgSrc(item);
     const row = document.createElement('div');
     row.className = 'cart-item';
