@@ -740,15 +740,8 @@ document.getElementById('itemModalAdd').addEventListener('click', () => {
 });
 
 /* ===== MODAL HELPERS ===== */
-function openModal(id) {
-  document.getElementById(id).style.display = 'flex';
-  document.body.style.overflow = 'hidden';
-  try { tg?.disableVerticalSwipes?.(); } catch(e) {}
-}
-function closeModal(id) {
-  document.getElementById(id).style.display = 'none';
-  document.body.style.overflow = '';
-}
+function openModal(id) { document.getElementById(id).style.display = 'flex'; document.body.style.overflow = 'hidden'; }
+function closeModal(id) { document.getElementById(id).style.display = 'none'; document.body.style.overflow = ''; }
 
 /* ===== MODAL BINDINGS ===== */
 document.getElementById('cityBtn').addEventListener('click', () => {
@@ -771,7 +764,7 @@ document.getElementById('cityModalClose').addEventListener('click', () => closeM
 document.getElementById('supportModalClose').addEventListener('click', () => closeModal('supportOverlay'));
 
 /* ===== FEEDBACK ===== */
-document.getElementById('feedbackSendBtn').addEventListener('click', async () => {
+document.getElementById('feedbackSendBtn')?.addEventListener('click', async () => {
   const text = document.getElementById('feedbackText').value.trim();
   if (!text) return;
 
