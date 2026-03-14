@@ -1306,3 +1306,36 @@ a { text-decoration: none; color: inherit; }
   background: #fff8ee;
   color: var(--primary, #f5a623);
 }
+
+/* ── Промо-позиции в корзине ── */
+.cart-item-promo {
+  background: linear-gradient(to right, #fff8ed, #fff);
+  border-left: 3px solid var(--sun);
+}
+.promo-item-badge {
+  display: inline-block;
+  font-size: 10px; font-weight: 700;
+  background: var(--sun-light); color: var(--sun);
+  border: 1px solid var(--sun);
+  border-radius: 6px; padding: 1px 5px;
+  vertical-align: middle; margin-left: 4px;
+  white-space: nowrap;
+}
+.promo-price-new {
+  color: var(--sun-dark); font-weight: 700;
+}
+.promo-price-old {
+  font-size: 11px; color: var(--grey-3);
+  text-decoration: line-through; margin-left: 4px;
+}
+.promo-price-free {
+  color: #22c55e; font-weight: 700;
+}
+.cart-item-controls.promo-locked {
+  min-width: 28px;
+  justify-content: center;
+}
+.cart-item-controls.promo-locked .cart-qty-val {
+  font-size: 14px; font-weight: 700;
+  color: var(--sun); min-width: 20px; text-align: center;
+}

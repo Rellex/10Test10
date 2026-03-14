@@ -588,28 +588,51 @@ function updateCartSheet() {
   for (const [id, qty] of Object.entries(state.cart)) {
     const item = findItemAny(id);
     if (!item) continue;
-    // Блюда по промокоду не показываем в корзине
-    if (state.promoItemPrices && state.promoItemPrices[id] !== undefined) continue;
     // Контейнер не показываем отдельной строкой
     if (id === CONTAINER_ITEM_ID) continue;
+
+    const isPromoItem = state.promoItemPrices && state.promoItemPrices[id] !== undefined;
+    const promoPrice  = isPromoItem ? state.promoItemPrices[id] : null;
+    const displayPrice = isPromoItem ? promoPrice : getItemPrice(item);
+
     const src = itemImgSrc(item);
     const row = document.createElement('div');
-    row.className = 'cart-item';
-    row.innerHTML = `
-      ${src
-        ? `<img class="cart-item-thumb" src="${src}" alt="${item.name}" />`
-        : `<div class="cart-item-emoji">${item.emoji}</div>`}
-      <div class="cart-item-info">
-        <div class="cart-item-name">${item.name}</div>
-        <div class="cart-item-price">${fmt(getItemPrice(item) * qty)}</div>
-      </div>
-      <div class="cart-item-controls">
-        <button class="cart-qty-btn ${qty === 1 ? 'remove' : ''}" data-action="dec">${qty === 1 ? '🗑' : '−'}</button>
-        <span class="cart-qty-val">${qty}</span>
-        <button class="cart-qty-btn" data-action="inc">+</button>
-      </div>`;
-    row.querySelector('[data-action="dec"]').addEventListener('click', () => decFromCart(id));
-    row.querySelector('[data-action="inc"]').addEventListener('click', () => addToCart(id));
+    row.className = 'cart-item' + (isPromoItem ? ' cart-item-promo' : '');
+
+    if (isPromoItem) {
+      // Промо-блюдо — показываем без кнопок, с бейджем и зачёркнутой ценой
+      const normalPrice = getItemPrice(item);
+      row.innerHTML = `
+        ${src
+          ? `<img class="cart-item-thumb" src="${src}" alt="${item.name}" />`
+          : `<div class="cart-item-emoji">${item.emoji}</div>`}
+        <div class="cart-item-info">
+          <div class="cart-item-name">${item.name} <span class="promo-item-badge">🎟 промокод</span></div>
+          <div class="cart-item-price">
+            ${promoPrice > 0 ? `<span class="promo-price-new">${fmt(promoPrice * qty)}</span> <span class="promo-price-old">${fmt(normalPrice * qty)}</span>` : `<span class="promo-price-free">Бесплатно</span>`}
+          </div>
+        </div>
+        <div class="cart-item-controls promo-locked">
+          <span class="cart-qty-val">${qty}</span>
+        </div>`;
+    } else {
+      row.innerHTML = `
+        ${src
+          ? `<img class="cart-item-thumb" src="${src}" alt="${item.name}" />`
+          : `<div class="cart-item-emoji">${item.emoji}</div>`}
+        <div class="cart-item-info">
+          <div class="cart-item-name">${item.name}</div>
+          <div class="cart-item-price">${fmt(displayPrice * qty)}</div>
+        </div>
+        <div class="cart-item-controls">
+          <button class="cart-qty-btn ${qty === 1 ? 'remove' : ''}" data-action="dec">${qty === 1 ? '🗑' : '−'}</button>
+          <span class="cart-qty-val">${qty}</span>
+          <button class="cart-qty-btn" data-action="inc">+</button>
+        </div>`;
+      row.querySelector('[data-action="dec"]').addEventListener('click', () => decFromCart(id));
+      row.querySelector('[data-action="inc"]').addEventListener('click', () => addToCart(id));
+    }
+
     list.appendChild(row);
   }
   updateCartSummary();
