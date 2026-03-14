@@ -1071,3 +1071,24 @@ input, select, textarea { font-family: inherit; }
 .promo-form-actions { display: flex; gap: 10px; justify-content: flex-end; margin-top: 4px; }
 .btn-promos { background: var(--white); border: 1.5px solid var(--border); color: var(--text); }
 .btn-promos:hover { border-color: var(--sun); color: var(--sun); }
+
+/* ── Promo mode tabs ── */
+.promo-mode-tabs { display: flex; gap: 6px; margin-bottom: 10px; }
+.promo-mode-tab {
+  padding: 6px 16px; border-radius: 8px; border: 1.5px solid var(--border);
+  background: var(--white); color: var(--text-sub);
+  font-size: 13px; font-weight: 700; cursor: pointer; transition: all .15s;
+}
+.promo-mode-tab.active { background: var(--sun); border-color: var(--sun); color: #fff; }
+.promo-mode-tab:hover:not(.active) { border-color: var(--sun); color: var(--sun); }
+
+.promo-mode-panel { background: var(--bg); border-radius: 10px; padding: 12px; }
+.promo-mode-toggle-row { margin-bottom: 10px; }
+.promo-mode-toggle-label {
+  display: flex; align-items: center; gap: 8px;
+  font-size: 13px; font-weight: 600; cursor: pointer; color: var(--text);
+}
+.promo-mode-toggle-label input[type=checkbox] {
+  width: 16px; height: 16px; accent-color: var(--sun); flex-shrink: 0;
+}
+.promo-mode-fields { transition: opacity .2s; }

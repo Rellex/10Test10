@@ -1808,10 +1808,10 @@ function renderPromosList() {
   const today = new Date(); today.setHours(0,0,0,0);
 
   list.innerHTML = _promos.map(p => {
+    const dCfg = p.delivery || {}, pCfg = p.pickup || {};
     const expired   = p.expiresAt && new Date(p.expiresAt) < today;
     const exhausted = p.maxUses !== null && p.usedCount >= p.maxUses;
     const inactive  = !p.active || expired || exhausted;
-
     let statusText = '', statusCls = 'promo-tag green';
     if (!p.active)     { statusText = 'Выкл';     statusCls = 'promo-tag grey'; }
     else if (expired)  { statusText = 'Истёк';    statusCls = 'promo-tag red';  }
@@ -1819,11 +1819,11 @@ function renderPromosList() {
     else {
       const parts = [];
       if (p.maxUses !== null) parts.push(`осталось ${p.maxUses - p.usedCount} исп.`);
-      if (p.expiresAt) {
-        const diff = Math.ceil((new Date(p.expiresAt) - today) / 86400000);
-        parts.push(`${diff} дн.`);
-      }
-      if (p.minOrderAmount) parts.push(`от ${p.minOrderAmount} ₽`);
+      if (p.expiresAt) { const diff = Math.ceil((new Date(p.expiresAt) - today) / 86400000); parts.push(`${diff} дн.`); }
+      const modes = [];
+      if (dCfg.enabled !== false) modes.push('🚚' + (dCfg.minOrderAmount ? ` от ${dCfg.minOrderAmount} ₽` : ''));
+      if (pCfg.enabled)           modes.push('🏪' + (pCfg.minOrderAmount ? ` от ${pCfg.minOrderAmount} ₽` : ''));
+      if (modes.length) parts.push(modes.join(' '));
       statusText = parts.length ? parts.join(' · ') : 'Активен';
     }
 
@@ -1936,13 +1936,27 @@ function renderSelectedItemPrices() {
 function openPromoForm(promo) {
   _selectedItemPrices = promo?.itemPrices ? { ...promo.itemPrices } : {};
   document.getElementById('promoFormTitle').textContent = promo ? 'Редактировать промокод' : 'Новый промокод';
-  document.getElementById('promoEditId').value       = promo?.id           || '';
-  document.getElementById('promoCode').value         = promo?.code         || '';
-  document.getElementById('promoLabel').value        = promo?.label        || '';
-  document.getElementById('promoDiscount').value     = promo?.discount     ?? '';
-  document.getElementById('promoMaxUses').value      = promo?.maxUses      ?? '';
-  document.getElementById('promoMinOrder').value     = promo?.minOrderAmount ?? '';
-  document.getElementById('promoExpiresAt').value    = promo?.expiresAt ? promo.expiresAt.slice(0,10) : '';
+  document.getElementById('promoEditId').value    = promo?.id       || '';
+  document.getElementById('promoCode').value      = promo?.code     || '';
+  document.getElementById('promoLabel').value     = promo?.label    || '';
+  document.getElementById('promoDiscount').value  = promo?.discount ?? '';
+  document.getElementById('promoMaxUses').value   = promo?.maxUses  ?? '';
+  document.getElementById('promoExpiresAt').value = promo?.expiresAt ? promo.expiresAt.slice(0,10) : '';
+
+  // Условия по режимам
+  const d = promo?.delivery || { enabled: true };
+  const p = promo?.pickup   || { enabled: false };
+  document.getElementById('promoDeliveryEnabled').checked  = d.enabled !== false;
+  document.getElementById('promoDeliveryMinOrder').value   = d.minOrderAmount ?? '';
+  document.getElementById('promoDeliveryMaxUses').value    = d.maxUses ?? '';
+  document.getElementById('promoPickupEnabled').checked    = !!p.enabled;
+  document.getElementById('promoPickupMinOrder').value     = p.minOrderAmount ?? '';
+  document.getElementById('promoPickupMaxUses').value      = p.maxUses ?? '';
+
+  // Показать первый таб
+  document.querySelectorAll('.promo-mode-tab').forEach(b => b.classList.toggle('active', b.dataset.mode === 'delivery'));
+  document.getElementById('promoModeDelivery').classList.remove('hidden');
+  document.getElementById('promoModePickup').classList.add('hidden');
 
   const type = promo?.type || 'percent';
   document.querySelectorAll('.promo-type-btn').forEach(b => b.classList.toggle('active', b.dataset.type === type));
@@ -1965,7 +1979,6 @@ async function savePromo() {
   const type     = document.querySelector('.promo-type-btn.active')?.dataset.type || 'percent';
   const discount = parseFloat(document.getElementById('promoDiscount').value) || 0;
   const maxUses  = document.getElementById('promoMaxUses').value ? parseInt(document.getElementById('promoMaxUses').value) : null;
-  const minOrder = document.getElementById('promoMinOrder').value ? parseInt(document.getElementById('promoMinOrder').value) : null;
   const expiresRaw = document.getElementById('promoExpiresAt').value;
   const expiresAt  = expiresRaw ? new Date(expiresRaw + 'T23:59:59').toISOString() : null;
 
@@ -1973,9 +1986,22 @@ async function savePromo() {
   if (type !== 'item' && !discount) { toast('Укажите размер скидки', 'error'); return; }
   if (type === 'item' && !Object.keys(_selectedItemPrices).length) { toast('Добавьте хотя бы одно блюдо', 'error'); return; }
 
+  // Условия по режимам
+  const g = id => document.getElementById(id);
+  const delivery = {
+    enabled:        g('promoDeliveryEnabled').checked,
+    minOrderAmount: g('promoDeliveryMinOrder').value ? parseInt(g('promoDeliveryMinOrder').value) : null,
+    maxUses:        g('promoDeliveryMaxUses').value  ? parseInt(g('promoDeliveryMaxUses').value)  : null,
+  };
+  const pickup = {
+    enabled:        g('promoPickupEnabled').checked,
+    minOrderAmount: g('promoPickupMinOrder').value   ? parseInt(g('promoPickupMinOrder').value)   : null,
+    maxUses:        g('promoPickupMaxUses').value    ? parseInt(g('promoPickupMaxUses').value)    : null,
+  };
+
   const body = {
     code, label: label || code, type, discount, maxUses, expiresAt,
-    minOrderAmount: minOrder,
+    delivery, pickup,
     itemPrices: type === 'item' ? _selectedItemPrices : {},
     active: true,
   };
@@ -2000,6 +2026,23 @@ document.addEventListener('DOMContentLoaded', function initPromoListeners() {
 
   document.getElementById('promoItemSearch')?.addEventListener('input', function() {
     renderPromoItemResults(this.value.trim().toLowerCase());
+  });
+
+  document.querySelectorAll('.promo-mode-tab').forEach(btn => {
+    btn.addEventListener('click', () => {
+      document.querySelectorAll('.promo-mode-tab').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      const mode = btn.dataset.mode;
+      document.getElementById('promoModeDelivery').classList.toggle('hidden', mode !== 'delivery');
+      document.getElementById('promoModePickup').classList.toggle('hidden',   mode !== 'pickup');
+    });
+  });
+
+  document.getElementById('promoDeliveryEnabled')?.addEventListener('change', function() {
+    document.getElementById('promoDeliveryFields').style.opacity = this.checked ? '1' : '0.4';
+  });
+  document.getElementById('promoPickupEnabled')?.addEventListener('change', function() {
+    document.getElementById('promoPickupFields').style.opacity = this.checked ? '1' : '0.4';
   });
 
   document.querySelectorAll('.promo-type-btn').forEach(btn => {

@@ -1196,7 +1196,7 @@ async function applyPromo() {
     const res  = await fetch('/api/promo/apply', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ code, subtotal: getSubtotal() }),
+      body: JSON.stringify({ code, subtotal: getSubtotal(), mode: state.deliveryMode || 'delivery' }),
     });
     const data = await res.json();
     if (!res.ok) {
@@ -1439,7 +1439,7 @@ async function handleCheckoutSubmit(e) {
       fetch('/api/promo/use', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ code: state.promo }),
+        body: JSON.stringify({ code: state.promo, mode: state.deliveryMode || 'delivery' }),
       }).catch(() => {});
     }
 

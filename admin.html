@@ -398,19 +398,63 @@
 
         <div class="promo-field-row">
           <div class="promo-field">
-            <label class="promo-label">Макс. использований</label>
+            <label class="promo-label">Макс. использований (всего)</label>
             <input type="number" class="promo-input" id="promoMaxUses" placeholder="∞ неограничено" min="1" />
           </div>
           <div class="promo-field">
-            <label class="promo-label">Мин. сумма заказа (₽)</label>
-            <input type="number" class="promo-input" id="promoMinOrder" placeholder="0 — без ограничений" min="0" />
+            <label class="promo-label">Действует до</label>
+            <input type="date" class="promo-input" id="promoExpiresAt" />
           </div>
         </div>
 
-        <div class="promo-field-row">
-          <div class="promo-field">
-            <label class="promo-label">Действует до</label>
-            <input type="date" class="promo-input" id="promoExpiresAt" />
+        <!-- Условия по способу получения -->
+        <div class="promo-field">
+          <label class="promo-label">Условия по способу получения</label>
+          <div class="promo-mode-tabs">
+            <button type="button" class="promo-mode-tab active" data-mode="delivery">🚚 Доставка</button>
+            <button type="button" class="promo-mode-tab" data-mode="pickup">🏪 Самовывоз</button>
+          </div>
+
+          <div class="promo-mode-panel" id="promoModeDelivery">
+            <div class="promo-mode-toggle-row">
+              <label class="promo-mode-toggle-label">
+                <input type="checkbox" id="promoDeliveryEnabled" checked />
+                <span>Промокод работает при доставке</span>
+              </label>
+            </div>
+            <div class="promo-mode-fields" id="promoDeliveryFields">
+              <div class="promo-field-row">
+                <div class="promo-field">
+                  <label class="promo-label">Мин. сумма (₽)</label>
+                  <input type="number" class="promo-input" id="promoDeliveryMinOrder" placeholder="0" min="0" />
+                </div>
+                <div class="promo-field">
+                  <label class="promo-label">Макс. исп. (доставка)</label>
+                  <input type="number" class="promo-input" id="promoDeliveryMaxUses" placeholder="∞" min="1" />
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div class="promo-mode-panel hidden" id="promoModePickup">
+            <div class="promo-mode-toggle-row">
+              <label class="promo-mode-toggle-label">
+                <input type="checkbox" id="promoPickupEnabled" />
+                <span>Промокод работает при самовывозе</span>
+              </label>
+            </div>
+            <div class="promo-mode-fields" id="promoPickupFields">
+              <div class="promo-field-row">
+                <div class="promo-field">
+                  <label class="promo-label">Мин. сумма (₽)</label>
+                  <input type="number" class="promo-input" id="promoPickupMinOrder" placeholder="0" min="0" />
+                </div>
+                <div class="promo-field">
+                  <label class="promo-label">Макс. исп. (самовывоз)</label>
+                  <input type="number" class="promo-input" id="promoPickupMaxUses" placeholder="∞" min="1" />
+                </div>
+              </div>
+            </div>
           </div>
         </div>
 

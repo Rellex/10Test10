@@ -1335,10 +1335,10 @@ app.delete('/api/admin/promos/:id', auth, (req, res) => {
 
 // Применить промокод (публичный — вызывается из мини-апп)
 app.post('/api/promo/apply', (req, res) => {
-  const { code, subtotal } = req.body;
+  const { code, subtotal, mode } = req.body; // mode = 'delivery' | 'pickup'
   if (!code) return res.status(400).json({ error: 'Укажите промокод' });
   const list  = readPromos();
-  console.log('[promo/apply] code:', code, 'list length:', list.length, 'codes:', list.map(p=>p.code));
+  console.log('[promo/apply] code:', code, 'mode:', mode, 'list length:', list.length, 'codes:', list.map(p=>p.code));
   const promo = list.find(p => p.code === code.trim().toUpperCase() && p.active !== false);
   if (!promo) return res.status(404).json({ error: '❌ Неверный промокод' });
 
@@ -1346,13 +1346,29 @@ app.post('/api/promo/apply', (req, res) => {
   if (promo.expiresAt && new Date(promo.expiresAt) < new Date())
     return res.status(410).json({ error: '❌ Срок действия промокода истёк' });
 
-  // Проверка лимита использований
+  // Проверка общего лимита использований
   if (promo.maxUses !== null && promo.usedCount >= promo.maxUses)
     return res.status(410).json({ error: '❌ Промокод исчерпан' });
 
-  // Проверка минимальной суммы заказа
-  if (promo.minOrderAmount && (subtotal || 0) < promo.minOrderAmount)
-    return res.status(400).json({ error: `❌ Промокод доступен от ${promo.minOrderAmount} ₽` });
+  // Проверка условий для конкретного режима получения
+  const modeCfg = mode === 'pickup' ? (promo.pickup || {}) : (promo.delivery || { enabled: true });
+
+  // Промокод не работает для этого режима
+  if (modeCfg.enabled === false)
+    return res.status(400).json({
+      error: mode === 'pickup'
+        ? '❌ Промокод не действует при самовывозе'
+        : '❌ Промокод не действует при доставке'
+    });
+
+  // Проверка мин. суммы для режима
+  if (modeCfg.minOrderAmount && (subtotal || 0) < modeCfg.minOrderAmount)
+    return res.status(400).json({ error: `❌ Промокод доступен от ${modeCfg.minOrderAmount} ₽` });
+
+  // Проверка лимита использований для режима
+  const modeUsed = mode === 'pickup' ? (promo.pickupUsedCount || 0) : (promo.deliveryUsedCount || 0);
+  if (modeCfg.maxUses !== null && modeCfg.maxUses !== undefined && modeUsed >= modeCfg.maxUses)
+    return res.status(410).json({ error: '❌ Лимит использований для этого способа получения исчерпан' });
 
   // Считаем скидку
   let discountAmount = 0;
@@ -1361,29 +1377,30 @@ app.post('/api/promo/apply', (req, res) => {
   } else if (promo.type === 'fixed') {
     discountAmount = promo.discount;
   }
-  // type='item' — скидка 0, цены на блюда придут через itemPrices
 
   res.json({
-    ok:             true,
-    code:           promo.code,
-    type:           promo.type,
-    discount:       discountAmount,
-    discount_pct:   promo.type === 'percent' ? promo.discount : null,
-    label:          promo.label,
-    itemPrices:     promo.itemPrices || {},
-    usesLeft:       promo.maxUses !== null ? promo.maxUses - promo.usedCount : null,
-    expiresAt:      promo.expiresAt,
+    ok:           true,
+    code:         promo.code,
+    type:         promo.type,
+    discount:     discountAmount,
+    discount_pct: promo.type === 'percent' ? promo.discount : null,
+    label:        promo.label,
+    itemPrices:   promo.itemPrices || {},
+    usesLeft:     promo.maxUses !== null ? promo.maxUses - promo.usedCount : null,
+    expiresAt:    promo.expiresAt,
   });
 });
 
 // Зафиксировать использование промокода (вызывается при создании заказа)
 app.post('/api/promo/use', (req, res) => {
-  const { code } = req.body;
-  if (!code) return res.status(400).json({ error: 'Нет кода' });
+  const { code, mode } = req.body;
+  if (!code) return res.json({ ok: true });
   const list  = readPromos();
   const promo = list.find(p => p.code === code.trim().toUpperCase());
-  if (!promo) return res.json({ ok: true }); // молча, заказ уже создан
+  if (!promo) return res.json({ ok: true });
   promo.usedCount = (promo.usedCount || 0) + 1;
+  if (mode === 'pickup') promo.pickupUsedCount   = (promo.pickupUsedCount   || 0) + 1;
+  else                   promo.deliveryUsedCount  = (promo.deliveryUsedCount || 0) + 1;
   writePromos(list);
   broadcast('promos', readPromos());
   res.json({ ok: true });
