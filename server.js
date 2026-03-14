@@ -1247,6 +1247,132 @@ app.post('/api/admin/import/menu', auth, (req, res) => {
 app.get('/admin', (_, res) => res.sendFile(path.join(__dirname, 'admin.html')));
 
 /* ══════════════════════════════════════════════
+   PROMO CODES  — полная система
+══════════════════════════════════════════════ */
+const PROMOS_FILE = path.join(DATA_DIR, 'promos.json');
+let memoryPromos  = null;
+
+function readPromos() {
+  if (memoryPromos) return memoryPromos;
+  if (!fs.existsSync(PROMOS_FILE)) return [];
+  try { memoryPromos = JSON.parse(fs.readFileSync(PROMOS_FILE, 'utf8')); return memoryPromos; }
+  catch { return []; }
+}
+function writePromos(list) {
+  memoryPromos = list;
+  try { fs.writeFileSync(PROMOS_FILE, JSON.stringify(list, null, 2)); } catch(e) { console.error('Cannot write promos:', e.message); }
+}
+
+// Получить список промокодов (только для админа — с полными данными)
+app.get('/api/admin/promos', auth, (_, res) => res.json(readPromos()));
+
+// Создать промокод
+app.post('/api/admin/promos', auth, (req, res) => {
+  const { code, type, discount, label, maxUses, expiresAt, itemPrices } = req.body;
+  if (!code || !type) return res.status(400).json({ error: 'code и type обязательны' });
+  const list = readPromos();
+  if (list.find(p => p.code === code.toUpperCase()))
+    return res.status(409).json({ error: 'Промокод уже существует' });
+  const promo = {
+    id:        'promo-' + Date.now(),
+    code:      code.trim().toUpperCase(),
+    type,                           // 'percent' | 'fixed' | 'item'
+    discount:  discount || 0,       // для percent/fixed
+    label:     label || code,
+    maxUses:   maxUses   || null,   // null = неограничено
+    usedCount: 0,
+    expiresAt: expiresAt || null,   // null = бессрочно, ISO string
+    itemPrices: itemPrices || {},   // { itemId: price } для type='item'
+    active:    true,
+    createdAt: new Date().toISOString(),
+  };
+  list.push(promo);
+  writePromos(list);
+  broadcast('promos', readPromos());
+  res.json(promo);
+});
+
+// Обновить промокод
+app.put('/api/admin/promos/:id', auth, (req, res) => {
+  const list  = readPromos();
+  const promo = list.find(p => p.id === req.params.id);
+  if (!promo) return res.status(404).json({ error: 'Не найден' });
+  const { code, type, discount, label, maxUses, expiresAt, itemPrices, active } = req.body;
+  if (code      !== undefined) promo.code       = code.trim().toUpperCase();
+  if (type      !== undefined) promo.type       = type;
+  if (discount  !== undefined) promo.discount   = discount;
+  if (label     !== undefined) promo.label      = label;
+  if (maxUses   !== undefined) promo.maxUses    = maxUses;
+  if (expiresAt !== undefined) promo.expiresAt  = expiresAt;
+  if (itemPrices!== undefined) promo.itemPrices = itemPrices;
+  if (active    !== undefined) promo.active     = active;
+  writePromos(list);
+  broadcast('promos', readPromos());
+  res.json(promo);
+});
+
+// Удалить промокод
+app.delete('/api/admin/promos/:id', auth, (req, res) => {
+  const list = readPromos();
+  const idx  = list.findIndex(p => p.id === req.params.id);
+  if (idx === -1) return res.status(404).json({ error: 'Не найден' });
+  list.splice(idx, 1);
+  writePromos(list);
+  broadcast('promos', readPromos());
+  res.json({ ok: true });
+});
+
+// Применить промокод (публичный — вызывается из мини-апп)
+app.post('/api/promo/apply', (req, res) => {
+  const { code, subtotal } = req.body;
+  if (!code) return res.status(400).json({ error: 'Укажите промокод' });
+  const list  = readPromos();
+  const promo = list.find(p => p.code === code.trim().toUpperCase() && p.active !== false);
+  if (!promo) return res.status(404).json({ error: '❌ Неверный промокод' });
+
+  // Проверка срока
+  if (promo.expiresAt && new Date(promo.expiresAt) < new Date())
+    return res.status(410).json({ error: '❌ Срок действия промокода истёк' });
+
+  // Проверка лимита использований
+  if (promo.maxUses !== null && promo.usedCount >= promo.maxUses)
+    return res.status(410).json({ error: '❌ Промокод исчерпан' });
+
+  // Считаем скидку
+  let discountAmount = 0;
+  if (promo.type === 'percent') {
+    discountAmount = Math.round((subtotal || 0) * promo.discount / 100);
+  } else if (promo.type === 'fixed') {
+    discountAmount = promo.discount;
+  }
+  // type='item' — скидка 0, цены на блюда придут через itemPrices
+
+  res.json({
+    ok:             true,
+    code:           promo.code,
+    type:           promo.type,
+    discount:       discountAmount,
+    label:          promo.label,
+    itemPrices:     promo.itemPrices || {},
+    usesLeft:       promo.maxUses !== null ? promo.maxUses - promo.usedCount : null,
+    expiresAt:      promo.expiresAt,
+  });
+});
+
+// Зафиксировать использование промокода (вызывается при создании заказа)
+app.post('/api/promo/use', (req, res) => {
+  const { code } = req.body;
+  if (!code) return res.status(400).json({ error: 'Нет кода' });
+  const list  = readPromos();
+  const promo = list.find(p => p.code === code.trim().toUpperCase());
+  if (!promo) return res.json({ ok: true }); // молча, заказ уже создан
+  promo.usedCount = (promo.usedCount || 0) + 1;
+  writePromos(list);
+  broadcast('promos', readPromos());
+  res.json({ ok: true });
+});
+
+/* ══════════════════════════════════════════════
    KITCHEN PANEL  — только toggle доступности
    Отдельный PIN, без доступа к редактированию
 ══════════════════════════════════════════════ */

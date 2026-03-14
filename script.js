@@ -226,6 +226,7 @@ const state = {
   cart:           JSON.parse(localStorage.getItem('cart') || '{}'),
   promo:          null,
   promoDiscount:  0,
+  promoItemPrices: {},
   deliveryMode:   'delivery',
   activeCategory: null,
   itemModal:      { item: null, qty: 1 },
@@ -1103,26 +1104,61 @@ function renderPaymentOptions() {
 document.getElementById('applyPromoBtn').addEventListener('click', applyPromo);
 document.getElementById('promoInput').addEventListener('keydown', e => { if (e.key === 'Enter') applyPromo(); });
 
-function applyPromo() {
+async function applyPromo() {
   const code     = document.getElementById('promoInput').value.trim().toUpperCase();
   const statusEl = document.getElementById('promoStatus');
   if (!code) { statusEl.className = 'promo-status error'; statusEl.textContent = 'Введите промокод'; return; }
 
-  const promo = PROMO_CODES[code];
-  if (!promo) {
-    state.promo = null; state.promoDiscount = 0;
-    statusEl.className   = 'promo-status error';
-    statusEl.textContent = '❌ Неверный промокод';
-    updateCheckoutSummary(); return;
-  }
+  const btn = document.getElementById('applyPromoBtn');
+  btn.disabled = true; btn.textContent = '...';
 
-  state.promo = code;
-  const sub   = getSubtotal();
-  state.promoDiscount = promo.type === 'percent' ? Math.round(sub * promo.discount / 100) : promo.discount;
-  statusEl.className   = 'promo-status success';
-  statusEl.textContent = '✅ ' + promo.label;
-  updateCheckoutSummary();
-  tg?.HapticFeedback?.notificationOccurred('success');
+  try {
+    const res  = await fetch('/api/promo/apply', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ code, subtotal: getSubtotal() }),
+    });
+    const data = await res.json();
+    if (!res.ok) {
+      state.promo = null; state.promoDiscount = 0; state.promoItemPrices = {};
+      statusEl.className   = 'promo-status error';
+      statusEl.textContent = data.error || '❌ Неверный промокод';
+      updateCheckoutSummary(); return;
+    }
+    state.promo           = data.code;
+    state.promoItemPrices = data.itemPrices || {};
+    const sub = getSubtotal();
+    if (data.type === 'item') {
+      // Считаем скидку как разницу между обычной ценой и ценой по промокоду
+      let saved = 0;
+      for (const [itemId, promoPrice] of Object.entries(state.promoItemPrices)) {
+        const cartEntry = state.cart[itemId];
+        if (!cartEntry) continue;
+        const item = findItemAny(itemId);
+        if (!item) continue;
+        const normalPrice = getItemPrice(item);
+        saved += (normalPrice - promoPrice) * cartEntry.qty;
+      }
+      state.promoDiscount = Math.max(0, saved);
+    } else {
+      state.promoDiscount = data.discount;
+    }
+    let hint = '';
+    if (data.usesLeft !== null) hint += ` · осталось ${data.usesLeft} исп.`;
+    if (data.expiresAt) {
+      const d = new Date(data.expiresAt);
+      hint += ` · до ${d.toLocaleDateString('ru')}`;
+    }
+    statusEl.className   = 'promo-status success';
+    statusEl.textContent = '✅ ' + data.label + hint;
+    updateCheckoutSummary();
+    tg?.HapticFeedback?.notificationOccurred('success');
+  } catch(e) {
+    statusEl.className = 'promo-status error';
+    statusEl.textContent = '❌ Ошибка соединения';
+  } finally {
+    btn.disabled = false; btn.textContent = 'Применить';
+  }
 }
 
 /* ===== DELIVERY ZONE CHECK ===== */
@@ -1289,6 +1325,15 @@ async function handleCheckoutSubmit(e) {
     }
 
     localStorage.setItem('lastOrderPhone', orderData.phone);
+
+    // Фиксируем использование промокода
+    if (state.promo) {
+      fetch('/api/promo/use', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ code: state.promo }),
+      }).catch(() => {});
+    }
 
     if (payment === 'card' && data.redirectUrl) {
       showPaymentReadyButton(data.redirectUrl, data.paymentId, data.tempId, orderData);
@@ -1721,8 +1766,19 @@ function connectLiveUpdates() {
   ws.onmessage = ({ data }) => {
     try {
       const { event, data: payload } = JSON.parse(data);
+      if (event === 'promos') {
+        // Промокоды обновились — если текущий промокод изменился, пересчитываем
+        if (state.promo) {
+          const updated = payload.find(p => p.code === state.promo);
+          if (!updated || !updated.active || (updated.maxUses !== null && updated.usedCount >= updated.maxUses)) {
+            state.promo = null; state.promoDiscount = 0; state.promoItemPrices = {};
+            const statusEl = document.getElementById('promoStatus');
+            if (statusEl) { statusEl.className = 'promo-status error'; statusEl.textContent = '❌ Промокод больше не действует'; }
+            updateCheckoutSummary();
+          }
+        }
+      }
       if (event === 'kitchen_availability') {
-        const { itemId, available } = payload;
         if (available === false) {
           _kitchenUnavailable.add(itemId);
         } else {

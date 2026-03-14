@@ -104,6 +104,7 @@
         <button class="topbar-menu-btn" id="sidebarToggle">☰</button>
         <div class="topbar-title" id="topbarTitle">Выберите категорию</div>
         <button class="btn-schedule" id="scheduleBtn" title="Настроить расписание по дням">📅 Расписание</button>
+        <button class="btn-schedule btn-promos" id="promosBtn" title="Управление промокодами">🎟 Промокоды</button>
         <button class="btn-add-item" id="addItemBtn">
           <span class="btn-add-item-icon">+</span>
           <span>Добавить позицию</span>
@@ -331,6 +332,86 @@
     <div class="modal-footer">
       <button class="btn-secondary" id="scheduleModalCancel">Отмена</button>
       <button class="btn-primary" id="scheduleModalSave">💾 Сохранить</button>
+    </div>
+  </div>
+</div>
+
+<!-- ===== PROMOS MODAL ===== -->
+<div class="modal-overlay hidden" id="promosModal">
+  <div class="modal promos-modal">
+    <div class="modal-header">
+      <div class="modal-title">🎟 Промокоды</div>
+      <button class="modal-close" id="promosModalClose">✕</button>
+    </div>
+    <div class="promos-modal-body">
+
+      <!-- Список промокодов -->
+      <div class="promos-list-wrap">
+        <div class="promos-list-header">
+          <span class="promos-list-title">Активные промокоды</span>
+          <button class="btn-primary btn-sm" id="promoAddBtn">+ Создать</button>
+        </div>
+        <div id="promosList"></div>
+        <div id="promosEmpty" class="promos-empty hidden">Промокодов пока нет</div>
+      </div>
+
+      <!-- Форма создания/редактирования -->
+      <div class="promo-form-wrap hidden" id="promoFormWrap">
+        <div class="promo-form-title" id="promoFormTitle">Новый промокод</div>
+        <input type="hidden" id="promoEditId" />
+
+        <div class="promo-field-row">
+          <div class="promo-field">
+            <label class="promo-label">Код промокода*</label>
+            <input type="text" class="promo-input" id="promoCode" placeholder="SUMMER20" style="text-transform:uppercase" />
+          </div>
+          <div class="promo-field">
+            <label class="promo-label">Название / подпись</label>
+            <input type="text" class="promo-input" id="promoLabel" placeholder="Скидка 20%" />
+          </div>
+        </div>
+
+        <div class="promo-field">
+          <label class="promo-label">Тип скидки*</label>
+          <div class="promo-type-tabs">
+            <button type="button" class="promo-type-btn active" data-type="percent">% Процент</button>
+            <button type="button" class="promo-type-btn" data-type="fixed">₽ Сумма</button>
+            <button type="button" class="promo-type-btn" data-type="item">🍽 Цена на блюда</button>
+          </div>
+        </div>
+
+        <!-- percent / fixed -->
+        <div class="promo-field" id="promoDiscountWrap">
+          <label class="promo-label" id="promoDiscountLabel">Размер скидки (%)*</label>
+          <input type="number" class="promo-input" id="promoDiscount" placeholder="10" min="0" />
+        </div>
+
+        <!-- item prices -->
+        <div class="promo-field hidden" id="promoItemPricesWrap">
+          <label class="promo-label">Блюда и цены по промокоду</label>
+          <div class="promo-item-search-wrap">
+            <input type="text" class="promo-input" id="promoItemSearch" placeholder="Поиск блюда..." />
+          </div>
+          <div class="promo-item-results" id="promoItemResults"></div>
+          <div class="promo-selected-items" id="promoSelectedItems"></div>
+        </div>
+
+        <div class="promo-field-row">
+          <div class="promo-field">
+            <label class="promo-label">Макс. использований</label>
+            <input type="number" class="promo-input" id="promoMaxUses" placeholder="∞ неограничено" min="1" />
+          </div>
+          <div class="promo-field">
+            <label class="promo-label">Действует до</label>
+            <input type="date" class="promo-input" id="promoExpiresAt" />
+          </div>
+        </div>
+
+        <div class="promo-form-actions">
+          <button type="button" class="btn-secondary" id="promoFormCancel">Отмена</button>
+          <button type="button" class="btn-primary" id="promoFormSave">💾 Сохранить</button>
+        </div>
+      </div>
     </div>
   </div>
 </div>
