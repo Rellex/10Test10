@@ -241,7 +241,10 @@ function getSubtotal() {
   let total = 0;
   for (const [id, qty] of Object.entries(state.cart)) {
     const item = findItemAny(id);
-    if (item) total += getItemPrice(item) * qty;
+    if (!item) continue;
+    // Для блюд без cityPrices (напр. контейнер) берём item.price напрямую
+    const price = item.cityPrices ? getItemPrice(item) : (item.price || 0);
+    total += price * qty;
   }
   return total;
 }
@@ -1458,12 +1461,14 @@ async function handleCheckoutSubmit(e) {
     total:    getTotal(),
     items:    Object.entries(state.cart).map(([id, qty]) => {
       const item = findItemAny(id);
-      // Если для этого блюда есть промо-цена — используем её
+      if (!item) return null; // пропускаем неизвестные позиции
       const promoRec   = state.promoItemPrices?.[id];
       const promoPrice = promoRec !== undefined ? (typeof promoRec === 'object' ? promoRec.price : promoRec) : undefined;
-      const price = (promoPrice !== undefined) ? promoPrice : getItemPrice(item);
-      return { id, name: item?.name, price, qty, promoPrice: promoPrice !== undefined ? promoPrice : null };
-    }),
+      // Для контейнера берём цену напрямую из item.price если cityPrices нет
+      const basePrice  = item.cityPrices ? getItemPrice(item) : (item.price || 0);
+      const price = (promoPrice !== undefined) ? promoPrice : basePrice;
+      return { id, name: item.name, price, qty, promoPrice: promoPrice !== undefined ? promoPrice : null };
+    }).filter(Boolean),
   };
 
   try {
