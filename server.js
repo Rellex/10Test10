@@ -1082,23 +1082,8 @@ app.post('/api/bot/webhook', async (req, res) => {
   const isAdminChat = incomingChat === ALLOWED_CHAT;
   const isStart = body?.message?.text === '/start';
 
-  if (!isAdminChat && !isStart) return; // игнорируем всех остальных
-
-  // Handle /start command
-  if (isStart) {
-    const chatId = body.message.chat.id;
-    await tgApi('sendMessage', {
-      chat_id: chatId,
-      text: '☀️ Добро пожаловать в «Солнечный день»!\n\nЗдесь вы можете быстро оформить заказ на доставку или самовывоз. Нажмите кнопку ниже, чтобы открыть меню и выбрать блюда.\n\nЖелаем вам солнечного настроения и приятного аппетита! 🍽',
-      reply_markup: {
-        inline_keyboard: [[{
-          text: '🍽 Открыть меню',
-          web_app: { url: `https://${WEBHOOK_DOMAIN}/` }
-        }]]
-      }
-    });
-    return;
-  }
+  // Разрешаем только сообщения из admin-чата
+  if (!isAdminChat) return;
 
   // Handle text message for assembler name (persistent check via order status)
   if (body?.message?.text) {
